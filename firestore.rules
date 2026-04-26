@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function hasValidEntryShape(data) {
+      return data.keys().hasAll(['start', 'end', 'mode', 'updatedAt', 'isDeleted']) &&
+          data.start is timestamp &&
+          data.end is timestamp &&
+          data.updatedAt is timestamp &&
+          data.mode is string &&
+          data.isDeleted is bool;
+    }
+
+    match /users/{uid}/entries/{entryId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && hasValidEntryShape(request.resource.data);
+      allow delete: if false;
+    }
+  }
+}

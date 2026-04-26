@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../controllers/work_timer_controller.dart';
 import 'history_tab.dart';
 import 'timer_tab.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key, required this.controller});
+  const HomeShell({super.key, required this.onSignOut});
 
-  final WorkTimerController controller;
+  final Future<void> Function() onSignOut;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -22,12 +21,19 @@ class _HomeShellState extends State<HomeShell> {
       appBar: AppBar(
         title: const Text('Work Timer'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: widget.onSignOut,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Wyloguj',
+          ),
+        ],
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         child: _index == 0
-            ? TimerTab(key: const ValueKey('timer'), controller: widget.controller)
-            : HistoryTab(key: const ValueKey('history'), controller: widget.controller),
+            ? const TimerTab(key: ValueKey('timer'))
+            : const HistoryTab(key: ValueKey('history')),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,

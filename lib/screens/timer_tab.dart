@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../controllers/work_timer_controller.dart';
+import '../bloc/timer_cubit.dart';
 import '../models/work_mode.dart';
 
 class TimerTab extends StatelessWidget {
-  const TimerTab({super.key, required this.controller});
-
-  final WorkTimerController controller;
+  const TimerTab({super.key});
 
   static String _formatDuration(Duration d) {
     final h = d.inHours;
@@ -27,11 +26,11 @@ class TimerTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
+    return BlocBuilder<TimerCubit, TimerState>(
+      builder: (context, state) {
+        final cubit = context.read<TimerCubit>();
         final scheme = Theme.of(context).colorScheme;
-        final canSetMode = controller.canChangeMode;
+        final canSetMode = state.canChangeMode;
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -55,9 +54,9 @@ class TimerTab extends StatelessWidget {
                     icon: const Icon(Icons.apartment_outlined),
                   ),
                 ],
-                selected: {controller.nextSessionMode},
+                selected: {state.nextSessionMode},
                 onSelectionChanged: (s) {
-                  if (canSetMode) controller.setNextMode(s.first);
+                  if (canSetMode) cubit.setNextMode(s.first);
                 },
                 showSelectedIcon: false,
               ),
@@ -65,47 +64,47 @@ class TimerTab extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Tryb zablokowany na czas sesji.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.outline,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: scheme.outline),
                 ),
               ],
               const Spacer(),
               Text(
-                _formatDuration(controller.elapsed),
+                _formatDuration(state.elapsed),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                      letterSpacing: 2,
-                    ),
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  letterSpacing: 2,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
-                _stateLabel(controller.runState),
+                _stateLabel(state.runState),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: scheme.secondary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: scheme.secondary),
               ),
               const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   FilledButton.tonalIcon(
-                    onPressed: () => controller.play(),
+                    onPressed: cubit.play,
                     icon: const Icon(Icons.play_arrow),
                     label: const Text('Play'),
                   ),
                   FilledButton.tonalIcon(
-                    onPressed: controller.runState == TimerRunState.running
-                        ? controller.pause
+                    onPressed: state.runState == TimerRunState.running
+                        ? cubit.pause
                         : null,
                     icon: const Icon(Icons.pause),
                     label: const Text('Pause'),
                   ),
                   FilledButton.icon(
-                    onPressed: controller.runState != TimerRunState.idle
-                        ? () => controller.stop()
+                    onPressed: state.runState != TimerRunState.idle
+                        ? () => cubit.stop()
                         : null,
                     icon: const Icon(Icons.stop),
                     label: const Text('Stop'),

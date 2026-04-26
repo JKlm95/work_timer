@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-import '../controllers/work_timer_controller.dart';
+import '../bloc/timer_cubit.dart';
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
 
 class HistoryTab extends StatefulWidget {
-  const HistoryTab({super.key, required this.controller});
-
-  final WorkTimerController controller;
+  const HistoryTab({super.key});
 
   @override
   State<HistoryTab> createState() => _HistoryTabState();
@@ -22,6 +21,9 @@ class _HistoryTabState extends State<HistoryTab> {
   void initState() {
     super.initState();
     _range = _defaultMonthRange();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TimerCubit>().loadHistory(_range);
+    });
   }
 
   DateTimeRange _defaultMonthRange() {
@@ -46,20 +48,21 @@ class _HistoryTabState extends State<HistoryTab> {
   bool _entryMatchesMode(WorkEntry e) =>
       _modeFilter == null || e.mode == _modeFilter;
 
-  Iterable<WorkEntry> _filtered() => widget.controller.entries
-      .where(_entryInRange)
-      .where(_entryMatchesMode);
+  Iterable<WorkEntry> _filtered(List<WorkEntry> entries) =>
+      entries.where(_entryInRange).where(_entryMatchesMode);
 
   Duration _sum(Iterable<WorkEntry> items) =>
       items.fold(Duration.zero, (a, e) => a + e.duration);
 
-  Duration _currentMonthTotal() {
+  Duration _currentMonthTotal(List<WorkEntry> currentMonthEntries) {
     final now = DateTime.now();
     final from = DateTime(now.year, now.month, 1);
     final to = _dayEnd(DateTime(now.year, now.month + 1, 0));
-    return _sum(widget.controller.entries.where((e) {
-      return !e.start.isBefore(from) && !e.start.isAfter(to);
-    }));
+    return _sum(
+      currentMonthEntries.where((e) {
+        return !e.start.isBefore(from) && !e.start.isAfter(to);
+      }),
+    );
   }
 
   static String _formatHm(Duration d) {
@@ -78,7 +81,11 @@ class _HistoryTabState extends State<HistoryTab> {
       initialDateRange: _range,
       locale: const Locale('pl'),
     );
-    if (picked != null) setState(() => _range = picked);
+    if (picked != null) {
+      setState(() => _range = picked);
+      if (!mounted) return;
+      await context.read<TimerCubit>().loadHistory(_range);
+    }
   }
 
   @override
@@ -86,12 +93,11 @@ class _HistoryTabState extends State<HistoryTab> {
     final dateFmt = DateFormat.yMMMd('pl');
     final timeFmt = DateFormat.Hm('pl');
 
-    return ListenableBuilder(
-      listenable: widget.controller,
-      builder: (context, _) {
-        final filtered = _filtered().toList();
+    return BlocBuilder<TimerCubit, TimerState>(
+      builder: (context, state) {
+        final filtered = _filtered(state.entries).toList();
         final sumFiltered = _sum(filtered);
-        final monthTotal = _currentMonthTotal();
+        final monthTotal = _currentMonthTotal(state.currentMonthEntries);
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -115,8 +121,8 @@ class _HistoryTabState extends State<HistoryTab> {
                     Text(
                       'W filtrze: ${_formatHm(sumFiltered)}',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -149,10 +155,7 @@ class _HistoryTabState extends State<HistoryTab> {
                       child: Text('Wszystkie'),
                     ),
                     ...WorkMode.values.map(
-                      (m) => DropdownMenuItem(
-                        value: m,
-                        child: Text(m.labelPl),
-                      ),
+                      (m) => DropdownMenuItem(value: m, child: Text(m.labelPl)),
                     ),
                   ],
                   onChanged: (v) => setState(() => _modeFilter = v),
@@ -161,14 +164,33 @@ class _HistoryTabState extends State<HistoryTab> {
             ),
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: () => setState(() {
-                _range = _defaultMonthRange();
-                _modeFilter = null;
-              }),
+              onPressed: () async {
+                setState(() {
+                  _range = _defaultMonthRange();
+                  _modeFilter = null;
+                });
+                await context.read<TimerCubit>().loadHistory(_range);
+              },
               icon: const Icon(Icons.restore),
               label: const Text('Ustaw bieżący miesiąc'),
             ),
             const SizedBox(height: 16),
+            if (state.historyLoading)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: LinearProgressIndicator(),
+              ),
+            if (state.historyOfflineFallback)
+              Card(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text(
+                    'Tryb offline: pokazuję lokalne dane. Starsze zakresy wymagają internetu.',
+                  ),
+                ),
+              ),
+            if (state.historyOfflineFallback) const SizedBox(height: 12),
             Text(
               'Wpisy (${filtered.length})',
               style: Theme.of(context).textTheme.titleMedium,
@@ -181,8 +203,8 @@ class _HistoryTabState extends State<HistoryTab> {
                   child: Text(
                     'Brak wpisów dla wybranych filtrów.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
                   ),
                 ),
               )

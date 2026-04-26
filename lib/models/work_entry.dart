@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'work_mode.dart';
 
 class WorkEntry {
@@ -6,21 +8,35 @@ class WorkEntry {
     required this.start,
     required this.end,
     required this.mode,
+    required this.updatedAt,
+    this.isDeleted = false,
   });
 
   final String id;
   final DateTime start;
   final DateTime end;
   final WorkMode mode;
+  final DateTime updatedAt;
+  final bool isDeleted;
 
   Duration get duration => end.difference(start);
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'start': start.toIso8601String(),
-        'end': end.toIso8601String(),
-        'mode': mode.storageValue,
-      };
+    'id': id,
+    'start': start.toIso8601String(),
+    'end': end.toIso8601String(),
+    'mode': mode.storageValue,
+    'updatedAt': updatedAt.toIso8601String(),
+    'isDeleted': isDeleted,
+  };
+
+  Map<String, dynamic> toFirestore() => {
+    'start': start,
+    'end': end,
+    'mode': mode.storageValue,
+    'updatedAt': updatedAt,
+    'isDeleted': isDeleted,
+  };
 
   factory WorkEntry.fromJson(Map<String, dynamic> json) {
     return WorkEntry(
@@ -28,6 +44,28 @@ class WorkEntry {
       start: DateTime.parse(json['start'] as String),
       end: DateTime.parse(json['end'] as String),
       mode: workModeFromStorage(json['mode'] as String?),
+      updatedAt: DateTime.parse(
+        json['updatedAt'] as String? ?? json['end'] as String,
+      ),
+      isDeleted: json['isDeleted'] as bool? ?? false,
+    );
+  }
+
+  factory WorkEntry.fromFirestore(String id, Map<String, dynamic> json) {
+    DateTime parseDate(dynamic value) {
+      if (value is DateTime) return value;
+      if (value is String) return DateTime.parse(value);
+      if (value is Timestamp) return value.toDate();
+      return DateTime.now();
+    }
+
+    return WorkEntry(
+      id: id,
+      start: parseDate(json['start']),
+      end: parseDate(json['end']),
+      mode: workModeFromStorage(json['mode'] as String?),
+      updatedAt: parseDate(json['updatedAt']),
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
   }
 }

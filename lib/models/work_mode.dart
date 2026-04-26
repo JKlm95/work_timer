@@ -1,13 +1,10 @@
-enum WorkMode {
-  remote,
-  office,
-}
+enum WorkMode { remote, office }
 
 extension WorkModeLabels on WorkMode {
   String get labelPl => switch (this) {
-        WorkMode.remote => 'Remote',
-        WorkMode.office => 'Biuro',
-      };
+    WorkMode.remote => 'Remote',
+    WorkMode.office => 'Biuro',
+  };
 
   String get storageValue => name;
 }
