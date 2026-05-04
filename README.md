@@ -5,12 +5,13 @@
 1. Create a Firebase project and enable:
    - Authentication -> Email/Password
    - Firestore Database
-2. Install FlutterFire CLI and run:
+2. Install FlutterFire CLI and generate options (replace `YOUR_PROJECT_ID` with your Firebase project id, e.g. from the Firebase console URL):
    - `dart pub global activate flutterfire_cli`
-   - `flutterfire configure`
-3. Keep generated files in project:
-   - `lib/firebase_options.dart`
-   - platform configs (`google-services.json`, `GoogleService-Info.plist`)
+   - `dart pub global run flutterfire_cli:flutterfire configure --yes --project=YOUR_PROJECT_ID -o lib/firebase_options.dart --overwrite-firebase-options`
+   - On Windows, if `flutterfire` is not on PATH, use the `dart pub global run flutterfire_cli:flutterfire ...` form above, or add Pub’s bin folder to PATH.
+3. Keep generated files in project (private repo: committing `firebase_options.dart` is normal):
+   - `lib/firebase_options.dart` (used by `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` in `lib/main.dart`)
+   - platform configs written by the CLI (`google-services.json`, `GoogleService-Info.plist`, etc.)
 4. Deploy Firestore rules from `firestore.rules`.
 
 ## Data strategy

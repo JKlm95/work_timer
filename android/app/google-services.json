@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "114088269593",
+    "project_id": "work-timer-2dab6",
+    "storage_bucket": "work-timer-2dab6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:114088269593:android:d4bc87b510c79f94175788",
+        "android_client_info": {
+          "package_name": "com.worktimer.work_timer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtdqvURqLS1om26gRcGkvzOQmzhxU9dUw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -38,6 +38,10 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> signOut() => _authService.signOut();
 
+  Future<void> sendPasswordResetEmail({required String email}) {
+    return _authService.sendPasswordResetEmail(email: email);
+  }
+
   @override
   Future<void> close() async {
     await _sub?.cancel();
