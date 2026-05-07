@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/work_entry.dart';
+import '../models/work_mode.dart';
 import '../models/workspace.dart';
 
 const _legacyEntriesKey = 'work_entries_v1';
@@ -10,6 +11,49 @@ const _currentMonthCacheKey = 'work_entries_current_month_v2';
 const _pendingQueueKey = 'work_entries_pending_v2';
 const _workspacesKey = 'workspaces_v1';
 const _activeWorkspaceKey = 'active_workspace_v1';
+const _timerSessionKey = 'timer_session_v1';
+
+class LocalTimerSession {
+  const LocalTimerSession({
+    required this.runState,
+    required this.workspaceId,
+    required this.sessionMode,
+    required this.sessionStart,
+    required this.accumulatedMs,
+    required this.resumeAt,
+  });
+
+  final String runState;
+  final String workspaceId;
+  final String sessionMode;
+  final DateTime sessionStart;
+  final int accumulatedMs;
+  final DateTime? resumeAt;
+
+  Map<String, dynamic> toJson() => {
+    'runState': runState,
+    'workspaceId': workspaceId,
+    'sessionMode': sessionMode,
+    'sessionStart': sessionStart.toIso8601String(),
+    'accumulatedMs': accumulatedMs,
+    'resumeAt': resumeAt?.toIso8601String(),
+  };
+
+  factory LocalTimerSession.fromJson(Map<String, dynamic> json) {
+    return LocalTimerSession(
+      runState: json['runState'] as String? ?? 'idle',
+      workspaceId: json['workspaceId'] as String? ?? Workspace.defaultId,
+      sessionMode: json['sessionMode'] as String? ?? WorkMode.office.name,
+      sessionStart: DateTime.parse(
+        json['sessionStart'] as String? ?? DateTime.now().toIso8601String(),
+      ),
+      accumulatedMs: json['accumulatedMs'] as int? ?? 0,
+      resumeAt: (json['resumeAt'] as String?) == null
+          ? null
+          : DateTime.parse(json['resumeAt'] as String),
+    );
+  }
+}
 
 class LocalCacheStore {
   Future<List<WorkEntry>> loadCurrentMonthCache(String workspaceId) async {
@@ -78,6 +122,24 @@ class LocalCacheStore {
   Future<void> saveActiveWorkspaceId(String workspaceId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_activeWorkspaceKey, workspaceId);
+  }
+
+  Future<void> saveTimerSession(LocalTimerSession session) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_timerSessionKey, jsonEncode(session.toJson()));
+  }
+
+  Future<LocalTimerSession?> loadTimerSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_timerSessionKey);
+    if (raw == null || raw.isEmpty) return null;
+    final map = jsonDecode(raw) as Map<String, dynamic>;
+    return LocalTimerSession.fromJson(map);
+  }
+
+  Future<void> clearTimerSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_timerSessionKey);
   }
 
   Future<List<WorkEntry>> _loadFromKey(String key) async {

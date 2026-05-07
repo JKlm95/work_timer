@@ -39,6 +39,7 @@ class WorkRepository {
 
   List<Workspace> get workspaces => _workspaces;
   String get activeWorkspaceId => _activeWorkspaceId;
+  LocalCacheStore get localCache => _localCache;
 
   Future<void> _loadWorkspaceState() async {
     final localWorkspaces = await _localCache.loadWorkspaces();
@@ -54,7 +55,14 @@ class WorkRepository {
           final merged = _mergeWorkspaces(_workspaces, remote);
           _workspaces = _sortWorkspaces(merged);
           await _localCache.saveWorkspaces(_workspaces);
-        } catch (_) {}
+          for (final workspace in _workspaces) {
+            if (remote.every((r) => r.id != workspace.id)) {
+              await _remoteStore.upsertWorkspace(uid: uid, workspace: workspace);
+            }
+          }
+        } catch (e) {
+          debugPrint('fetchWorkspaces failed: $e');
+        }
       }
     }
 
@@ -218,7 +226,8 @@ class WorkRepository {
       for (final entry in queue) {
         try {
           await _remoteStore.upsertEntry(uid: uid, entry: entry);
-        } catch (_) {
+        } catch (e) {
+          debugPrint('syncPending error for ${workspace.id}: $e');
           remaining.add(entry);
         }
       }

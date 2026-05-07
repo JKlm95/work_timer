@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <application
         android:label="work_timer"
         android:name="${applicationName}"
@@ -40,6 +42,10 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/work_timer_widget_info" />
         </receiver>
+        <service
+            android:name=".WorkTimerForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

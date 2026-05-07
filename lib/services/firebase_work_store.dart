@@ -33,7 +33,6 @@ class FirebaseWorkStore {
     required DateTime to,
   }) async {
     final snapshot = await _entriesRef(uid)
-        .where('workspaceId', isEqualTo: workspaceId)
         .where('start', isGreaterThanOrEqualTo: Timestamp.fromDate(from))
         .where('start', isLessThanOrEqualTo: Timestamp.fromDate(to))
         .orderBy('start', descending: true)
@@ -41,7 +40,7 @@ class FirebaseWorkStore {
 
     return snapshot.docs
         .map((doc) => WorkEntry.fromFirestore(doc.id, doc.data()))
-        .where((e) => !e.isDeleted)
+        .where((e) => !e.isDeleted && e.workspaceId == workspaceId)
         .toList();
   }
 
@@ -58,7 +57,6 @@ class FirebaseWorkStore {
   Future<List<Workspace>> fetchWorkspaces(String uid) async {
     final snapshot = await _workspacesRef(uid)
         .where('isArchived', isEqualTo: false)
-        .orderBy('updatedAt', descending: true)
         .get();
     return snapshot.docs
         .map(

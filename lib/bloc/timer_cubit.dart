@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +9,8 @@ import 'package:uuid/uuid.dart';
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
 import '../models/workspace.dart';
+import '../services/local_cache_store.dart';
+import '../services/timer_service_bridge.dart';
 import '../services/work_repository.dart';
 
 enum TimerRunState { idle, running, paused }
@@ -123,6 +126,7 @@ class TimerCubit extends Cubit<TimerState> {
   final WorkRepository _repository;
   final Uuid _uuid = const Uuid();
   Timer? _tick;
+  int _lastWidgetElapsedSecond = -1;
 
   Future<void> init() async {
     await _repository.initForUser(state.uid);
@@ -143,6 +147,7 @@ class TimerCubit extends Cubit<TimerState> {
         activeWorkspaceId: activeWorkspaceId,
       ),
     );
+    await _restoreSessionIfAny();
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
   }
@@ -209,8 +214,15 @@ class TimerCubit extends Cubit<TimerState> {
         ),
       );
     }
+    _lastWidgetElapsedSecond = -1;
     _startTick();
     _emitElapsed();
+    _persistSession();
+    TimerServiceBridge.play(
+      workspaceId: state.activeWorkspaceId,
+      workspaceName: state.activeWorkspace.name,
+      nextSessionMode: state.nextSessionMode.name,
+    );
     _writeWidgetSnapshot();
   }
 
@@ -226,6 +238,9 @@ class TimerCubit extends Cubit<TimerState> {
       ),
     );
     _stopTick();
+    _lastWidgetElapsedSecond = -1;
+    _persistSession();
+    TimerServiceBridge.pause();
     _writeWidgetSnapshot();
   }
 
@@ -271,6 +286,9 @@ class TimerCubit extends Cubit<TimerState> {
         elapsed: Duration.zero,
       ),
     );
+    _lastWidgetElapsedSecond = -1;
+    await _repository.localCache.clearTimerSession();
+    await TimerServiceBridge.stop();
     await _writeWidgetSnapshot();
   }
 
@@ -364,6 +382,14 @@ class TimerCubit extends Cubit<TimerState> {
   void _emitElapsed() {
     final elapsed = _computeElapsed();
     emit(state.copyWith(elapsed: elapsed));
+    if (state.runState == TimerRunState.running &&
+        elapsed.inSeconds != _lastWidgetElapsedSecond) {
+      _lastWidgetElapsedSecond = elapsed.inSeconds;
+      _persistSession();
+      if (!Platform.isAndroid) {
+        _writeWidgetSnapshot();
+      }
+    }
   }
 
   Duration _computeElapsed() {
@@ -375,7 +401,7 @@ class TimerCubit extends Cubit<TimerState> {
 
   void _startTick() {
     _tick?.cancel();
-    _tick = Timer.periodic(const Duration(milliseconds: 200), (_) {
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
       _emitElapsed();
     });
   }
@@ -393,16 +419,140 @@ class TimerCubit extends Cubit<TimerState> {
 
   Future<void> _writeWidgetSnapshot() async {
     try {
+      if (Platform.isAndroid) {
+        debugPrint(
+          '[TimerCubit] sync->service state=${state.runState.name} elapsed=${state.elapsed.inSeconds}s workspace=${state.activeWorkspaceId}',
+        );
+        await TimerServiceBridge.sync(
+          runState: state.runState.name,
+          elapsedSeconds: state.elapsed.inSeconds,
+          workspaceId: state.activeWorkspaceId,
+          workspaceName: state.activeWorkspace.name,
+          nextSessionMode: state.nextSessionMode.name,
+        );
+        return;
+      }
+
       await HomeWidget.saveWidgetData<String>(
         'workspaceName',
         state.activeWorkspace.name,
       );
+      await HomeWidget.saveWidgetData<String>(
+        'activeWorkspaceId',
+        state.activeWorkspaceId,
+      );
+      await HomeWidget.saveWidgetData<String>(
+        'nextSessionMode',
+        state.nextSessionMode.name,
+      );
       await HomeWidget.saveWidgetData<String>('runState', state.runState.name);
       await HomeWidget.saveWidgetData<int>('elapsedSeconds', state.elapsed.inSeconds);
-      await HomeWidget.updateWidget(
-        name: 'WorkTimerWidgetProvider',
-        androidName: 'WorkTimerWidgetProvider',
-      );
+      await HomeWidget.updateWidget(androidName: 'WorkTimerWidgetProvider');
     } catch (_) {}
+  }
+
+  Future<void> _restoreSessionIfAny() async {
+    final saved = await _repository.localCache.loadTimerSession();
+    if (saved == null || saved.runState == TimerRunState.idle.name) {
+      await _restoreFromWidgetSnapshotIfAny();
+      return;
+    }
+    final restoredWorkspaceId = state.workspaces.any((w) => w.id == saved.workspaceId)
+        ? saved.workspaceId
+        : state.activeWorkspaceId;
+
+    final restoredState = TimerRunState.values.firstWhere(
+      (s) => s.name == saved.runState,
+      orElse: () => TimerRunState.idle,
+    );
+    final sessionMode = workModeFromStorage(saved.sessionMode);
+    final accumulated = Duration(milliseconds: saved.accumulatedMs);
+    final resumeAt = restoredState == TimerRunState.running
+        ? (saved.resumeAt ?? DateTime.now())
+        : null;
+    final elapsed = restoredState == TimerRunState.running && resumeAt != null
+        ? accumulated + DateTime.now().difference(resumeAt)
+        : accumulated;
+
+    emit(
+      state.copyWith(
+        activeWorkspaceId: restoredWorkspaceId,
+        runState: restoredState,
+        sessionStart: saved.sessionStart,
+        sessionMode: sessionMode,
+        accumulated: accumulated,
+        resumeAt: resumeAt,
+        elapsed: elapsed,
+      ),
+    );
+
+    if (restoredState == TimerRunState.running) {
+      _startTick();
+    }
+  }
+
+  Future<void> _restoreFromWidgetSnapshotIfAny() async {
+    if (!Platform.isAndroid) return;
+    final runStateRaw = await HomeWidget.getWidgetData<String>(
+      'runState',
+      defaultValue: TimerRunState.idle.name,
+    );
+    final elapsedSeconds = await HomeWidget.getWidgetData<int>(
+          'elapsedSeconds',
+          defaultValue: 0,
+        ) ??
+        0;
+    final workspaceId = await HomeWidget.getWidgetData<String>(
+      'activeWorkspaceId',
+      defaultValue: state.activeWorkspaceId,
+    );
+    final runState = TimerRunState.values.firstWhere(
+      (e) => e.name == runStateRaw,
+      orElse: () => TimerRunState.idle,
+    );
+    if (runState == TimerRunState.idle) return;
+    final candidateWorkspaceId = workspaceId ?? state.activeWorkspaceId;
+    final resolvedWorkspaceId = state.workspaces.any((w) => w.id == candidateWorkspaceId)
+        ? candidateWorkspaceId
+        : state.activeWorkspaceId;
+    final now = DateTime.now();
+    final accumulated = Duration(seconds: elapsedSeconds);
+    emit(
+      state.copyWith(
+        activeWorkspaceId: resolvedWorkspaceId,
+        runState: runState,
+        sessionStart: now.subtract(accumulated),
+        sessionMode: state.nextSessionMode,
+        accumulated: runState == TimerRunState.running
+            ? Duration.zero
+            : accumulated,
+        resumeAt: runState == TimerRunState.running
+            ? now.subtract(accumulated)
+            : null,
+        elapsed: accumulated,
+      ),
+    );
+    if (runState == TimerRunState.running) {
+      _startTick();
+    }
+  }
+
+  void _persistSession() {
+    if (state.runState == TimerRunState.idle) {
+      unawaited(_repository.localCache.clearTimerSession());
+      return;
+    }
+    final sessionStart = state.sessionStart;
+    final sessionMode = state.sessionMode;
+    if (sessionStart == null || sessionMode == null) return;
+    final session = LocalTimerSession(
+      runState: state.runState.name,
+      workspaceId: state.activeWorkspaceId,
+      sessionMode: sessionMode.name,
+      sessionStart: sessionStart,
+      accumulatedMs: state.accumulated.inMilliseconds,
+      resumeAt: state.resumeAt,
+    );
+    unawaited(_repository.localCache.saveTimerSession(session));
   }
 }

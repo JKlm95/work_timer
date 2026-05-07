@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'history_tab.dart';
 import 'stats_tab.dart';
 import 'timer_tab.dart';
@@ -23,6 +22,9 @@ class _HomeShellState extends State<HomeShell> {
       appBar: AppBar(
         title: const Text('Work Timer'),
         centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
             onPressed: widget.onSignOut,
