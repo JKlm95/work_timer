@@ -20,17 +20,33 @@
 
 - Full history is stored in Firestore under:
   - `users/{uid}/entries/{entryId}`
+  - `users/{uid}/workspaces/{workspaceId}`
+- Every entry contains `workspaceId` (legacy entries without it are migrated to `default`).
 - Local storage keeps:
-  - current month cache for offline history
-  - pending queue for offline writes
-- Legacy `work_entries_v1` is migrated once (current month only) after first login.
+  - current month cache for offline history (per workspace)
+  - pending queue for offline writes (per workspace)
+  - list of workspaces and active workspace
+- Legacy `work_entries_v1` is migrated once (current month only) after first login and assigned to default workspace.
+
+## Main features
+
+- Auth: sign-in, sign-up, sign-out, password reset.
+- Workspaces: create, rename, switch active workspace.
+- Timer: start/pause/stop with mode selection.
+- History: date range filter, mode filter, manual add/edit/delete entries.
+- Stats: week/month range, workspace filters, KPI summary, daily bar chart, workspace share.
+- Android home widget: shows active workspace, timer state, and elapsed time.
 
 ## Manual test checklist
 
 - Register with email/password and log in.
 - On the login screen, use **Zapomniałeś hasła?** (password reset), confirm the reset e-mail arrives, set a new password, then sign in again.
-- Create a timer entry while online and confirm it appears in Firestore.
-- Turn internet off, create entry, confirm local history still updates.
-- Turn internet on, reopen history, confirm pending entry syncs to Firestore.
+- Create a new workspace, rename it, switch active workspace, and verify entries are separated per workspace.
+- Create timer entries while online and confirm they appear in Firestore with correct `workspaceId`.
+- Add manual history entry, edit it, and delete it from history.
+- Open stats tab and verify week/month values, workspace filter behavior, and chart consistency with history.
+- Turn internet off, create/edit/delete entries, confirm local history still updates.
+- Turn internet on, reopen history, confirm pending changes sync to Firestore.
 - Reinstall app, log in again, confirm remote history is available.
 - Open old month range without internet, confirm offline fallback message and no remote fetch.
+- Add Android widget to home screen and verify workspace/state/time values refresh after timer/workspace changes.
