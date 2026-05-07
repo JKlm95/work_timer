@@ -41,6 +41,36 @@ class TimerTab extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Workspace',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                child: state.workspaces.isEmpty
+                    ? const Text('Ladowanie workspace...')
+                    : DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: state.activeWorkspaceId,
+                          items: state.workspaces
+                              .map(
+                                (w) => DropdownMenuItem<String>(
+                                  value: w.id,
+                                  child: Text(w.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: state.runState == TimerRunState.idle
+                              ? (value) {
+                                  if (value == null) return;
+                                  cubit.setActiveWorkspace(value);
+                                }
+                              : null,
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 8),
               SegmentedButton<WorkMode>(
                 segments: [
                   ButtonSegment(

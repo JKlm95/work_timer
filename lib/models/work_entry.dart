@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'work_mode.dart';
+import 'workspace.dart';
 
 class WorkEntry {
   WorkEntry({
     required this.id,
+    required this.workspaceId,
     required this.start,
     required this.end,
     required this.mode,
@@ -13,6 +15,7 @@ class WorkEntry {
   });
 
   final String id;
+  final String workspaceId;
   final DateTime start;
   final DateTime end;
   final WorkMode mode;
@@ -23,6 +26,7 @@ class WorkEntry {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'workspaceId': workspaceId,
     'start': start.toIso8601String(),
     'end': end.toIso8601String(),
     'mode': mode.storageValue,
@@ -31,6 +35,7 @@ class WorkEntry {
   };
 
   Map<String, dynamic> toFirestore() => {
+    'workspaceId': workspaceId,
     'start': start,
     'end': end,
     'mode': mode.storageValue,
@@ -41,6 +46,7 @@ class WorkEntry {
   factory WorkEntry.fromJson(Map<String, dynamic> json) {
     return WorkEntry(
       id: json['id'] as String,
+      workspaceId: json['workspaceId'] as String? ?? Workspace.defaultId,
       start: DateTime.parse(json['start'] as String),
       end: DateTime.parse(json['end'] as String),
       mode: workModeFromStorage(json['mode'] as String?),
@@ -61,6 +67,7 @@ class WorkEntry {
 
     return WorkEntry(
       id: id,
+      workspaceId: json['workspaceId'] as String? ?? Workspace.defaultId,
       start: parseDate(json['start']),
       end: parseDate(json['end']),
       mode: workModeFromStorage(json['mode'] as String?),

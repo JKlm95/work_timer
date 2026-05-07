@@ -10,7 +10,8 @@ service cloud.firestore {
     }
 
     function hasValidEntryShape(data) {
-      return data.keys().hasAll(['start', 'end', 'mode', 'updatedAt', 'isDeleted']) &&
+      return data.keys().hasAll(['workspaceId', 'start', 'end', 'mode', 'updatedAt', 'isDeleted']) &&
+          data.workspaceId is string &&
           data.start is timestamp &&
           data.end is timestamp &&
           data.updatedAt is timestamp &&
@@ -18,9 +19,23 @@ service cloud.firestore {
           data.isDeleted is bool;
     }
 
+    function hasValidWorkspaceShape(data) {
+      return data.keys().hasAll(['name', 'createdAt', 'updatedAt', 'isArchived']) &&
+          data.name is string &&
+          data.createdAt is timestamp &&
+          data.updatedAt is timestamp &&
+          data.isArchived is bool;
+    }
+
     match /users/{uid}/entries/{entryId} {
       allow read: if isOwner(uid);
       allow create, update: if isOwner(uid) && hasValidEntryShape(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /users/{uid}/workspaces/{workspaceId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && hasValidWorkspaceShape(request.resource.data);
       allow delete: if false;
     }
   }

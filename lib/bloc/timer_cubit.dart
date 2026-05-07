@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
+import '../models/workspace.dart';
 import '../services/work_repository.dart';
 
 enum TimerRunState { idle, running, paused }
@@ -24,6 +26,9 @@ class TimerState {
     required this.sessionMode,
     required this.accumulated,
     required this.resumeAt,
+    required this.workspaces,
+    required this.activeWorkspaceId,
+    required this.statsEntries,
   });
 
   final String uid;
@@ -38,8 +43,17 @@ class TimerState {
   final WorkMode? sessionMode;
   final Duration accumulated;
   final DateTime? resumeAt;
+  final List<Workspace> workspaces;
+  final String activeWorkspaceId;
+  final List<WorkEntry> statsEntries;
 
   bool get canChangeMode => runState == TimerRunState.idle;
+  Workspace get activeWorkspace {
+    return workspaces.firstWhere(
+      (w) => w.id == activeWorkspaceId,
+      orElse: Workspace.defaultWorkspace,
+    );
+  }
 
   factory TimerState.initial(String uid) => TimerState(
     uid: uid,
@@ -54,6 +68,9 @@ class TimerState {
     sessionMode: null,
     accumulated: Duration.zero,
     resumeAt: null,
+    workspaces: const [],
+    activeWorkspaceId: Workspace.defaultId,
+    statsEntries: const [],
   );
 
   TimerState copyWith({
@@ -71,6 +88,9 @@ class TimerState {
     Duration? accumulated,
     DateTime? resumeAt,
     bool clearResumeAt = false,
+    List<Workspace>? workspaces,
+    String? activeWorkspaceId,
+    List<WorkEntry>? statsEntries,
   }) {
     return TimerState(
       uid: uid,
@@ -88,6 +108,9 @@ class TimerState {
       sessionMode: clearSessionMode ? null : (sessionMode ?? this.sessionMode),
       accumulated: accumulated ?? this.accumulated,
       resumeAt: clearResumeAt ? null : (resumeAt ?? this.resumeAt),
+      workspaces: workspaces ?? this.workspaces,
+      activeWorkspaceId: activeWorkspaceId ?? this.activeWorkspaceId,
+      statsEntries: statsEntries ?? this.statsEntries,
     );
   }
 }
@@ -103,6 +126,8 @@ class TimerCubit extends Cubit<TimerState> {
 
   Future<void> init() async {
     await _repository.initForUser(state.uid);
+    final workspaces = _repository.workspaces;
+    final activeWorkspaceId = _repository.activeWorkspaceId;
     final now = DateTime.now();
     final currentRange = DateTimeRange(
       start: DateTime(now.year, now.month, 1),
@@ -114,8 +139,48 @@ class TimerCubit extends Cubit<TimerState> {
         entries: result.entries,
         currentMonthEntries: result.entries,
         historyOfflineFallback: result.offlineFallback,
+        workspaces: workspaces,
+        activeWorkspaceId: activeWorkspaceId,
       ),
     );
+    await refreshStatsEntries();
+    await _writeWidgetSnapshot();
+  }
+
+  Future<void> setActiveWorkspace(String workspaceId) async {
+    await _repository.selectWorkspace(workspaceId);
+    emit(state.copyWith(activeWorkspaceId: workspaceId));
+    final now = DateTime.now();
+    await loadHistory(
+      DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
+    );
+    await refreshStatsEntries();
+    await _writeWidgetSnapshot();
+  }
+
+  Future<void> createWorkspace(String name) async {
+    final created = await _repository.createWorkspace(name);
+    emit(
+      state.copyWith(
+        workspaces: _repository.workspaces,
+        activeWorkspaceId: created.id,
+      ),
+    );
+    final now = DateTime.now();
+    await loadHistory(
+      DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
+    );
+    await refreshStatsEntries();
+    await _writeWidgetSnapshot();
+  }
+
+  Future<void> renameWorkspace({
+    required String workspaceId,
+    required String name,
+  }) async {
+    await _repository.renameWorkspace(workspaceId: workspaceId, name: name);
+    emit(state.copyWith(workspaces: _repository.workspaces));
+    await _writeWidgetSnapshot();
   }
 
   void setNextMode(WorkMode mode) {
@@ -146,6 +211,7 @@ class TimerCubit extends Cubit<TimerState> {
     }
     _startTick();
     _emitElapsed();
+    _writeWidgetSnapshot();
   }
 
   void pause() {
@@ -160,6 +226,7 @@ class TimerCubit extends Cubit<TimerState> {
       ),
     );
     _stopTick();
+    _writeWidgetSnapshot();
   }
 
   Future<void> stop() async {
@@ -180,6 +247,7 @@ class TimerCubit extends Cubit<TimerState> {
       final mode = state.sessionMode ?? state.nextSessionMode;
       final entry = WorkEntry(
         id: _uuid.v4(),
+        workspaceId: state.activeWorkspaceId,
         start: start,
         end: end,
         mode: mode,
@@ -203,6 +271,56 @@ class TimerCubit extends Cubit<TimerState> {
         elapsed: Duration.zero,
       ),
     );
+    await _writeWidgetSnapshot();
+  }
+
+  Future<void> addManualEntry({
+    required DateTime start,
+    required DateTime end,
+    required WorkMode mode,
+  }) async {
+    if (!end.isAfter(start)) return;
+    final entry = WorkEntry(
+      id: _uuid.v4(),
+      workspaceId: state.activeWorkspaceId,
+      start: start,
+      end: end,
+      mode: mode,
+      updatedAt: DateTime.now(),
+    );
+    await _repository.addEntry(entry);
+    await loadHistory(DateTimeRange(start: start, end: end));
+    await refreshStatsEntries();
+  }
+
+  Future<void> updateEntry({
+    required WorkEntry original,
+    required DateTime start,
+    required DateTime end,
+    required WorkMode mode,
+  }) async {
+    if (!end.isAfter(start)) return;
+    final updated = WorkEntry(
+      id: original.id,
+      workspaceId: original.workspaceId,
+      start: start,
+      end: end,
+      mode: mode,
+      updatedAt: DateTime.now(),
+      isDeleted: false,
+    );
+    await _repository.updateEntry(updated);
+    await loadHistory(DateTimeRange(start: start, end: end));
+    await refreshStatsEntries();
+  }
+
+  Future<void> deleteEntry(WorkEntry entry) async {
+    await _repository.deleteEntry(entry);
+    final now = DateTime.now();
+    await loadHistory(
+      DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
+    );
+    await refreshStatsEntries();
   }
 
   Future<void> loadHistory(DateTimeRange range) async {
@@ -225,9 +343,22 @@ class TimerCubit extends Cubit<TimerState> {
           historyLoading: false,
         ),
       );
+      await _writeWidgetSnapshot();
     } catch (_) {
       emit(state.copyWith(historyLoading: false));
     }
+  }
+
+  Future<void> refreshStatsEntries({DateTimeRange? range}) async {
+    final now = DateTime.now();
+    final selectedRange =
+        range ??
+        DateTimeRange(start: DateTime(now.year, now.month, 1), end: now);
+    final entries = await _repository.loadEntriesForWorkspaces(
+      range: selectedRange,
+      workspaceIds: const {},
+    );
+    emit(state.copyWith(statsEntries: entries));
   }
 
   void _emitElapsed() {
@@ -258,5 +389,20 @@ class TimerCubit extends Cubit<TimerState> {
   Future<void> close() {
     _stopTick();
     return super.close();
+  }
+
+  Future<void> _writeWidgetSnapshot() async {
+    try {
+      await HomeWidget.saveWidgetData<String>(
+        'workspaceName',
+        state.activeWorkspace.name,
+      );
+      await HomeWidget.saveWidgetData<String>('runState', state.runState.name);
+      await HomeWidget.saveWidgetData<int>('elapsedSeconds', state.elapsed.inSeconds);
+      await HomeWidget.updateWidget(
+        name: 'WorkTimerWidgetProvider',
+        androidName: 'WorkTimerWidgetProvider',
+      );
+    } catch (_) {}
   }
 }

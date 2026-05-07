@@ -28,20 +28,20 @@ class _HistoryTabState extends State<HistoryTab> {
 
   DateTimeRange _defaultMonthRange() {
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, 1);
-    final lastDay = DateTime(now.year, now.month + 1, 0);
-    final end = now.isBefore(lastDay) ? now : lastDay;
-    return DateTimeRange(start: start, end: end);
+    return DateTimeRange(start: DateTime(now.year, now.month, 1), end: now);
   }
 
-  DateTime _dayStart(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  DateTime _dayEnd(DateTime d) =>
-      DateTime(d.year, d.month, d.day, 23, 59, 59, 999);
-
   bool _entryInRange(WorkEntry e) {
-    final from = _dayStart(_range.start);
-    final to = _dayEnd(_range.end);
+    final from = DateTime(_range.start.year, _range.start.month, _range.start.day);
+    final to = DateTime(
+      _range.end.year,
+      _range.end.month,
+      _range.end.day,
+      23,
+      59,
+      59,
+      999,
+    );
     return !e.start.isBefore(from) && !e.start.isAfter(to);
   }
 
@@ -54,23 +54,11 @@ class _HistoryTabState extends State<HistoryTab> {
   Duration _sum(Iterable<WorkEntry> items) =>
       items.fold(Duration.zero, (a, e) => a + e.duration);
 
-  Duration _currentMonthTotal(List<WorkEntry> currentMonthEntries) {
-    final now = DateTime.now();
-    final from = DateTime(now.year, now.month, 1);
-    final to = _dayEnd(DateTime(now.year, now.month + 1, 0));
-    return _sum(
-      currentMonthEntries.where((e) {
-        return !e.start.isBefore(from) && !e.start.isAfter(to);
-      }),
-    );
-  }
-
   static String _formatHm(Duration d) {
     final h = d.inHours;
     final m = d.inMinutes.remainder(60);
     if (h <= 0) return '$m min';
-    if (m == 0) return '$h h';
-    return '$h h $m min';
+    return '$h h ${m.toString().padLeft(2, '0')} min';
   }
 
   Future<void> _pickRange() async {
@@ -81,11 +69,176 @@ class _HistoryTabState extends State<HistoryTab> {
       initialDateRange: _range,
       locale: const Locale('pl'),
     );
-    if (picked != null) {
-      setState(() => _range = picked);
-      if (!mounted) return;
-      await context.read<TimerCubit>().loadHistory(_range);
-    }
+    if (picked == null) return;
+    setState(() => _range = picked);
+    if (!mounted) return;
+    await context.read<TimerCubit>().loadHistory(_range);
+  }
+
+  Future<void> _addEntryDialog() async {
+    final now = DateTime.now();
+    await _upsertEntryDialog(
+      startInitial: DateTime(now.year, now.month, now.day, 9),
+      endInitial: DateTime(now.year, now.month, now.day, 17),
+    );
+  }
+
+  Future<void> _editEntryDialog(WorkEntry entry) async {
+    await _upsertEntryDialog(
+      existing: entry,
+      startInitial: entry.start,
+      endInitial: entry.end,
+    );
+  }
+
+  Future<void> _upsertEntryDialog({
+    WorkEntry? existing,
+    required DateTime startInitial,
+    required DateTime endInitial,
+  }) async {
+    var date = DateTime(startInitial.year, startInitial.month, startInitial.day);
+    var start = TimeOfDay.fromDateTime(startInitial);
+    var end = TimeOfDay.fromDateTime(endInitial);
+    var mode = existing?.mode ?? WorkMode.office;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        String? error;
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text(existing == null ? 'Dodaj wpis' : 'Edytuj wpis'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final selected = await showDatePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDate: date,
+                        locale: const Locale('pl'),
+                      );
+                      if (selected != null) setDialogState(() => date = selected);
+                    },
+                    icon: const Icon(Icons.calendar_today_outlined),
+                    label: Text(DateFormat.yMMMd('pl').format(date)),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            final selected = await showTimePicker(
+                              context: context,
+                              initialTime: start,
+                            );
+                            if (selected != null) {
+                              setDialogState(() => start = selected);
+                            }
+                          },
+                          child: Text('Start: ${start.format(context)}'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            final selected = await showTimePicker(
+                              context: context,
+                              initialTime: end,
+                            );
+                            if (selected != null) {
+                              setDialogState(() => end = selected);
+                            }
+                          },
+                          child: Text('Koniec: ${end.format(context)}'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<WorkMode>(
+                    initialValue: mode,
+                    decoration: const InputDecoration(
+                      labelText: 'Tryb pracy',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: WorkMode.values
+                        .map(
+                          (m) => DropdownMenuItem(value: m, child: Text(m.labelPl)),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) setDialogState(() => mode = value);
+                    },
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      error!,
+                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Anuluj'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final cubit = this.context.read<TimerCubit>();
+                  final startDate = DateTime(
+                    date.year,
+                    date.month,
+                    date.day,
+                    start.hour,
+                    start.minute,
+                  );
+                  final endDate = DateTime(
+                    date.year,
+                    date.month,
+                    date.day,
+                    end.hour,
+                    end.minute,
+                  );
+                  if (!endDate.isAfter(startDate)) {
+                    setDialogState(
+                      () => error = 'Godzina konca musi byc po starcie.',
+                    );
+                    return;
+                  }
+                  if (existing == null) {
+                    await cubit.addManualEntry(
+                      start: startDate,
+                      end: endDate,
+                      mode: mode,
+                    );
+                  } else {
+                    await cubit.updateEntry(
+                      original: existing,
+                      start: startDate,
+                      end: endDate,
+                      mode: mode,
+                    );
+                  }
+                  if (!this.context.mounted) return;
+                  Navigator.of(context).pop();
+                  await cubit.loadHistory(_range);
+                },
+                child: Text(existing == null ? 'Dodaj' : 'Zapisz'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -93,146 +246,119 @@ class _HistoryTabState extends State<HistoryTab> {
     final dateFmt = DateFormat.yMMMd('pl');
     final timeFmt = DateFormat.Hm('pl');
 
-    return BlocBuilder<TimerCubit, TimerState>(
-      builder: (context, state) {
-        final filtered = _filtered(state.entries).toList();
-        final sumFiltered = _sum(filtered);
-        final monthTotal = _currentMonthTotal(state.currentMonthEntries);
-
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Podsumowanie',
-                      style: Theme.of(context).textTheme.titleMedium,
+    return Stack(
+      children: [
+        BlocBuilder<TimerCubit, TimerState>(
+          builder: (context, state) {
+            final filtered = _filtered(state.entries).toList();
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
+              children: [
+                Text('Filtry', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _pickRange,
+                  icon: const Icon(Icons.date_range),
+                  label: Text(
+                    '${dateFmt.format(_range.start)} — ${dateFmt.format(_range.end)}',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Tryb pracy',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<WorkMode?>(
+                      isExpanded: true,
+                      value: _modeFilter,
+                      items: [
+                        const DropdownMenuItem<WorkMode?>(
+                          value: null,
+                          child: Text('Wszystkie'),
+                        ),
+                        ...WorkMode.values.map(
+                          (m) =>
+                              DropdownMenuItem(value: m, child: Text(m.labelPl)),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => _modeFilter = v),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Bieżący miesiąc (wszystkie tryby): ${_formatHm(monthTotal)}',
-                      style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Workspace: ${state.activeWorkspace.name}'),
+                        Text('W filtrze: ${_formatHm(_sum(filtered))}'),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'W filtrze: ${_formatHm(sumFiltered)}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (filtered.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: Text('Brak wpisow dla wybranych filtrow.')),
+                  )
+                else
+                  ...filtered.map(
+                    (e) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: Icon(
+                          e.mode == WorkMode.remote
+                              ? Icons.home_outlined
+                              : Icons.apartment_outlined,
+                        ),
+                        title: Text(
+                          '${dateFmt.format(e.start)} ${timeFmt.format(e.start)} — ${timeFmt.format(e.end)}',
+                        ),
+                        subtitle: Text(e.mode.labelPl),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (value) async {
+                            if (value == 'edit') {
+                              await _editEntryDialog(e);
+                            } else {
+                              await context.read<TimerCubit>().deleteEntry(e);
+                              if (!context.mounted) return;
+                              if (mounted) {
+                                await context.read<TimerCubit>().loadHistory(_range);
+                              }
+                            }
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(value: 'edit', child: Text('Edytuj')),
+                            PopupMenuItem(value: 'delete', child: Text('Usun')),
+                          ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text(_formatHm(e.duration)),
+                          ),
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text('Filtry', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _pickRange,
-              icon: const Icon(Icons.date_range),
-              label: Text(
-                '${dateFmt.format(_range.start)} — ${dateFmt.format(_range.end)}',
-              ),
-            ),
-            const SizedBox(height: 8),
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Tryb pracy',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<WorkMode?>(
-                  isExpanded: true,
-                  value: _modeFilter,
-                  items: [
-                    const DropdownMenuItem<WorkMode?>(
-                      value: null,
-                      child: Text('Wszystkie'),
-                    ),
-                    ...WorkMode.values.map(
-                      (m) => DropdownMenuItem(value: m, child: Text(m.labelPl)),
-                    ),
-                  ],
-                  onChanged: (v) => setState(() => _modeFilter = v),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: () async {
-                setState(() {
-                  _range = _defaultMonthRange();
-                  _modeFilter = null;
-                });
-                await context.read<TimerCubit>().loadHistory(_range);
-              },
-              icon: const Icon(Icons.restore),
-              label: const Text('Ustaw bieżący miesiąc'),
-            ),
-            const SizedBox(height: 16),
-            if (state.historyLoading)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: LinearProgressIndicator(),
-              ),
-            if (state.historyOfflineFallback)
-              Card(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text(
-                    'Tryb offline: pokazuję lokalne dane. Starsze zakresy wymagają internetu.',
                   ),
-                ),
-              ),
-            if (state.historyOfflineFallback) const SizedBox(height: 12),
-            Text(
-              'Wpisy (${filtered.length})',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            if (filtered.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Center(
-                  child: Text(
-                    'Brak wpisów dla wybranych filtrów.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                  ),
-                ),
-              )
-            else
-              ...filtered.map(
-                (e) => Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: Icon(
-                      e.mode == WorkMode.remote
-                          ? Icons.home_outlined
-                          : Icons.apartment_outlined,
-                    ),
-                    title: Text(
-                      '${dateFmt.format(e.start)}  ${timeFmt.format(e.start)} — '
-                      '${timeFmt.format(e.end)}',
-                    ),
-                    subtitle: Text(e.mode.labelPl),
-                    trailing: Text(
-                      _formatHm(e.duration),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
+              ],
+            );
+          },
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton.extended(
+            onPressed: _addEntryDialog,
+            icon: const Icon(Icons.add),
+            label: const Text('Dodaj wpis'),
+          ),
+        ),
+      ],
     );
   }
 }
