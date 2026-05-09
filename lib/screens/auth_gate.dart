@@ -1,53 +1,109 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/auth_cubit.dart';
 import '../bloc/timer_cubit.dart';
 import '../services/work_repository.dart';
+import '../widgets/splash_loading_view.dart';
 import 'home_shell.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.repository});
 
   final WorkRepository repository;
 
   @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<AuthCubit, AuthState>(
-      builder: (context, state) {
-        if (state.loading) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (state.user == null) {
-          return const _AuthScreen();
-        }
-        return _SignedInScope(uid: state.user!.uid, repository: repository);
-      },
-    );
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  TimerCubit? _timerCubit;
+  String? _loadedUid;
+
+  Future<void> _disposeTimer() async {
+    final c = _timerCubit;
+    _timerCubit = null;
+    _loadedUid = null;
+    if (c != null) {
+      await c.close();
+    }
   }
-}
 
-class _SignedInScope extends StatefulWidget {
-  const _SignedInScope({required this.uid, required this.repository});
+  Future<void> _onAuthChanged(AuthState state) async {
+    if (state.loading) return;
+    if (state.user == null) {
+      await _disposeTimer();
+      if (mounted) setState(() {});
+      return;
+    }
+    final uid = state.user!.uid;
+    if (_timerCubit != null && _loadedUid == uid) return;
 
-  final String uid;
-  final WorkRepository repository;
+    await _disposeTimer();
+
+    final sw = Stopwatch()..start();
+    final cubit = TimerCubit(uid: uid, repository: widget.repository);
+    try {
+      await cubit.init().timeout(const Duration(seconds: 15));
+    } catch (_) {}
+
+    final ms = sw.elapsedMilliseconds;
+    const minSplashMs = 520;
+    if (ms < minSplashMs) {
+      await Future<void>.delayed(Duration(milliseconds: minSplashMs - ms));
+    }
+
+    if (!mounted) {
+      await cubit.close();
+      return;
+    }
+
+    setState(() {
+      _timerCubit = cubit;
+      _loadedUid = uid;
+    });
+  }
 
   @override
-  State<_SignedInScope> createState() => _SignedInScopeState();
-}
+  void dispose() {
+    unawaited(_disposeTimer());
+    super.dispose();
+  }
 
-class _SignedInScopeState extends State<_SignedInScope> {
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      key: ValueKey(widget.uid),
-      create: (_) =>
-          TimerCubit(uid: widget.uid, repository: widget.repository)..init(),
-      child: _TimerResumeSyncScope(
-        child: HomeShell(onSignOut: context.read<AuthCubit>().signOut),
+    return BlocListener<AuthCubit, AuthState>(
+      listenWhen: (a, b) {
+        if (b.loading) return false;
+        if (a.loading && !b.loading) return true;
+        if (a.user?.uid != b.user?.uid) return true;
+        return false;
+      },
+      listener: (context, state) {
+        unawaited(_onAuthChanged(state));
+      },
+      child: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, state) {
+          if (state.loading) {
+            return const SplashLoadingView();
+          }
+          if (state.user == null) {
+            return const _AuthScreen();
+          }
+          if (_timerCubit == null) {
+            return const SplashLoadingView();
+          }
+          return BlocProvider.value(
+            value: _timerCubit!,
+            child: _TimerResumeSyncScope(
+              child: HomeShell(
+                onSignOut: context.read<AuthCubit>().signOut,
+              ),
+            ),
+          );
+        },
       ),
     );
   }

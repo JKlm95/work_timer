@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Work Timer</string>
+    <string name="widget_sign_in_hint">Zaloguj się</string>
+    <string name="widget_locked_placeholder">—</string>
 </resources>

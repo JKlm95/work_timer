@@ -96,14 +96,28 @@ class WorkTimerForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand action=${intent?.action}")
-        when (intent?.action) {
-            ACTION_PLAY -> handlePlay(intent)
+        val action = intent?.action
+        if (!AuthPrefs.isSignedIn(this) && isTimerControlAction(action)) {
+            startActivity(
+                Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                },
+            )
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        when (action) {
+            ACTION_PLAY -> handlePlay(intent!!)
             ACTION_PAUSE -> handlePause()
             ACTION_STOP -> handleStop()
             ACTION_SYNC -> handleSync(intent)
             else -> handleSync(intent)
         }
         return START_STICKY
+    }
+
+    private fun isTimerControlAction(action: String?): Boolean {
+        return action == ACTION_PLAY || action == ACTION_PAUSE || action == ACTION_STOP
     }
 
     override fun onDestroy() {
@@ -301,12 +315,22 @@ class WorkTimerForegroundService : Service() {
         val ids = manager.getAppWidgetIds(component)
         ids.forEach { id ->
             val views = RemoteViews(packageName, R.layout.work_timer_widget)
-            views.setTextViewText(R.id.widgetWorkspace, workspaceName)
-            views.setTextViewText(R.id.widgetTimer, formatElapsed(elapsedSeconds))
-            views.setTextViewText(R.id.widgetState, runState)
-            views.setOnClickPendingIntent(R.id.widgetPlay, actionPendingIntent(ACTION_PLAY, 11))
-            views.setOnClickPendingIntent(R.id.widgetPause, actionPendingIntent(ACTION_PAUSE, 12))
-            views.setOnClickPendingIntent(R.id.widgetStop, actionPendingIntent(ACTION_STOP, 13))
+            if (!AuthPrefs.isSignedIn(this)) {
+                views.setTextViewText(R.id.widgetWorkspace, getString(R.string.app_name))
+                views.setTextViewText(R.id.widgetTimer, getString(R.string.widget_locked_placeholder))
+                views.setTextViewText(R.id.widgetState, getString(R.string.widget_sign_in_hint))
+                val openApp = AuthPrefs.openAppPendingIntent(this, 190)
+                views.setOnClickPendingIntent(R.id.widgetPlay, openApp)
+                views.setOnClickPendingIntent(R.id.widgetPause, openApp)
+                views.setOnClickPendingIntent(R.id.widgetStop, openApp)
+            } else {
+                views.setTextViewText(R.id.widgetWorkspace, workspaceName)
+                views.setTextViewText(R.id.widgetTimer, formatElapsed(elapsedSeconds))
+                views.setTextViewText(R.id.widgetState, runState)
+                views.setOnClickPendingIntent(R.id.widgetPlay, actionPendingIntent(ACTION_PLAY, 11))
+                views.setOnClickPendingIntent(R.id.widgetPause, actionPendingIntent(ACTION_PAUSE, 12))
+                views.setOnClickPendingIntent(R.id.widgetStop, actionPendingIntent(ACTION_STOP, 13))
+            }
             manager.updateAppWidget(id, views)
         }
     }

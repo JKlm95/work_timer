@@ -1,52 +1,93 @@
-# work_timer
+# Work Timer — aplikacja do śledzenia czasu pracy
 
-## Firebase setup
+Flutterowa aplikacja mobilna z **Firebase** (logowanie e-mail, synchronizacja w chmurze), **wieloma workspace’ami**, timerem sesji, historią wpisów, statystykami oraz **widgetem na ekranie głównym (Android)**. Projekt demonstracyjny — pokazuje pracę end-to-end: UI, warstwę danych, integrację natywną i obsługę offline.
 
-1. Create a Firebase project and enable:
-   - Authentication -> Email/Password (covers sign-in, sign-up, and password reset e-mails)
-   - Firestore Database
-   - Optional: Authentication -> Templates — customize the password-reset e-mail if you want
-2. Install FlutterFire CLI and generate options (replace `YOUR_PROJECT_ID` with your Firebase project id, e.g. from the Firebase console URL):
-   - `dart pub global activate flutterfire_cli`
-   - `dart pub global run flutterfire_cli:flutterfire configure --yes --project=YOUR_PROJECT_ID -o lib/firebase_options.dart --overwrite-firebase-options`
-   - On Windows, if `flutterfire` is not on PATH, use the `dart pub global run flutterfire_cli:flutterfire ...` form above, or add Pub’s bin folder to PATH.
-3. Keep generated files in project (private repo: committing `firebase_options.dart` is normal):
-   - `lib/firebase_options.dart` (used by `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` in `lib/main.dart`)
-   - platform configs written by the CLI (`google-services.json`, `GoogleService-Info.plist`, etc.)
-   - root `firebase.json` — FlutterFire metadata for registered platforms; do not delete if you rely on `flutterfire configure`
-4. Deploy Firestore rules from `firestore.rules` (Firebase console **Firestore → Rules**, or Firebase CLI `firebase deploy --only firestore:rules` once a `firestore` section is added to `firebase.json` / project is linked).
+---
 
-## Data strategy
+## Dla rekrutera w skrócie
 
-- Full history is stored in Firestore under:
-  - `users/{uid}/entries/{entryId}`
-  - `users/{uid}/workspaces/{workspaceId}`
-- Every entry contains `workspaceId` (legacy entries without it are migrated to `default`).
-- Local storage keeps:
-  - current month cache for offline history (per workspace)
-  - pending queue for offline writes (per workspace)
-  - list of workspaces and active workspace
-- Legacy `work_entries_v1` is migrated once (current month only) after first login and assigned to default workspace.
+| | |
+|---|---|
+| **Rola w projekcie** | *Tu wpisz: autor / zakres (np. samodzielnie, czas trwania)* |
+| **Stack** | Flutter (Dart), Firebase Auth & Firestore, Bloc, widget + serwis Android |
+| **Szczegóły techniczne** | Pełny opis architektury, kanałów natywnych i strategii danych → **[TECHNICAL.md](TECHNICAL.md)** |
 
-## Main features
+---
 
-- Auth: sign-in, sign-up, sign-out, password reset.
-- Workspaces: create, rename, switch active workspace.
-- Timer: start/pause/stop with mode selection.
-- History: date range filter, mode filter, manual add/edit/delete entries.
-- Stats: week/month range, workspace filters, KPI summary, daily bar chart, workspace share.
-- Android home widget: shows active workspace, timer state, and elapsed time.
+## Problem i rozwiązanie
 
-## Manual test checklist
+Śledzenie czasu pracy (np. home office vs biuro) często rozjeżdża się między „timerem w głowie” a późniejszym uzupełnianiem arkuszy. **Work Timer** zbiera to w jednym miejscu: szybki timer, widoczny skrót na pulpicie telefonu oraz historia i podsumowania per workspace.
 
-- Register with email/password and log in.
-- On the login screen, use **Zapomniałeś hasła?** (password reset), confirm the reset e-mail arrives, set a new password, then sign in again.
-- Create a new workspace, rename it, switch active workspace, and verify entries are separated per workspace.
-- Create timer entries while online and confirm they appear in Firestore with correct `workspaceId`.
-- Add manual history entry, edit it, and delete it from history.
-- Open stats tab and verify week/month values, workspace filter behavior, and chart consistency with history.
-- Turn internet off, create/edit/delete entries, confirm local history still updates.
-- Turn internet on, reopen history, confirm pending changes sync to Firestore.
-- Reinstall app, log in again, confirm remote history is available.
-- Open old month range without internet, confirm offline fallback message and no remote fetch.
-- Add Android widget to home screen and verify workspace/state/time values refresh after timer/workspace changes.
+---
+
+## Główne możliwości
+
+- **Konto użytkownika** — logowanie, rejestracja, wylogowanie, reset hasła (Firebase Auth).
+- **Workspace’y** — tworzenie, zmiana nazwy, przełączanie aktywnego kontekstu; wpisy przypisane do workspace’u.
+- **Timer sesji** — start / pauza / stop, tryb pracy (np. zdalna / stacjonarna).
+- **Historia** — zakres dat, filtry, ręczne dodawanie i edycja wpisów.
+- **Statystyki** — agregaty w tygodniu / miesiącu, wykresy, udział workspace’ów.
+- **Widget (Android)** — podgląd czasu i sterowanie z ekranu głównego; **bez zalogowania** widget prowadzi do aplikacji zamiast odpalać timer *(zabezpieczenie pokazujące myślenie o UX i bezpieczeństwie)*.
+- **Offline** — cache i kolejka zmian; synchronizacja po powrocie sieci.
+
+---
+
+## Zrzuty ekranu *(do uzupełnienia przez autora)*
+
+Poniżej: **propozycja nazw plików** i **co warto pokazać**. Umieść pliki np. w folderze `docs/screenshots/` i podlinkuj obrazki w tej sekcji.
+
+<!--
+  INSTRUKCJA DLA CIEBIE, KUBA:
+  1. Utwórz folder docs/screenshots/
+  2. Zrób zrzuty na emulatorze lub urządzeniu (jasny motyw, spójna rozdzielczość).
+  3. Zamień ścieżki poniżej na prawdziwe linki markdown: ![opis](docs/screenshots/nazwa.png)
+  4. Opcjonalnie: jeden plik złożony (np. Figma export) — wtedy jeden wiersz w tabeli.
+-->
+
+| Sugerowana nazwa pliku | Co pokazać |
+|------------------------|------------|
+| `01_splash_lub_login.png` | Ekran powitalny / logowanie (pierwszy kontakt z aplikacją). |
+| `02_timer_glowny.png` | Zakładka Timera z widocznym licznikiem i wyborem trybu / workspace. |
+| `03_historia.png` | Lista wpisów z filtrami lub szczegół edycji. |
+| `04_statystyki.png` | Statystyki (wykres / podsumowanie). |
+| `05_workspaces.png` | Zarządzanie workspace’ami. |
+| `06_widget_android.png` | Widget na launcherze (opcjonalnie obok otwartej apki). |
+
+**Placeholder pod galerię** *(usuń ten blok po dodaniu grafik):*
+
+```markdown
+<!-- Przykład po dodaniu plików:
+![Logowanie](docs/screenshots/01_splash_lub_login.png)
+![Timer](docs/screenshots/02_timer_glowny.png)
+-->
+```
+
+---
+
+## Krótki opis do CV lub listu motywacyjnego *(szkic)*
+
+> Aplikacja mobilna **Work Timer** (Flutter) służy do rejestrowania czasu pracy w wielu workspace’ach, z synchronizacją **Firebase** i obsługą **offline**. Zrealizowałem m.in. integrację **widgetu Android** z warstwą Flutter (współdzielony stan, foreground service, kanał natywny), spójny UX przy powrocie do aplikacji oraz ekran startowy ładowania danych przed wejściem w główny interfejs. Szczegóły techniczne: repozytorium → **TECHNICAL.md**.
+
+*(Dostosuj pierwszą osobę / „my” wg kontekstu.)*
+
+---
+
+## Uruchomienie (skrót)
+
+Wymagany **Flutter** i projekt **Firebase** (konfiguracja `firebase_options` i pliki platform). Szczegółowy przewodnik setupu, reguły Firestore i strategia danych: **[TECHNICAL.md](TECHNICAL.md)**.
+
+```bash
+flutter pub get
+flutter run
+```
+
+---
+
+## Licencja i kontakt
+
+- **Licencja:** *do uzupełnienia (np. MIT, własna, tylko portfolio)*  
+- **Kontakt / portfolio:** *link do LinkedIn, strony lub e-mail*
+
+---
+
+*Ten plik jest przeznaczony dla **rekrutera i przeglądu portfolio**. Dokumentacja dla deweloperów znajduje się w **TECHNICAL.md**.*

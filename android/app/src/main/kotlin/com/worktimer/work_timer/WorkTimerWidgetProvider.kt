@@ -16,50 +16,66 @@ class WorkTimerWidgetProvider : HomeWidgetProvider() {
     ) {
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.work_timer_widget)
-            val workspace = widgetData.getString("workspaceName", "Domyslny") ?: "Domyslny"
-            val workspaceId = widgetData.getString("activeWorkspaceId", "default") ?: "default"
-            val nextSessionMode = widgetData.getString("nextSessionMode", "office") ?: "office"
-            val runState = widgetData.getString("runState", "idle") ?: "idle"
-            val elapsedSeconds = widgetData.getInt("elapsedSeconds", 0)
-            val elapsed = formatElapsed(elapsedSeconds)
+            if (!AuthPrefs.isSignedIn(context)) {
+                views.setTextViewText(R.id.widgetWorkspace, context.getString(R.string.app_name))
+                views.setTextViewText(
+                    R.id.widgetTimer,
+                    context.getString(R.string.widget_locked_placeholder),
+                )
+                views.setTextViewText(
+                    R.id.widgetState,
+                    context.getString(R.string.widget_sign_in_hint),
+                )
+                val openApp = AuthPrefs.openAppPendingIntent(context, 190)
+                views.setOnClickPendingIntent(R.id.widgetPlay, openApp)
+                views.setOnClickPendingIntent(R.id.widgetPause, openApp)
+                views.setOnClickPendingIntent(R.id.widgetStop, openApp)
+            } else {
+                val workspace = widgetData.getString("workspaceName", "Domyslny") ?: "Domyslny"
+                val workspaceId = widgetData.getString("activeWorkspaceId", "default") ?: "default"
+                val nextSessionMode = widgetData.getString("nextSessionMode", "office") ?: "office"
+                val runState = widgetData.getString("runState", "idle") ?: "idle"
+                val elapsedSeconds = widgetData.getInt("elapsedSeconds", 0)
+                val elapsed = formatElapsed(elapsedSeconds)
 
-            views.setTextViewText(R.id.widgetWorkspace, workspace)
-            views.setTextViewText(R.id.widgetTimer, elapsed)
-            views.setTextViewText(R.id.widgetState, runState)
+                views.setTextViewText(R.id.widgetWorkspace, workspace)
+                views.setTextViewText(R.id.widgetTimer, elapsed)
+                views.setTextViewText(R.id.widgetState, runState)
 
-            views.setOnClickPendingIntent(
-                R.id.widgetPlay,
-                pendingIntent(
-                    context,
-                    WorkTimerForegroundService.ACTION_PLAY,
-                    101,
-                    workspaceId,
-                    workspace,
-                    nextSessionMode,
-                ),
-            )
-            views.setOnClickPendingIntent(
-                R.id.widgetPause,
-                pendingIntent(
-                    context,
-                    WorkTimerForegroundService.ACTION_PAUSE,
-                    102,
-                    workspaceId,
-                    workspace,
-                    nextSessionMode,
-                ),
-            )
-            views.setOnClickPendingIntent(
-                R.id.widgetStop,
-                pendingIntent(
-                    context,
-                    WorkTimerForegroundService.ACTION_STOP,
-                    103,
-                    workspaceId,
-                    workspace,
-                    nextSessionMode,
-                ),
-            )
+                views.setOnClickPendingIntent(
+                    R.id.widgetPlay,
+                    pendingIntent(
+                        context,
+                        WorkTimerForegroundService.ACTION_PLAY,
+                        101,
+                        workspaceId,
+                        workspace,
+                        nextSessionMode,
+                    ),
+                )
+                views.setOnClickPendingIntent(
+                    R.id.widgetPause,
+                    pendingIntent(
+                        context,
+                        WorkTimerForegroundService.ACTION_PAUSE,
+                        102,
+                        workspaceId,
+                        workspace,
+                        nextSessionMode,
+                    ),
+                )
+                views.setOnClickPendingIntent(
+                    R.id.widgetStop,
+                    pendingIntent(
+                        context,
+                        WorkTimerForegroundService.ACTION_STOP,
+                        103,
+                        workspaceId,
+                        workspace,
+                        nextSessionMode,
+                    ),
+                )
+            }
             appWidgetManager.updateAppWidget(widgetId, views)
         }
     }

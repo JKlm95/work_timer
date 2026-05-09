@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../services/auth_native_sync.dart';
 import '../services/auth_service.dart';
 
 class AuthState {
@@ -20,8 +21,9 @@ class AuthState {
 
 class AuthCubit extends Cubit<AuthState> {
   AuthCubit(this._authService) : super(AuthState.initial()) {
-    _sub = _authService.authStateChanges.listen((user) {
+    _sub = _authService.authStateChanges.listen((user) async {
       emit(AuthState(loading: false, user: user));
+      await syncAuthSignedInToNativePrefs(user != null);
     });
   }
 
