@@ -77,6 +77,9 @@ lib/
 
 ## 6. Android: widget, serwis, synchronizacja
 
+**Przepływ danych (widget, jedna linia):**  
+`Flutter` → `TimerServiceBridge` (**MethodChannel** `work_timer/service_control`) → **Kotlin** `WorkTimerForegroundService` → **SharedPreferences** (Flutter prefs + `home_widget`) → aktualizacja **AppWidgetProvider** / widoku na launcherze.
+
 ### 6.1 Foreground service
 
 - `WorkTimerForegroundService` — akcje: `PLAY`, `PAUSE`, `STOP`, `SYNC`.

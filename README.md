@@ -1,5 +1,8 @@
 # Work Timer — aplikacja do śledzenia czasu pracy
 
+> **Sugerowany opis repozytorium (GitHub → About → Description):**  
+> *Offline-first time tracking app built with Flutter, BLoC, Firebase and native Android foreground service.*
+
 Flutterowa aplikacja mobilna z **Firebase** (logowanie e-mail, synchronizacja w chmurze), **wieloma workspace’ami**, timerem sesji, historią wpisów, statystykami oraz **widgetem na ekranie głównym (Android)**. Projekt demonstracyjny — pokazuje pracę end-to-end: UI, warstwę danych, integrację natywną i obsługę offline.
 
 ---
@@ -11,6 +14,12 @@ Flutterowa aplikacja mobilna z **Firebase** (logowanie e-mail, synchronizacja w 
 | **Rola w projekcie** | *Tu wpisz: autor / zakres (np. samodzielnie, czas trwania)* |
 | **Stack** | Flutter (Dart), Firebase Auth & Firestore, Bloc, widget + serwis Android |
 | **Szczegóły techniczne** | Pełny opis architektury, kanałów natywnych i strategii danych → **[TECHNICAL.md](TECHNICAL.md)** |
+
+**Ścieżka danych widgetu (Android, skrót):**  
+Flutter (`TimerServiceBridge`) → **MethodChannel** `work_timer/service_control` → **Kotlin** (`WorkTimerForegroundService`) → **SharedPreferences** (prefs Flutter + home_widget) → **odświeżenie widżetu** (`AppWidgetProvider`).
+
+**GitHub → Topics** *(wklej ręcznie, bez spacji w nazwie topicu):*  
+`flutter` · `firebase` · `bloc` · `offline-first` · `android-widget` · `foreground-service` · *(opcjonalnie)* `method-channel` · `kotlin`
 
 ---
 
