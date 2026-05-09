@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../l10n/app_localizations.dart';
 
 import '../bloc/auth_cubit.dart';
+import '../utils/auth_error_localizer.dart';
 import '../bloc/timer_cubit.dart';
 import '../services/work_repository.dart';
 import '../widgets/splash_loading_view.dart';
@@ -189,7 +190,9 @@ class _AuthScreenState extends State<_AuthScreen> {
         );
       }
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() => _error = localizedAuthError(e, l10n));
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
@@ -340,12 +343,12 @@ class _PasswordResetDialogState extends State<_PasswordResetDialog> {
       await widget.authCubit.sendPasswordResetEmail(email: _emailCtrl.text);
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _error = e.toString();
-        });
-      }
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() {
+        _loading = false;
+        _error = localizedAuthError(e, l10n);
+      });
     }
   }
 

@@ -159,7 +159,15 @@ lib/
 
 ## 10. Testy automatyczne
 
-W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, stats) — uruchomienie: `flutter test`.
+W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, stats, mapowanie błędów Auth, `SettingsCubit`) — uruchomienie: `flutter test`.
+
+---
+
+## 10a. GitHub Actions (CI)
+
+**Po co:** przy każdym **push** lub **pull requeście** do gałęzi `main` GitHub uruchamia workflow (plik **`.github/workflows/flutter_ci.yml`**) na maszynie w chmurze: `flutter pub get` → **`dart analyze lib test`** → **`flutter test`**. Dzięki temu od razu widać, czy projekt się analizuje i czy testy przechodzą — bez ręcznego odpalania u siebie przed mergem.
+
+Włącz **Actions** w ustawieniach repozytorium (domyślnie w publicznych repach jest OK). Pierwsze uruchomienie po dodaniu workflowa: zakładka **Actions** w GitHubie.
 
 ---
 

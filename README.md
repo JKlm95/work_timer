@@ -85,6 +85,8 @@ flutter run
 
 Po edycji plików **`.arb`** (tłumaczenia) uruchom ponownie `flutter pub get` lub `flutter gen-l10n`, aby odświeżyć wygenerowane klasy w `lib/l10n/`.
 
+Na GitHubie włącz **Actions** — po pushu do `main` odpala się **Flutter CI** (`analyze` + `flutter test`), szczegóły w **[TECHNICAL.md](TECHNICAL.md)** (sekcja GitHub Actions).
+
 ---
 
 ## Licencja i kontakt

@@ -111,5 +111,16 @@
   "settingsThemeLight": "Jasny",
   "settingsThemeDark": "Ciemny",
   "settingsThemeSystem": "Domyślny systemu",
-  "signOut": "Wyloguj"
+  "signOut": "Wyloguj",
+  "errorAuthInvalidEmail": "Nieprawidłowy adres e-mail.",
+  "errorAuthUserNotFound": "Brak konta z tym adresem e-mail.",
+  "errorAuthWrongPassword": "Nieprawidłowe hasło.",
+  "errorAuthEmailInUse": "Ten e-mail jest już zarejestrowany.",
+  "errorAuthWeakPassword": "Hasło jest zbyt słabe.",
+  "errorAuthNetwork": "Błąd sieci. Sprawdź połączenie.",
+  "errorAuthTooManyRequests": "Zbyt wiele prób. Spróbuj później.",
+  "errorAuthUserDisabled": "To konto zostało wyłączone.",
+  "errorAuthInvalidCredential": "Nieprawidłowy e-mail lub hasło.",
+  "errorAuthOperationNotAllowed": "Ta metoda logowania nie jest włączona.",
+  "errorAuthGeneric": "Nie udało się wykonać operacji. Spróbuj ponownie."
 }

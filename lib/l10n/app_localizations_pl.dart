@@ -254,4 +254,39 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get signOut => 'Wyloguj';
+
+  @override
+  String get errorAuthInvalidEmail => 'Nieprawidłowy adres e-mail.';
+
+  @override
+  String get errorAuthUserNotFound => 'Brak konta z tym adresem e-mail.';
+
+  @override
+  String get errorAuthWrongPassword => 'Nieprawidłowe hasło.';
+
+  @override
+  String get errorAuthEmailInUse => 'Ten e-mail jest już zarejestrowany.';
+
+  @override
+  String get errorAuthWeakPassword => 'Hasło jest zbyt słabe.';
+
+  @override
+  String get errorAuthNetwork => 'Błąd sieci. Sprawdź połączenie.';
+
+  @override
+  String get errorAuthTooManyRequests => 'Zbyt wiele prób. Spróbuj później.';
+
+  @override
+  String get errorAuthUserDisabled => 'To konto zostało wyłączone.';
+
+  @override
+  String get errorAuthInvalidCredential => 'Nieprawidłowy e-mail lub hasło.';
+
+  @override
+  String get errorAuthOperationNotAllowed =>
+      'Ta metoda logowania nie jest włączona.';
+
+  @override
+  String get errorAuthGeneric =>
+      'Nie udało się wykonać operacji. Spróbuj ponownie.';
 }

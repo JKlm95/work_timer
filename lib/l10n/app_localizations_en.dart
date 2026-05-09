@@ -254,4 +254,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signOut => 'Sign out';
+
+  @override
+  String get errorAuthInvalidEmail => 'Invalid e-mail address.';
+
+  @override
+  String get errorAuthUserNotFound => 'No account with this e-mail.';
+
+  @override
+  String get errorAuthWrongPassword => 'Wrong password.';
+
+  @override
+  String get errorAuthEmailInUse => 'This e-mail is already registered.';
+
+  @override
+  String get errorAuthWeakPassword => 'Password is too weak.';
+
+  @override
+  String get errorAuthNetwork => 'Network error. Check your connection.';
+
+  @override
+  String get errorAuthTooManyRequests => 'Too many attempts. Try again later.';
+
+  @override
+  String get errorAuthUserDisabled => 'This account has been disabled.';
+
+  @override
+  String get errorAuthInvalidCredential => 'Incorrect e-mail or password.';
+
+  @override
+  String get errorAuthOperationNotAllowed =>
+      'This sign-in method is not enabled.';
+
+  @override
+  String get errorAuthGeneric => 'Could not complete the request. Try again.';
 }

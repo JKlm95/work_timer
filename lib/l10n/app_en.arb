@@ -111,5 +111,16 @@
   "settingsThemeLight": "Light",
   "settingsThemeDark": "Dark",
   "settingsThemeSystem": "System default",
-  "signOut": "Sign out"
+  "signOut": "Sign out",
+  "errorAuthInvalidEmail": "Invalid e-mail address.",
+  "errorAuthUserNotFound": "No account with this e-mail.",
+  "errorAuthWrongPassword": "Wrong password.",
+  "errorAuthEmailInUse": "This e-mail is already registered.",
+  "errorAuthWeakPassword": "Password is too weak.",
+  "errorAuthNetwork": "Network error. Check your connection.",
+  "errorAuthTooManyRequests": "Too many attempts. Try again later.",
+  "errorAuthUserDisabled": "This account has been disabled.",
+  "errorAuthInvalidCredential": "Incorrect e-mail or password.",
+  "errorAuthOperationNotAllowed": "This sign-in method is not enabled.",
+  "errorAuthGeneric": "Could not complete the request. Try again."
 }

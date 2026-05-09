@@ -559,6 +559,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign out'**
   String get signOut;
+
+  /// No description provided for @errorAuthInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid e-mail address.'**
+  String get errorAuthInvalidEmail;
+
+  /// No description provided for @errorAuthUserNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No account with this e-mail.'**
+  String get errorAuthUserNotFound;
+
+  /// No description provided for @errorAuthWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password.'**
+  String get errorAuthWrongPassword;
+
+  /// No description provided for @errorAuthEmailInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This e-mail is already registered.'**
+  String get errorAuthEmailInUse;
+
+  /// No description provided for @errorAuthWeakPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password is too weak.'**
+  String get errorAuthWeakPassword;
+
+  /// No description provided for @errorAuthNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Check your connection.'**
+  String get errorAuthNetwork;
+
+  /// No description provided for @errorAuthTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Try again later.'**
+  String get errorAuthTooManyRequests;
+
+  /// No description provided for @errorAuthUserDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has been disabled.'**
+  String get errorAuthUserDisabled;
+
+  /// No description provided for @errorAuthInvalidCredential.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect e-mail or password.'**
+  String get errorAuthInvalidCredential;
+
+  /// No description provided for @errorAuthOperationNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'This sign-in method is not enabled.'**
+  String get errorAuthOperationNotAllowed;
+
+  /// No description provided for @errorAuthGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not complete the request. Try again.'**
+  String get errorAuthGeneric;
 }
 
 class _AppLocalizationsDelegate

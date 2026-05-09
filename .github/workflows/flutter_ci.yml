@@ -1,0 +1,31 @@
+# Uruchamia się na GitHubie po pushu/PR do main: `flutter analyze` + `flutter test`.
+# Wymaga workflowów włączonych w repo (Settings → Actions).
+name: Flutter CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: dart analyze lib test
+
+      - name: Test
+        run: flutter test
