@@ -100,7 +100,7 @@ class WorkTimerForegroundService : Service() {
         if (!AuthPrefs.isSignedIn(this) && isTimerControlAction(action)) {
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 },
             )
             stopSelf()
