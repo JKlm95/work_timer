@@ -47,7 +47,7 @@ class LocalTimerSession {
       sessionStart: DateTime.parse(
         json['sessionStart'] as String? ?? DateTime.now().toIso8601String(),
       ),
-      accumulatedMs: json['accumulatedMs'] as int? ?? 0,
+      accumulatedMs: (json['accumulatedMs'] as num?)?.toInt() ?? 0,
       resumeAt: (json['resumeAt'] as String?) == null
           ? null
           : DateTime.parse(json['resumeAt'] as String),
@@ -56,6 +56,13 @@ class LocalTimerSession {
 }
 
 class LocalCacheStore {
+  /// Native (foreground service / Kotlin) can update `FlutterSharedPreferences`
+  /// directly; Flutter keeps an in‑memory cache unless we reload first.
+  Future<void> reloadPreferencesFromDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+  }
+
   Future<List<WorkEntry>> loadCurrentMonthCache(String workspaceId) async {
     return _loadFromKey(_workspaceKey(_currentMonthCacheKey, workspaceId));
   }
@@ -133,8 +140,12 @@ class LocalCacheStore {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_timerSessionKey);
     if (raw == null || raw.isEmpty) return null;
-    final map = jsonDecode(raw) as Map<String, dynamic>;
-    return LocalTimerSession.fromJson(map);
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      return LocalTimerSession.fromJson(map);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> clearTimerSession() async {

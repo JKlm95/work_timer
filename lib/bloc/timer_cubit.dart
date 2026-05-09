@@ -147,8 +147,15 @@ class TimerCubit extends Cubit<TimerState> {
         activeWorkspaceId: activeWorkspaceId,
       ),
     );
-    await _restoreSessionIfAny();
+    await _hydrateTimerFromPersistedStores();
     await refreshStatsEntries();
+    await _writeWidgetSnapshot();
+  }
+
+  /// Po powrocie do apki: serwis Kotlin i widget zapisują do prefs, Flutter trzyma
+  /// przestarzały cache dopóki [LocalCacheStore.reloadPreferencesFromDisk].
+  Future<void> syncFromNativeStoresOnResume() async {
+    await _hydrateTimerFromPersistedStores();
     await _writeWidgetSnapshot();
   }
 
@@ -451,12 +458,39 @@ class TimerCubit extends Cubit<TimerState> {
     } catch (_) {}
   }
 
-  Future<void> _restoreSessionIfAny() async {
+  Future<void> _hydrateTimerFromPersistedStores() async {
+    if (Platform.isAndroid) {
+      final mirror = await TimerServiceBridge.getNativeTimerSnapshot();
+      if (mirror != null) {
+        debugPrint(
+          '[TimerCubit] hydrate<-native mirror '
+          '${mirror['runState']} elapsed=${mirror['elapsedSeconds']}s '
+          'ws=${mirror['workspaceId']}',
+        );
+        _applyAndroidExternalSnapshot(mirror);
+        _persistSession();
+        return;
+      }
+      await _repository.localCache.reloadPreferencesFromDisk();
+    }
+
     final saved = await _repository.localCache.loadTimerSession();
-    if (saved == null || saved.runState == TimerRunState.idle.name) {
-      await _restoreFromWidgetSnapshotIfAny();
+    if (saved != null && saved.runState != TimerRunState.idle.name) {
+      _applyStoredTimerSession(saved);
       return;
     }
+
+    if (Platform.isAndroid) {
+      await _hydrateAndroidFromHomeWidgetPrefs();
+      return;
+    }
+
+    if (saved?.runState == TimerRunState.idle.name) {
+      _collapseTimerToIdleIfNeeded();
+    }
+  }
+
+  void _applyStoredTimerSession(LocalTimerSession saved) {
     final restoredWorkspaceId = state.workspaces.any((w) => w.id == saved.workspaceId)
         ? saved.workspaceId
         : state.activeWorkspaceId;
@@ -488,16 +522,18 @@ class TimerCubit extends Cubit<TimerState> {
 
     if (restoredState == TimerRunState.running) {
       _startTick();
+    } else {
+      _stopTick();
     }
   }
 
-  Future<void> _restoreFromWidgetSnapshotIfAny() async {
-    if (!Platform.isAndroid) return;
+  Future<void> _hydrateAndroidFromHomeWidgetPrefs() async {
     final runStateRaw = await HomeWidget.getWidgetData<String>(
       'runState',
       defaultValue: TimerRunState.idle.name,
     );
-    final elapsedSeconds = await HomeWidget.getWidgetData<int>(
+    final elapsedSeconds =
+        await HomeWidget.getWidgetData<int>(
           'elapsedSeconds',
           defaultValue: 0,
         ) ??
@@ -506,35 +542,96 @@ class TimerCubit extends Cubit<TimerState> {
       'activeWorkspaceId',
       defaultValue: state.activeWorkspaceId,
     );
+    final nextSessionMode = await HomeWidget.getWidgetData<String>(
+      'nextSessionMode',
+      defaultValue: state.nextSessionMode.name,
+    );
+
+    _applyAndroidExternalSnapshot({
+      'runState': runStateRaw,
+      'elapsedSeconds': elapsedSeconds,
+      'workspaceId': workspaceId,
+      'sessionMode': nextSessionMode,
+    });
+    _persistSession();
+  }
+
+  void _applyAndroidExternalSnapshot(Map<String, Object?> data) {
+    final runStateRaw =
+        data['runState'] as String? ?? TimerRunState.idle.name;
+    final elapsedSeconds =
+        (data['elapsedSeconds'] as num?)?.toInt() ?? 0;
+    final workspaceId =
+        data['workspaceId'] as String? ?? state.activeWorkspaceId;
+    final modeStr =
+        data['sessionMode'] as String? ??
+            data['nextSessionMode'] as String? ??
+            WorkMode.office.name;
+    final mode = workModeFromStorage(modeStr);
+
     final runState = TimerRunState.values.firstWhere(
       (e) => e.name == runStateRaw,
       orElse: () => TimerRunState.idle,
     );
-    if (runState == TimerRunState.idle) return;
-    final candidateWorkspaceId = workspaceId ?? state.activeWorkspaceId;
-    final resolvedWorkspaceId = state.workspaces.any((w) => w.id == candidateWorkspaceId)
+
+    if (runState == TimerRunState.idle) {
+      _collapseTimerToIdleIfNeeded();
+      return;
+    }
+
+    final candidateWorkspaceId = workspaceId;
+    final resolvedWorkspaceId =
+        state.workspaces.any((w) => w.id == candidateWorkspaceId)
         ? candidateWorkspaceId
         : state.activeWorkspaceId;
+
     final now = DateTime.now();
     final accumulated = Duration(seconds: elapsedSeconds);
+
     emit(
       state.copyWith(
         activeWorkspaceId: resolvedWorkspaceId,
         runState: runState,
         sessionStart: now.subtract(accumulated),
-        sessionMode: state.nextSessionMode,
-        accumulated: runState == TimerRunState.running
-            ? Duration.zero
-            : accumulated,
-        resumeAt: runState == TimerRunState.running
-            ? now.subtract(accumulated)
-            : null,
+        sessionMode: mode,
+        accumulated:
+            runState == TimerRunState.running ? Duration.zero : accumulated,
+        resumeAt:
+            runState == TimerRunState.running
+                ? now.subtract(accumulated)
+                : null,
         elapsed: accumulated,
       ),
     );
+
     if (runState == TimerRunState.running) {
       _startTick();
+    } else {
+      _stopTick();
     }
+  }
+
+  void _collapseTimerToIdleIfNeeded() {
+    final needsReset =
+        state.runState != TimerRunState.idle || state.elapsed > Duration.zero;
+    if (!needsReset) {
+      _stopTick();
+      return;
+    }
+
+    _stopTick();
+    _lastWidgetElapsedSecond = -1;
+    emit(
+      state.copyWith(
+        runState: TimerRunState.idle,
+        clearSessionStart: true,
+        clearSessionMode: true,
+        accumulated: Duration.zero,
+        clearResumeAt: true,
+        elapsed: Duration.zero,
+      ),
+    );
+    unawaited(_repository.localCache.clearTimerSession());
   }
 
   void _persistSession() {

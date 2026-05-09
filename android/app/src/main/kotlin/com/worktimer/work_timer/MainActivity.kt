@@ -64,6 +64,10 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
 
+                    "getNativeTimerSnapshot" -> {
+                        result.success(WorkTimerForegroundService.getMirrorSnapshot())
+                    }
+
                     else -> result.notImplemented()
                 }
             }

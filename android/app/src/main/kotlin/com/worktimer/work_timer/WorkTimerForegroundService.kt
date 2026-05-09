@@ -39,6 +39,45 @@ class WorkTimerForegroundService : Service() {
         private const val FLUTTER_PREFS = "FlutterSharedPreferences"
         private const val TIMER_SESSION_KEY = "flutter.timer_session_v1"
         private const val TAG = "WorkTimerService"
+
+        @Volatile
+        private var mirrorRunState: String = "idle"
+
+        @Volatile
+        private var mirrorElapsedSeconds: Int = 0
+
+        @Volatile
+        private var mirrorWorkspaceId: String = "default"
+
+        @Volatile
+        private var mirrorWorkspaceName: String = "Domyslny"
+
+        @Volatile
+        private var mirrorSessionMode: String = "office"
+
+        fun publishMirrorForFlutter(
+            runState: String,
+            elapsedSeconds: Int,
+            workspaceId: String,
+            workspaceName: String,
+            sessionMode: String,
+        ) {
+            mirrorRunState = runState
+            mirrorElapsedSeconds = elapsedSeconds
+            mirrorWorkspaceId = workspaceId
+            mirrorWorkspaceName = workspaceName
+            mirrorSessionMode = sessionMode
+        }
+
+        fun getMirrorSnapshot(): Map<String, Any> {
+            return mapOf(
+                "runState" to mirrorRunState,
+                "elapsedSeconds" to mirrorElapsedSeconds,
+                "workspaceId" to mirrorWorkspaceId,
+                "workspaceName" to mirrorWorkspaceName,
+                "sessionMode" to mirrorSessionMode,
+            )
+        }
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -145,13 +184,16 @@ class WorkTimerForegroundService : Service() {
         intent.getStringExtra(EXTRA_WORKSPACE_NAME)?.let { workspaceName = it }
         intent.getStringExtra(EXTRA_NEXT_MODE)?.let { sessionMode = it }
         intent.getStringExtra(EXTRA_RUN_STATE)?.let { runState = it }
-        if (intent.hasExtra(EXTRA_ELAPSED_SECONDS)) {
+        val appliedElapsedSync = intent.hasExtra(EXTRA_ELAPSED_SECONDS)
+        if (appliedElapsedSync) {
             elapsedSeconds = intent.getIntExtra(EXTRA_ELAPSED_SECONDS, elapsedSeconds)
             accumulatedMs = elapsedSeconds * 1000L
         }
         when (runState) {
             "running" -> {
-                if (resumeAtMs == null) {
+                // Flutter sync is authoritative for elapsed at this instant; stale resumeAtMs
+                // otherwise keeps counting from an old PLAY anchor (desync widget vs app).
+                if (appliedElapsedSync || resumeAtMs == null) {
                     resumeAtMs = System.currentTimeMillis()
                 }
             }
@@ -243,6 +285,13 @@ class WorkTimerForegroundService : Service() {
         homePrefs.apply()
 
         saveTimerSession()
+        WorkTimerForegroundService.publishMirrorForFlutter(
+            runState,
+            elapsedSeconds,
+            workspaceId,
+            workspaceName,
+            sessionMode,
+        )
         updateWidgetViews()
     }
 

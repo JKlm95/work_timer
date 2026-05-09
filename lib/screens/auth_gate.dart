@@ -46,9 +46,47 @@ class _SignedInScopeState extends State<_SignedInScope> {
       key: ValueKey(widget.uid),
       create: (_) =>
           TimerCubit(uid: widget.uid, repository: widget.repository)..init(),
-      child: HomeShell(onSignOut: context.read<AuthCubit>().signOut),
+      child: _TimerResumeSyncScope(
+        child: HomeShell(onSignOut: context.read<AuthCubit>().signOut),
+      ),
     );
   }
+}
+
+class _TimerResumeSyncScope extends StatefulWidget {
+  const _TimerResumeSyncScope({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_TimerResumeSyncScope> createState() => _TimerResumeSyncScopeState();
+}
+
+class _TimerResumeSyncScopeState extends State<_TimerResumeSyncScope>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await context.read<TimerCubit>().syncFromNativeStoresOnResume();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _AuthScreen extends StatefulWidget {
