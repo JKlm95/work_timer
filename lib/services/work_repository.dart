@@ -1,10 +1,10 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
 import '../models/work_entry.dart';
 import '../models/workspace.dart';
-import 'firebase_work_store.dart';
 import 'local_cache_store.dart';
+import 'online_checker.dart';
+import 'work_remote_store.dart';
 
 class EntriesResult {
   EntriesResult({required this.entries, required this.offlineFallback});
@@ -16,15 +16,15 @@ class EntriesResult {
 class WorkRepository {
   WorkRepository({
     required LocalCacheStore localCache,
-    required FirebaseWorkStore remoteStore,
-    Connectivity? connectivity,
+    required WorkRemoteStore remoteStore,
+    OnlineChecker? onlineChecker,
   }) : _localCache = localCache,
        _remoteStore = remoteStore,
-       _connectivity = connectivity ?? Connectivity();
+       _onlineChecker = onlineChecker ?? ConnectivityOnlineChecker();
 
   final LocalCacheStore _localCache;
-  final FirebaseWorkStore _remoteStore;
-  final Connectivity _connectivity;
+  final WorkRemoteStore _remoteStore;
+  final OnlineChecker _onlineChecker;
 
   String? _uid;
   List<Workspace> _workspaces = const [];
@@ -47,7 +47,7 @@ class WorkRepository {
     _activeWorkspaceId = await _localCache.loadActiveWorkspaceId() ??
         _workspaces.first.id;
 
-    if (await _isOnline()) {
+    if (await _onlineChecker.check()) {
       final uid = _uid;
       if (uid != null) {
         try {
@@ -91,7 +91,7 @@ class WorkRepository {
     await _localCache.saveActiveWorkspaceId(workspace.id);
     _activeWorkspaceId = workspace.id;
     final uid = _uid;
-    if (uid != null && await _isOnline()) {
+    if (uid != null && await _onlineChecker.check()) {
       try {
         await _remoteStore.upsertWorkspace(uid: uid, workspace: workspace);
       } catch (_) {}
@@ -113,7 +113,7 @@ class WorkRepository {
     await _localCache.saveWorkspaces(_workspaces);
     final uid = _uid;
     final target = _workspaces.firstWhere((w) => w.id == workspaceId);
-    if (uid != null && await _isOnline()) {
+    if (uid != null && await _onlineChecker.check()) {
       try {
         await _remoteStore.upsertWorkspace(uid: uid, workspace: target);
       } catch (_) {}
@@ -160,7 +160,7 @@ class WorkRepository {
       final local = _sortDesc(
         await _localCache.loadCurrentMonthCache(_activeWorkspaceId),
       );
-      if (!await _isOnline()) {
+      if (!await _onlineChecker.check()) {
         return EntriesResult(entries: local, offlineFallback: true);
       }
 
@@ -169,7 +169,7 @@ class WorkRepository {
       return EntriesResult(entries: remote, offlineFallback: false);
     }
 
-    if (!await _isOnline()) {
+    if (!await _onlineChecker.check()) {
       return EntriesResult(entries: [], offlineFallback: true);
     }
 
@@ -191,12 +191,12 @@ class WorkRepository {
     for (final workspaceId in targetIds) {
       if (_isCurrentMonthRange(range)) {
         final local = await _localCache.loadCurrentMonthCache(workspaceId);
-        if (!await _isOnline()) {
+        if (!await _onlineChecker.check()) {
           results.addAll(local.where((e) => !e.isDeleted));
           continue;
         }
       }
-      if (!await _isOnline()) continue;
+      if (!await _onlineChecker.check()) continue;
       final uid = _uid;
       if (uid == null) continue;
       final remote = await _remoteStore.fetchEntriesInRange(
@@ -216,7 +216,7 @@ class WorkRepository {
 
   Future<void> syncPending() async {
     final uid = _uid;
-    if (uid == null || !await _isOnline()) return;
+    if (uid == null || !await _onlineChecker.check()) return;
 
     for (final workspace in _workspaces) {
       final queue = await _localCache.loadPendingQueue(workspace.id);
@@ -305,11 +305,6 @@ class WorkRepository {
       to: to,
     );
     return _sortDesc(remote);
-  }
-
-  Future<bool> _isOnline() async {
-    final results = await _connectivity.checkConnectivity();
-    return !results.contains(ConnectivityResult.none);
   }
 
   bool _isCurrentMonth(DateTime date) {

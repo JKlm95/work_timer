@@ -36,6 +36,7 @@ Flutter (`TimerServiceBridge`) → **MethodChannel** `work_timer/service_control
 - **Timer sesji** — start / pauza / stop, tryb pracy (np. zdalna / stacjonarna).
 - **Historia** — zakres dat, filtry, ręczne dodawanie i edycja wpisów.
 - **Statystyki** — agregaty w tygodniu / miesiącu, wykresy, udział workspace’ów.
+- **Eksport (CSV)** — funkcja `workEntriesToCsv` w `lib/export/` (gotowa pod przycisk „Udostępnij” / zapis pliku; jeszcze niepodpięta pod ekran).
 - **Widget (Android)** — podgląd czasu i sterowanie z ekranu głównego; **bez zalogowania** widget prowadzi do aplikacji zamiast odpalać timer *(zabezpieczenie pokazujące myślenie o UX i bezpieczeństwie)*.
 - **Offline** — cache i kolejka zmian; synchronizacja po powrocie sieci.
 - **Motyw i język** — **jasny / ciemny / systemowy** oraz **polski / angielski / język systemu** (zakładka Ustawienia); spójna paleta **`AppColors`**, motyw w **`buildWorkTimerTheme`**, teksty w **ARB** (`lib/l10n/app_en.arb`, `app_pl.arb`). Sterowanie czasem timera etykietami Play / Pause / Stop pozostaje po angielsku w obu lokalizacjach.

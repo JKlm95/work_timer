@@ -29,10 +29,13 @@ lib/
 ├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart
 ├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, workspaces_tab, settings_tab
 ├── models/                   # work_entry, workspace, work_mode
+├── export/                   # work_entries_csv.dart — eksport wpisów (CSV)
 ├── services/
 │   ├── auth_service.dart
 │   ├── auth_native_sync.dart      # flaga zalogowania dla Android widget (SharedPreferences)
-│   ├── work_repository.dart        # orchestracja cache + Firestore + sync
+│   ├── work_repository.dart        # orchestracja cache + [WorkRemoteStore] + sync
+│   ├── work_remote_store.dart      # abstrakcja Firestore (testy: FakeWorkRemoteStore)
+│   ├── online_checker.dart         # abstrakcja sieci (testy: FixedOnlineChecker)
 │   ├── local_cache_store.dart      # prefs: wpisy, workspace, sesja timera
 │   ├── firebase_work_store.dart
 │   ├── timer_service_bridge.dart   # MethodChannel → serwis Android
@@ -162,7 +165,7 @@ lib/
 
 ## 10. Testy automatyczne
 
-W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, stats, mapowanie błędów Auth, `SettingsCubit`) — uruchomienie: `flutter test`.
+W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, eksport **CSV** `workEntriesToCsv`, mapowanie błędów Auth, `SettingsCubit`) — uruchomienie: `flutter test`.
 
 ---
 

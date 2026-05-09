@@ -2,8 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/work_entry.dart';
 import '../models/workspace.dart';
+import 'work_remote_store.dart';
 
-class FirebaseWorkStore {
+class FirebaseWorkStore implements WorkRemoteStore {
   FirebaseWorkStore({FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
@@ -17,6 +18,7 @@ class FirebaseWorkStore {
     return _firestore.collection('users').doc(uid).collection('workspaces');
   }
 
+  @override
   Future<void> upsertEntry({
     required String uid,
     required WorkEntry entry,
@@ -26,6 +28,7 @@ class FirebaseWorkStore {
     ).doc(entry.id).set(entry.toFirestore(), SetOptions(merge: true));
   }
 
+  @override
   Future<List<WorkEntry>> fetchEntriesInRange({
     required String uid,
     required String workspaceId,
@@ -44,6 +47,7 @@ class FirebaseWorkStore {
         .toList();
   }
 
+  @override
   Future<void> upsertWorkspace({
     required String uid,
     required Workspace workspace,
@@ -54,6 +58,7 @@ class FirebaseWorkStore {
     );
   }
 
+  @override
   Future<List<Workspace>> fetchWorkspaces(String uid) async {
     final snapshot = await _workspacesRef(uid)
         .where('isArchived', isEqualTo: false)
