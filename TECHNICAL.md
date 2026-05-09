@@ -29,7 +29,7 @@ lib/
 ├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart
 ├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, workspaces_tab, settings_tab
 ├── models/                   # work_entry, workspace, work_mode
-├── export/                   # work_entries_csv.dart — eksport wpisów (CSV)
+├── export/                   # work_entries_csv.dart — CSV pod Excel (BOM, separator z locale)
 ├── services/
 │   ├── auth_service.dart
 │   ├── auth_native_sync.dart      # flaga zalogowania dla Android widget (SharedPreferences)

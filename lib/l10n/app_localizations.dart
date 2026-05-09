@@ -458,6 +458,36 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get historyMenuDelete;
 
+  /// No description provided for @historyExportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export for Excel (CSV)'**
+  String get historyExportCsv;
+
+  /// No description provided for @historyExportCsvTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Share filtered entries as a CSV file (opens in Excel)'**
+  String get historyExportCsvTooltip;
+
+  /// No description provided for @historyExportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No entries to export for the current filters.'**
+  String get historyExportEmpty;
+
+  /// No description provided for @historyExportError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create or share the file.'**
+  String get historyExportError;
+
+  /// No description provided for @historyExportShareSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Work Timer export'**
+  String get historyExportShareSubject;
+
   /// No description provided for @workspacesNewTitle.
   ///
   /// In en, this message translates to:

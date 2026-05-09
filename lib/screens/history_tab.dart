@@ -1,6 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../export/work_entries_csv.dart';
 import '../l10n/app_localizations.dart';
 
 import '../bloc/timer_cubit.dart';
@@ -61,6 +68,45 @@ class _HistoryTabState extends State<HistoryTab> {
     final m = d.inMinutes.remainder(60);
     if (h <= 0) return '$m min';
     return '$h h ${m.toString().padLeft(2, '0')} min';
+  }
+
+  Future<void> _shareFilteredCsv() async {
+    final l10n = AppLocalizations.of(context)!;
+    final cubit = context.read<TimerCubit>();
+    final filtered = _filtered(cubit.state.entries).toList();
+    if (filtered.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.historyExportEmpty)),
+      );
+      return;
+    }
+    final names = {for (final w in cubit.state.workspaces) w.id: w.name};
+    final sep = Localizations.localeOf(context).languageCode == 'pl' ? ';' : ',';
+    try {
+      final csv = workEntriesToCsv(
+        filtered,
+        workspaceNames: names,
+        fieldDelimiter: sep,
+        utf8Bom: true,
+      );
+      final dir = await getTemporaryDirectory();
+      final stamp = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
+      final file = File('${dir.path}/work_timer_$stamp.csv');
+      await file.writeAsString(csv, encoding: utf8);
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: l10n.historyExportShareSubject,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.historyExportError)),
+      );
+    }
   }
 
   Future<void> _pickRange() async {
@@ -275,9 +321,21 @@ class _HistoryTabState extends State<HistoryTab> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
               children: [
-                Text(
-                  l10n.historyFilters,
-                  style: Theme.of(context).textTheme.titleMedium,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.historyFilters,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _shareFilteredCsv,
+                      tooltip: l10n.historyExportCsvTooltip,
+                      icon: const Icon(Icons.table_chart_outlined),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(

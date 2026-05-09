@@ -205,6 +205,24 @@ class AppLocalizationsPl extends AppLocalizations {
   String get historyMenuDelete => 'Usuń';
 
   @override
+  String get historyExportCsv => 'Eksport do Excela (CSV)';
+
+  @override
+  String get historyExportCsvTooltip =>
+      'Udostępnij przefiltrowane wpisy jako plik CSV (otwórz w Excelu)';
+
+  @override
+  String get historyExportEmpty =>
+      'Brak wpisów do eksportu przy wybranych filtrach.';
+
+  @override
+  String get historyExportError =>
+      'Nie udało się utworzyć lub udostępnić pliku.';
+
+  @override
+  String get historyExportShareSubject => 'Eksport Work Timer';
+
+  @override
   String get workspacesNewTitle => 'Nowy workspace';
 
   @override
