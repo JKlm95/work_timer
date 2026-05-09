@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import '../theme/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/timer_cubit.dart';
@@ -233,7 +235,7 @@ class _DailyBarChart extends StatelessWidget {
                       heightFactor: ratio,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: AppColors.brandPrimary,
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),

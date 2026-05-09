@@ -10,6 +10,8 @@ import 'services/auth_service.dart';
 import 'services/firebase_work_store.dart';
 import 'services/local_cache_store.dart';
 import 'services/work_repository.dart';
+import 'theme/app_colors.dart';
+import 'theme/app_typography.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,56 +49,63 @@ class WorkTimerApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF0D47A1),
+        theme: () {
+          final scheme = ColorScheme.fromSeed(
+            seedColor: AppColors.brandPrimary,
             brightness: Brightness.light,
-            surface: const Color(0xFFF5F6F8),
-          ),
-          scaffoldBackgroundColor: const Color(0xFFF5F6F8),
-          cardTheme: CardThemeData(
-            color: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFFE3E7EE)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF0D47A1), width: 1.4),
-            ),
-          ),
-          filledButtonTheme: FilledButtonThemeData(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF0D47A1),
-              foregroundColor: Colors.white,
+            surface: AppColors.surfaceApp,
+          );
+          return ThemeData(
+            colorScheme: scheme,
+            textTheme: AppTypography.textTheme(scheme),
+            scaffoldBackgroundColor: AppColors.surfaceApp,
+            cardTheme: CardThemeData(
+              color: AppColors.surfaceCard,
+              elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(20),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-          ),
-          navigationBarTheme: const NavigationBarThemeData(
-            backgroundColor: Colors.white,
-            indicatorColor: Color(0x1A0D47A1),
-          ),
-          useMaterial3: true,
-        ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: AppColors.surfaceCard,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: AppColors.borderInputIdle),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: AppColors.brandPrimary,
+                  width: 1.4,
+                ),
+              ),
+            ),
+            filledButtonTheme: FilledButtonThemeData(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.brandPrimary,
+                foregroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+            navigationBarTheme: const NavigationBarThemeData(
+              backgroundColor: AppColors.surfaceCard,
+              indicatorColor: AppColors.brandNavIndicator,
+            ),
+            useMaterial3: true,
+          );
+        }(),
         home: AuthGate(repository: repository),
       ),
     );

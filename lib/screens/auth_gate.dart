@@ -265,7 +265,7 @@ class _AuthScreenState extends State<_AuthScreen> {
                     const SizedBox(height: 12),
                     Text(
                       _error!,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.error,
                       ),
                     ),
@@ -375,7 +375,9 @@ class _PasswordResetDialogState extends State<_PasswordResetDialog> {
               const SizedBox(height: 8),
               Text(
                 _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
               ),
             ],
           ],

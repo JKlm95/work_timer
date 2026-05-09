@@ -103,10 +103,7 @@ class TimerTab extends StatelessWidget {
               Text(
                 _formatDuration(state.elapsed),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                  letterSpacing: 2,
-                ),
+                style: Theme.of(context).textTheme.displayMedium,
               ),
               const SizedBox(height: 8),
               Text(

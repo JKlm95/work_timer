@@ -180,7 +180,9 @@ class _HistoryTabState extends State<HistoryTab> {
                     const SizedBox(height: 8),
                     Text(
                       error!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                   ],
                 ],
