@@ -29,6 +29,7 @@ Flutterowa aplikacja mobilna z **Firebase** (logowanie e-mail, synchronizacja w 
 - **Statystyki** — agregaty w tygodniu / miesiącu, wykresy, udział workspace’ów.
 - **Widget (Android)** — podgląd czasu i sterowanie z ekranu głównego; **bez zalogowania** widget prowadzi do aplikacji zamiast odpalać timer *(zabezpieczenie pokazujące myślenie o UX i bezpieczeństwie)*.
 - **Offline** — cache i kolejka zmian; synchronizacja po powrocie sieci.
+- **Motyw i język** — **jasny / ciemny / systemowy** oraz **polski / angielski / język systemu** (zakładka Ustawienia); spójna paleta **`AppColors`**, motyw w **`buildWorkTimerTheme`**, teksty w **ARB** (`lib/l10n/app_en.arb`, `app_pl.arb`). Sterowanie czasem timera etykietami Play / Pause / Stop pozostaje po angielsku w obu lokalizacjach.
 
 ---
 
@@ -52,6 +53,7 @@ Poniżej: **propozycja nazw plików** i **co warto pokazać**. Umieść pliki np
 | `04_statystyki.png` | Statystyki (wykres / podsumowanie). |
 | `05_workspaces.png` | Zarządzanie workspace’ami. |
 | `06_widget_android.png` | Widget na launcherze (opcjonalnie obok otwartej apki). |
+| `07_ustawienia_lub_dark.png` | *(opcjonalnie)* Ustawienia języka/motywu albo ten sam ekran w trybie ciemnym. |
 
 **Placeholder pod galerię** *(usuń ten blok po dodaniu grafik):*
 
@@ -80,6 +82,8 @@ Wymagany **Flutter** i projekt **Firebase** (konfiguracja `firebase_options` i p
 flutter pub get
 flutter run
 ```
+
+Po edycji plików **`.arb`** (tłumaczenia) uruchom ponownie `flutter pub get` lub `flutter gen-l10n`, aby odświeżyć wygenerowane klasy w `lib/l10n/`.
 
 ---
 

@@ -9,7 +9,9 @@ Dokument dla **deweloperów i rekrutera technicznego**: architektura, integracja
 | Warstwa | Wybór |
 |--------|--------|
 | Framework | Flutter (Dart 3.x) |
-| Stan (globalny) | **flutter_bloc** — `AuthCubit`, `TimerCubit` |
+| Stan (globalny) | **flutter_bloc** — `AuthCubit`, `TimerCubit`, **`SettingsCubit`** (język + `ThemeMode`; `SharedPreferences`) |
+| Języki UI | **gen-l10n** — `lib/l10n/app_en.arb`, `app_pl.arb`, `l10n.yaml`; delegat **`AppLocalizations`** w `MaterialApp` |
+| Motyw | **`AppColors.colorSchemeFor`**, **`buildWorkTimerTheme`** (`lib/theme/app_theme.dart`); jasny i ciemny zestaw powierzchni w **`app_colors.dart`**; typografia **`AppTypography`** |
 | Backend | **Firebase Auth** (e-mail/hasło), **Cloud Firestore** |
 | Lokalnie | **shared_preferences** (JSON, prefs Flutter + zapis z Kotlina), **home_widget** (Android widget prefs) |
 | Sieć / offline | **connectivity_plus** do warunkowania zapytań; kolejka pending |
@@ -21,9 +23,11 @@ Dokument dla **deweloperów i rekrutera technicznego**: architektura, integracja
 
 ```
 lib/
-├── main.dart                 # Firebase.init, WorkRepository, MaterialApp, BlocProvider(AuthCubit)
-├── bloc/                     # auth_cubit.dart, timer_cubit.dart
-├── screens/                  # auth_gate (+ bootstrap splash), home_shell, timer_tab, history_tab, stats_tab, workspaces_tab
+├── main.dart                 # Firebase.init, SettingsCubit (prefs), AuthCubit, MaterialApp (theme / darkTheme / themeMode, l10n)
+├── bloc/                     # auth_cubit.dart, timer_cubit.dart, settings_cubit.dart
+├── l10n/                     # app_*.arb, app_localizations*.dart (generowane), work_mode_strings.dart
+├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart
+├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, workspaces_tab, settings_tab
 ├── models/                   # work_entry, workspace, work_mode
 ├── services/
 │   ├── auth_service.dart
@@ -41,7 +45,7 @@ lib/
 
 ## 3. Przepływ aplikacji po starcie
 
-1. **`main.dart`** — `Firebase.initializeApp`, singletony `AuthService`, `WorkRepository`.
+1. **`main.dart`** — `Firebase.initializeApp`, `SharedPreferences` → **`SettingsCubit`** (outer `BlocProvider`), singletony `AuthService`, `WorkRepository`; **`MaterialApp`** z `theme` / `darkTheme` z `buildWorkTimerTheme`, `themeMode` ze stanu ustawień, delegaty `AppLocalizations`.
 2. **`AuthGate`** (stanful):
    - `BlocListener` na `AuthCubit`: przy rozstrzygnięciu sesji Firebase i przy zmianie użytkownika wywołuje **`_onAuthChanged`**.
    - Dla **zalogowanego** użytkownika: tworzy **`TimerCubit`**, **`await init()`** (timeout 15 s), minimalny czas wyświetlania splash (~520 ms), potem **`BlocProvider.value`** + `HomeShell`.
@@ -99,8 +103,24 @@ lib/
 
 ## 7. Splash / bootstrap
 
-- **`SplashLoadingView`** — pełnoekranowy gradient + animacja; wyświetlany przy `AuthCubit.loading` oraz przy zalogowanym użytkowniku do momentu zakończenia `TimerCubit.init`.
+- **`SplashLoadingView`** — pełnoekranowy gradient + animacja; wyświetlany przy `AuthCubit.loading` oraz przy zalogowanym użytkowniku do momentu zakończenia `TimerCubit.init`. Teksty tytułu i „ładowanie…” z **l10n**; gradient i warstwy nadal z **`AppColors`** (stały „ekran marki”, nie przełącza się z motywem systemowym — celowo).
 - **Android `launch_background`** — kolor spójny z gradientem, ograniczenie białego flasha przed pierwszym frame’m Fluttera (`values/colors.xml`, `drawable/launch_background.xml`).
+
+---
+
+## 7a. Motyw (jasny / ciemny)
+
+- **`AppColors`** — paleta marki + powierzchnie jasne; osobne stałe **`surface*Dark`**, **`borderInputIdleDark`**, **`brandNavIndicatorDark`**; metoda **`colorSchemeFor(Brightness)`** łączy `ColorScheme.fromSeed(brandPrimary)` z tymi warstwami w trybie ciemnym.
+- **`buildWorkTimerTheme(brightness)`** (`app_theme.dart`) — `colorScheme`, `textTheme` z **`AppTypography.textTheme`**, `CardTheme`, `InputDecorationTheme`, `FilledButton`, `NavigationBarTheme`, `dividerTheme`, `appBarTheme`.
+- **Ustawienia użytkownika** — `SettingsTab` + `SettingsCubit`: `AppLocalePreference` (system / pl / en) oraz `ThemeMode` (light / dark / system), persystencja w `SharedPreferences`.
+
+---
+
+## 7b. Wielojęzyczność (ARB)
+
+- Pliki **`lib/l10n/app_en.arb`** (szablon) i **`app_pl.arb`**; konfiguracja **`l10n.yaml`**; w **`pubspec.yaml`**: `flutter: generate: true`.
+- W kodzie: `AppLocalizations.of(context)!` (import `lib/l10n/app_localizations.dart`). Po zmianie ARB: `flutter pub get` lub `flutter gen-l10n` — wygenerowane pliki `app_localizations*.dart` w `lib/l10n/`.
+- Tryby pracy (`WorkMode`) — etykiety przez rozszerzenie **`work_mode_strings.dart`**; etykiety **Play / Pause / Stop** tłumaczone jako stałe angielskie w obu locale.
 
 ---
 
@@ -150,4 +170,4 @@ W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, stats) 
 
 ---
 
-*Ostatnia aktualizacja dokumentu: zsynchronizowana ze stanem refaktoryzacji AuthGate + splash + widget auth.*
+*Ostatnia aktualizacja dokumentu: motywy jasny/ciemny (`AppColors` + `app_theme`), l10n PL/EN (ARB + `SettingsCubit`), zakładka Ustawienia.*

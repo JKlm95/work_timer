@@ -5,20 +5,21 @@ import 'app_typography.dart';
 
 ThemeData buildWorkTimerTheme(Brightness brightness) {
   final isLight = brightness == Brightness.light;
-  final scheme = ColorScheme.fromSeed(
-    seedColor: AppColors.brandPrimary,
-    brightness: brightness,
-    surface: isLight ? AppColors.surfaceApp : null,
-  );
+  final scheme = AppColors.colorSchemeFor(brightness);
 
-  final cardColor = isLight ? AppColors.surfaceCard : scheme.surfaceContainerHigh;
-  final inputFill = isLight ? AppColors.surfaceCard : scheme.surfaceContainerHighest;
-  final borderIdle = isLight ? AppColors.borderInputIdle : scheme.outlineVariant;
+  final cardColor =
+      isLight ? AppColors.surfaceCard : scheme.surfaceContainerHigh;
+  final inputFill =
+      isLight ? AppColors.surfaceCard : scheme.surfaceContainerHighest;
+  final borderIdle =
+      isLight ? AppColors.borderInputIdle : scheme.outline;
 
   return ThemeData(
     colorScheme: scheme,
+    brightness: brightness,
     textTheme: AppTypography.textTheme(scheme),
-    scaffoldBackgroundColor: isLight ? AppColors.surfaceApp : scheme.surface,
+    scaffoldBackgroundColor:
+        isLight ? AppColors.surfaceApp : AppColors.surfaceAppDark,
     cardTheme: CardThemeData(
       color: cardColor,
       elevation: 0,
@@ -60,10 +61,22 @@ ThemeData buildWorkTimerTheme(Brightness brightness) {
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: isLight ? AppColors.surfaceCard : scheme.surfaceContainer,
+      backgroundColor:
+          isLight ? AppColors.surfaceCard : AppColors.surfaceNavDark,
       indicatorColor: isLight
           ? AppColors.brandNavIndicator
-          : AppColors.brandPrimary.withValues(alpha: 0.28),
+          : AppColors.brandNavIndicatorDark,
+      surfaceTintColor: AppColors.transparent,
+    ),
+    appBarTheme: const AppBarTheme(
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: AppColors.transparent,
+    ),
+    dividerTheme: DividerThemeData(
+      color: scheme.outlineVariant.withValues(alpha: isLight ? 0.5 : 0.55),
+      thickness: 1,
+      space: 1,
     ),
     useMaterial3: true,
   );

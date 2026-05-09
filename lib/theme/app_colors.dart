@@ -24,6 +24,25 @@ abstract final class AppColors {
   /// Delikatna ramka inputów w stanie spoczynku.
   static const Color borderInputIdle = Color(0xFFE3E7EE);
 
+  // --- Tryb ciemny (warstwy dopasowane do niebieskiej marki) ---
+  /// Tło [Scaffold] — głęboki granat.
+  static const Color surfaceAppDark = Color(0xFF0A101C);
+
+  /// Karty i panele „uniesione” nad tłem.
+  static const Color surfaceCardDark = Color(0xFF141D2E);
+
+  /// Pasek nawigacji dolnej, segmenty — średnia warstwa.
+  static const Color surfaceNavDark = Color(0xFF111A2A);
+
+  /// Wypełnienie pól formularzy (ciut wyżej niż karta).
+  static const Color surfaceInputDark = Color(0xFF1B2638);
+
+  /// Ramka inputów w spoczynku (na ciemnym).
+  static const Color borderInputIdleDark = Color(0xFF3D4F6B);
+
+  /// Wskaźnik [NavigationBar] na ciemnym tle (~30% jasnoniebieskiego akcentu).
+  static const Color brandNavIndicatorDark = Color(0x4D64B5F6);
+
   // --- Splash (gradient + warstwy na ciemnym tle) ---
   /// Narożnik gradientu splash — najciemniejszy.
   static const Color splashDeepNavy = Color(0xFF062454);
@@ -64,4 +83,31 @@ abstract final class AppColors {
   ];
 
   static const List<double> splashGradientStops = [0.0, 0.35, 0.72, 1.0];
+
+  /// Zunifikowany [ColorScheme] dla jasnego i ciemnego motywu (M3 + nasze powierzchnie).
+  static ColorScheme colorSchemeFor(Brightness brightness) {
+    final base = ColorScheme.fromSeed(
+      seedColor: brandPrimary,
+      brightness: brightness,
+    );
+
+    if (brightness == Brightness.light) {
+      return base.copyWith(surface: surfaceApp);
+    }
+
+    return base.copyWith(
+      surface: surfaceAppDark,
+      surfaceContainerLowest: surfaceAppDark,
+      surfaceContainerLow: surfaceCardDark,
+      surfaceContainer: surfaceNavDark,
+      surfaceContainerHigh: surfaceCardDark,
+      surfaceContainerHighest: surfaceInputDark,
+      outline: borderInputIdleDark,
+      outlineVariant: Color.lerp(
+        borderInputIdleDark,
+        surfaceAppDark,
+        0.45,
+      )!,
+    );
+  }
 }
