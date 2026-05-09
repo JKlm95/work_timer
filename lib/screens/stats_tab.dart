@@ -1,13 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-
-import '../theme/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../l10n/app_localizations.dart';
 
 import '../bloc/timer_cubit.dart';
 import '../models/workspace.dart';
 import '../services/stats_service.dart';
+import '../theme/app_colors.dart';
 
 enum StatsRange { week, month }
 
@@ -42,6 +42,7 @@ class _StatsTabState extends State<StatsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<TimerCubit, TimerState>(
       builder: (context, state) {
         final range = _resolveRange();
@@ -56,9 +57,15 @@ class _StatsTabState extends State<StatsTab> {
           padding: const EdgeInsets.all(16),
           children: [
             SegmentedButton<StatsRange>(
-              segments: const [
-                ButtonSegment(value: StatsRange.week, label: Text('Tydzien')),
-                ButtonSegment(value: StatsRange.month, label: Text('Miesiac')),
+              segments: [
+                ButtonSegment(
+                  value: StatsRange.week,
+                  label: Text(l10n.statsWeek),
+                ),
+                ButtonSegment(
+                  value: StatsRange.month,
+                  label: Text(l10n.statsMonth),
+                ),
               ],
               selected: {_range},
               onSelectionChanged: (value) {
@@ -69,6 +76,7 @@ class _StatsTabState extends State<StatsTab> {
             _WorkspaceFilter(
               workspaces: state.workspaces,
               selectedIds: _selectedWorkspaceIds,
+              allLabel: l10n.statsAllWorkspaces,
               onChanged: (ids) => setState(() {
                 _selectedWorkspaceIds
                   ..clear()
@@ -83,14 +91,16 @@ class _StatsTabState extends State<StatsTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Podstawowe statystyki',
+                      l10n.statsBasicTitle,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
-                    Text('Suma: ${_formatHm(summary.total)}'),
-                    Text('Dni aktywne: ${summary.activeDays}'),
+                    Text(l10n.statsTotal(_formatHm(summary.total))),
+                    Text(l10n.statsActiveDays(summary.activeDays)),
                     Text(
-                      'Srednio / aktywny dzien: ${_formatHm(summary.averagePerActiveDay)}',
+                      l10n.statsAvgPerDay(
+                        _formatHm(summary.averagePerActiveDay),
+                      ),
                     ),
                   ],
                 ),
@@ -104,7 +114,7 @@ class _StatsTabState extends State<StatsTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Wykres dzienny',
+                      l10n.statsDailyChart,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
@@ -124,12 +134,12 @@ class _StatsTabState extends State<StatsTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Udzial workspace',
+                      l10n.statsWorkspaceShare,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
                     if (summary.workspaceShare.isEmpty)
-                      const Text('Brak danych')
+                      Text(l10n.statsNoData)
                     else
                       ...summary.workspaceShare.map((share) {
                         final workspaceName = state.workspaces
@@ -164,11 +174,13 @@ class _WorkspaceFilter extends StatelessWidget {
   const _WorkspaceFilter({
     required this.workspaces,
     required this.selectedIds,
+    required this.allLabel,
     required this.onChanged,
   });
 
   final List<Workspace> workspaces;
   final Set<String> selectedIds;
+  final String allLabel;
   final ValueChanged<Set<String>> onChanged;
 
   @override
@@ -178,7 +190,7 @@ class _WorkspaceFilter extends StatelessWidget {
       runSpacing: 8,
       children: [
         FilterChip(
-          label: const Text('Wszystkie'),
+          label: Text(allLabel),
           selected: selectedIds.isEmpty,
           onSelected: (_) => onChanged({}),
         ),
@@ -209,8 +221,9 @@ class _DailyBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (points.isEmpty) {
-      return const Center(child: Text('Brak danych'));
+      return Center(child: Text(l10n.statsNoData));
     }
 
     final maxSec = points

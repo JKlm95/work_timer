@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 
 import '../bloc/timer_cubit.dart';
+import '../l10n/work_mode_strings.dart';
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
 
@@ -67,7 +69,7 @@ class _HistoryTabState extends State<HistoryTab> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
       initialDateRange: _range,
-      locale: const Locale('pl'),
+      locale: Localizations.localeOf(context),
     );
     if (picked == null) return;
     setState(() => _range = picked);
@@ -96,18 +98,22 @@ class _HistoryTabState extends State<HistoryTab> {
     required DateTime startInitial,
     required DateTime endInitial,
   }) async {
+    final outerContext = context;
+    final l10n = AppLocalizations.of(outerContext)!;
     var date = DateTime(startInitial.year, startInitial.month, startInitial.day);
     var start = TimeOfDay.fromDateTime(startInitial);
     var end = TimeOfDay.fromDateTime(endInitial);
     var mode = existing?.mode ?? WorkMode.office;
 
     await showDialog<void>(
-      context: context,
+      context: outerContext,
       builder: (context) {
         String? error;
         return StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: Text(existing == null ? 'Dodaj wpis' : 'Edytuj wpis'),
+            title: Text(
+              existing == null ? l10n.historyAddEntry : l10n.historyEditEntry,
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -119,12 +125,16 @@ class _HistoryTabState extends State<HistoryTab> {
                         firstDate: DateTime(2020),
                         lastDate: DateTime.now().add(const Duration(days: 365)),
                         initialDate: date,
-                        locale: const Locale('pl'),
+                        locale: Localizations.localeOf(context),
                       );
                       if (selected != null) setDialogState(() => date = selected);
                     },
                     icon: const Icon(Icons.calendar_today_outlined),
-                    label: Text(DateFormat.yMMMd('pl').format(date)),
+                    label: Text(
+                      DateFormat.yMMMd(
+                        Localizations.localeOf(context).languageCode,
+                      ).format(date),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -140,7 +150,9 @@ class _HistoryTabState extends State<HistoryTab> {
                               setDialogState(() => start = selected);
                             }
                           },
-                          child: Text('Start: ${start.format(context)}'),
+                          child: Text(
+                            l10n.historyStart(start.format(context)),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -155,7 +167,7 @@ class _HistoryTabState extends State<HistoryTab> {
                               setDialogState(() => end = selected);
                             }
                           },
-                          child: Text('Koniec: ${end.format(context)}'),
+                          child: Text(l10n.historyEnd(end.format(context))),
                         ),
                       ),
                     ],
@@ -163,13 +175,16 @@ class _HistoryTabState extends State<HistoryTab> {
                   const SizedBox(height: 8),
                   DropdownButtonFormField<WorkMode>(
                     initialValue: mode,
-                    decoration: const InputDecoration(
-                      labelText: 'Tryb pracy',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.historyWorkMode,
+                      border: const OutlineInputBorder(),
                     ),
                     items: WorkMode.values
                         .map(
-                          (m) => DropdownMenuItem(value: m, child: Text(m.labelPl)),
+                          (m) => DropdownMenuItem(
+                            value: m,
+                            child: Text(m.localized(l10n)),
+                          ),
                         )
                         .toList(),
                     onChanged: (value) {
@@ -191,11 +206,11 @@ class _HistoryTabState extends State<HistoryTab> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Anuluj'),
+                child: Text(l10n.commonCancel),
               ),
               FilledButton(
                 onPressed: () async {
-                  final cubit = this.context.read<TimerCubit>();
+                  final cubit = outerContext.read<TimerCubit>();
                   final startDate = DateTime(
                     date.year,
                     date.month,
@@ -212,7 +227,7 @@ class _HistoryTabState extends State<HistoryTab> {
                   );
                   if (!endDate.isAfter(startDate)) {
                     setDialogState(
-                      () => error = 'Godzina konca musi byc po starcie.',
+                      () => error = l10n.historyValEndAfterStart,
                     );
                     return;
                   }
@@ -230,11 +245,13 @@ class _HistoryTabState extends State<HistoryTab> {
                       mode: mode,
                     );
                   }
-                  if (!this.context.mounted) return;
+                  if (!outerContext.mounted) return;
                   Navigator.of(context).pop();
                   await cubit.loadHistory(_range);
                 },
-                child: Text(existing == null ? 'Dodaj' : 'Zapisz'),
+                child: Text(
+                  existing == null ? l10n.commonAdd : l10n.commonSave,
+                ),
               ),
             ],
           ),
@@ -245,8 +262,10 @@ class _HistoryTabState extends State<HistoryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat.yMMMd('pl');
-    final timeFmt = DateFormat.Hm('pl');
+    final l10n = AppLocalizations.of(context)!;
+    final lc = Localizations.localeOf(context).languageCode;
+    final dateFmt = DateFormat.yMMMd(lc);
+    final timeFmt = DateFormat.Hm(lc);
 
     return Stack(
       children: [
@@ -256,7 +275,10 @@ class _HistoryTabState extends State<HistoryTab> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
               children: [
-                Text('Filtry', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  l10n.historyFilters,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: _pickRange,
@@ -267,9 +289,9 @@ class _HistoryTabState extends State<HistoryTab> {
                 ),
                 const SizedBox(height: 8),
                 InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Tryb pracy',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.historyWorkMode,
+                    border: const OutlineInputBorder(),
                     isDense: true,
                   ),
                   child: DropdownButtonHideUnderline(
@@ -277,13 +299,15 @@ class _HistoryTabState extends State<HistoryTab> {
                       isExpanded: true,
                       value: _modeFilter,
                       items: [
-                        const DropdownMenuItem<WorkMode?>(
+                        DropdownMenuItem<WorkMode?>(
                           value: null,
-                          child: Text('Wszystkie'),
+                          child: Text(l10n.historyAllModes),
                         ),
                         ...WorkMode.values.map(
-                          (m) =>
-                              DropdownMenuItem(value: m, child: Text(m.labelPl)),
+                          (m) => DropdownMenuItem(
+                            value: m,
+                            child: Text(m.localized(l10n)),
+                          ),
                         ),
                       ],
                       onChanged: (v) => setState(() => _modeFilter = v),
@@ -297,17 +321,21 @@ class _HistoryTabState extends State<HistoryTab> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Workspace: ${state.activeWorkspace.name}'),
-                        Text('W filtrze: ${_formatHm(_sum(filtered))}'),
+                        Text(
+                          l10n.historyWorkspaceLabel(state.activeWorkspace.name),
+                        ),
+                        Text(
+                          l10n.historyFilteredSum(_formatHm(_sum(filtered))),
+                        ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 if (filtered.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: Text('Brak wpisow dla wybranych filtrow.')),
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(child: Text(l10n.historyEmptyFiltered)),
                   )
                 else
                   ...filtered.map(
@@ -322,7 +350,7 @@ class _HistoryTabState extends State<HistoryTab> {
                         title: Text(
                           '${dateFmt.format(e.start)} ${timeFmt.format(e.start)} — ${timeFmt.format(e.end)}',
                         ),
-                        subtitle: Text(e.mode.labelPl),
+                        subtitle: Text(e.mode.localized(l10n)),
                         trailing: PopupMenuButton<String>(
                           onSelected: (value) async {
                             if (value == 'edit') {
@@ -335,9 +363,15 @@ class _HistoryTabState extends State<HistoryTab> {
                               }
                             }
                           },
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'edit', child: Text('Edytuj')),
-                            PopupMenuItem(value: 'delete', child: Text('Usun')),
+                          itemBuilder: (_) => [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Text(l10n.historyMenuEdit),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Text(l10n.historyMenuDelete),
+                            ),
                           ],
                           child: Padding(
                             padding: const EdgeInsets.all(8),
@@ -357,7 +391,7 @@ class _HistoryTabState extends State<HistoryTab> {
           child: FloatingActionButton.extended(
             onPressed: _addEntryDialog,
             icon: const Icon(Icons.add),
-            label: const Text('Dodaj wpis'),
+            label: Text(l10n.historyAddEntry),
           ),
         ),
       ],

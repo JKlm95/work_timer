@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../l10n/app_localizations.dart';
 
 import '../bloc/timer_cubit.dart';
 import '../models/workspace.dart';
@@ -8,24 +9,25 @@ class WorkspacesTab extends StatelessWidget {
   const WorkspacesTab({super.key});
 
   Future<void> _create(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final ctrl = TextEditingController();
     final name = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Nowy workspace'),
+        title: Text(l10n.workspacesNewTitle),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(labelText: 'Nazwa'),
+          decoration: InputDecoration(labelText: l10n.workspacesNameLabel),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Anuluj'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(ctrl.text.trim()),
-            child: const Text('Dodaj'),
+            child: Text(l10n.commonAdd),
           ),
         ],
       ),
@@ -38,24 +40,25 @@ class WorkspacesTab extends StatelessWidget {
     BuildContext context, {
     required Workspace workspace,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final ctrl = TextEditingController(text: workspace.name);
     final next = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Zmien nazwe'),
+        title: Text(l10n.workspacesRenameTitle),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(labelText: 'Nazwa'),
+          decoration: InputDecoration(labelText: l10n.workspacesNameLabel),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Anuluj'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(ctrl.text.trim()),
-            child: const Text('Zapisz'),
+            child: Text(l10n.commonSave),
           ),
         ],
       ),
@@ -69,6 +72,7 @@ class WorkspacesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<TimerCubit, TimerState>(
       builder: (context, state) {
         return Scaffold(
@@ -84,7 +88,9 @@ class WorkspacesTab extends StatelessWidget {
                     selected ? Icons.check_circle : Icons.circle_outlined,
                   ),
                   title: Text(workspace.name),
-                  subtitle: Text(selected ? 'Aktywny' : 'Nieaktywny'),
+                  subtitle: Text(
+                    selected ? l10n.workspacesActive : l10n.workspacesInactive,
+                  ),
                   onTap: () =>
                       context.read<TimerCubit>().setActiveWorkspace(workspace.id),
                   trailing: IconButton(
@@ -98,7 +104,7 @@ class WorkspacesTab extends StatelessWidget {
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _create(context),
             icon: const Icon(Icons.add),
-            label: const Text('Dodaj workspace'),
+            label: Text(l10n.workspacesFab),
           ),
         );
       },

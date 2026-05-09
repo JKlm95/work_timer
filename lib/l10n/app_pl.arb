@@ -1,0 +1,115 @@
+{
+  "@@locale": "pl",
+  "appTitle": "Work Timer",
+  "splashLoading": "Ładowanie…",
+  "navTimer": "Timer",
+  "navHistory": "Historia",
+  "navStats": "Statystyki",
+  "navWorkspaces": "Workspace",
+  "navSettings": "Ustawienia",
+  "authTitle": "Logowanie",
+  "authEmail": "E-mail",
+  "authPassword": "Hasło",
+  "authForgotPassword": "Zapomniałeś hasła?",
+  "authSignIn": "Zaloguj",
+  "authSignUp": "Załóż konto",
+  "authToggleToSignIn": "Masz konto? Zaloguj się",
+  "authToggleToSignUp": "Nie masz konta? Załóż",
+  "authValEmailRequired": "Podaj e-mail",
+  "authValEmailInvalid": "Niepoprawny e-mail",
+  "authValPasswordShort": "Hasło min. 6 znaków",
+  "authResetTitle": "Reset hasła",
+  "authResetBody": "Podaj adres e-mail konta — wyślemy link do ustawienia nowego hasła.",
+  "authResetSend": "Wyślij link",
+  "authResetSnack": "Jeśli konto istnieje, wysłaliśmy link do resetu na e-mail.",
+  "commonCancel": "Anuluj",
+  "commonAdd": "Dodaj",
+  "commonSave": "Zapisz",
+  "timerWorkMode": "Tryb pracy",
+  "timerWorkspace": "Workspace",
+  "timerWorkspaceLoading": "Ładowanie workspace…",
+  "timerLockedMode": "Tryb zablokowany na czas sesji.",
+  "timerReady": "Gotowy",
+  "timerRunning": "Liczę…",
+  "timerPaused": "Pauza",
+  "timerPlay": "Play",
+  "timerPause": "Pause",
+  "timerStop": "Stop",
+  "workModeRemote": "Remote",
+  "workModeOffice": "Biuro",
+  "statsWeek": "Tydzień",
+  "statsMonth": "Miesiąc",
+  "statsBasicTitle": "Podstawowe statystyki",
+  "statsTotal": "Suma: {duration}",
+  "@statsTotal": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "statsActiveDays": "Dni aktywne: {count}",
+  "@statsActiveDays": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "statsAvgPerDay": "Średnio / aktywny dzień: {duration}",
+  "@statsAvgPerDay": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "statsDailyChart": "Wykres dzienny",
+  "statsWorkspaceShare": "Udział workspace",
+  "statsNoData": "Brak danych",
+  "statsAllWorkspaces": "Wszystkie",
+  "historyFilters": "Filtry",
+  "historyWorkMode": "Tryb pracy",
+  "historyAllModes": "Wszystkie",
+  "historyWorkspaceLabel": "Workspace: {name}",
+  "@historyWorkspaceLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "historyFilteredSum": "W filtrze: {duration}",
+  "@historyFilteredSum": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "historyEmptyFiltered": "Brak wpisów dla wybranych filtrów.",
+  "historyAddEntry": "Dodaj wpis",
+  "historyEditEntry": "Edytuj wpis",
+  "historyValEndAfterStart": "Godzina końca musi być po starcie.",
+  "historyStart": "Start: {time}",
+  "@historyStart": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "historyEnd": "Koniec: {time}",
+  "@historyEnd": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "historyMenuEdit": "Edytuj",
+  "historyMenuDelete": "Usuń",
+  "workspacesNewTitle": "Nowy workspace",
+  "workspacesRenameTitle": "Zmień nazwę",
+  "workspacesNameLabel": "Nazwa",
+  "workspacesActive": "Aktywny",
+  "workspacesInactive": "Nieaktywny",
+  "workspacesFab": "Dodaj workspace",
+  "settingsTitle": "Ustawienia",
+  "settingsAppearance": "Wygląd",
+  "settingsLanguage": "Język",
+  "settingsLanguageSystem": "Domyślny systemu",
+  "settingsLanguagePl": "Polski",
+  "settingsLanguageEn": "English",
+  "settingsTheme": "Motyw",
+  "settingsThemeLight": "Jasny",
+  "settingsThemeDark": "Ciemny",
+  "settingsThemeSystem": "Domyślny systemu",
+  "signOut": "Wyloguj"
+}

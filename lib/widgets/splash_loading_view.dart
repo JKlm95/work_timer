@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 import '../theme/app_colors.dart';
 
@@ -108,13 +109,13 @@ class _SplashLoadingViewState extends State<SplashLoadingView>
                     ),
                     const SizedBox(height: 28),
                     Text(
-                      'Work Timer',
+                      AppLocalizations.of(context)!.appTitle,
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(color: AppColors.white),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Ładowanie…',
+                      AppLocalizations.of(context)!.splashLoading,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         color: AppColors.splashSubtitleOnGradient,
                       ),

@@ -1,0 +1,257 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appTitle => 'Work Timer';
+
+  @override
+  String get splashLoading => 'Loading…';
+
+  @override
+  String get navTimer => 'Timer';
+
+  @override
+  String get navHistory => 'History';
+
+  @override
+  String get navStats => 'Stats';
+
+  @override
+  String get navWorkspaces => 'Workspaces';
+
+  @override
+  String get navSettings => 'Settings';
+
+  @override
+  String get authTitle => 'Sign in';
+
+  @override
+  String get authEmail => 'E-mail';
+
+  @override
+  String get authPassword => 'Password';
+
+  @override
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authSignIn => 'Sign in';
+
+  @override
+  String get authSignUp => 'Create account';
+
+  @override
+  String get authToggleToSignIn => 'Have an account? Sign in';
+
+  @override
+  String get authToggleToSignUp => 'No account? Create one';
+
+  @override
+  String get authValEmailRequired => 'Enter e-mail';
+
+  @override
+  String get authValEmailInvalid => 'Invalid e-mail';
+
+  @override
+  String get authValPasswordShort => 'Password at least 6 characters';
+
+  @override
+  String get authResetTitle => 'Reset password';
+
+  @override
+  String get authResetBody =>
+      'Enter the account e-mail — we’ll send a link to set a new password.';
+
+  @override
+  String get authResetSend => 'Send link';
+
+  @override
+  String get authResetSnack =>
+      'If the account exists, we sent a reset link to the e-mail.';
+
+  @override
+  String get commonCancel => 'Cancel';
+
+  @override
+  String get commonAdd => 'Add';
+
+  @override
+  String get commonSave => 'Save';
+
+  @override
+  String get timerWorkMode => 'Work mode';
+
+  @override
+  String get timerWorkspace => 'Workspace';
+
+  @override
+  String get timerWorkspaceLoading => 'Loading workspaces…';
+
+  @override
+  String get timerLockedMode => 'Mode is locked for the session.';
+
+  @override
+  String get timerReady => 'Ready';
+
+  @override
+  String get timerRunning => 'Running…';
+
+  @override
+  String get timerPaused => 'Paused';
+
+  @override
+  String get timerPlay => 'Play';
+
+  @override
+  String get timerPause => 'Pause';
+
+  @override
+  String get timerStop => 'Stop';
+
+  @override
+  String get workModeRemote => 'Remote';
+
+  @override
+  String get workModeOffice => 'Office';
+
+  @override
+  String get statsWeek => 'Week';
+
+  @override
+  String get statsMonth => 'Month';
+
+  @override
+  String get statsBasicTitle => 'Basic stats';
+
+  @override
+  String statsTotal(String duration) {
+    return 'Total: $duration';
+  }
+
+  @override
+  String statsActiveDays(int count) {
+    return 'Active days: $count';
+  }
+
+  @override
+  String statsAvgPerDay(String duration) {
+    return 'Average / active day: $duration';
+  }
+
+  @override
+  String get statsDailyChart => 'Daily chart';
+
+  @override
+  String get statsWorkspaceShare => 'Workspace share';
+
+  @override
+  String get statsNoData => 'No data';
+
+  @override
+  String get statsAllWorkspaces => 'All';
+
+  @override
+  String get historyFilters => 'Filters';
+
+  @override
+  String get historyWorkMode => 'Work mode';
+
+  @override
+  String get historyAllModes => 'All';
+
+  @override
+  String historyWorkspaceLabel(String name) {
+    return 'Workspace: $name';
+  }
+
+  @override
+  String historyFilteredSum(String duration) {
+    return 'In filter: $duration';
+  }
+
+  @override
+  String get historyEmptyFiltered => 'No entries for the selected filters.';
+
+  @override
+  String get historyAddEntry => 'Add entry';
+
+  @override
+  String get historyEditEntry => 'Edit entry';
+
+  @override
+  String get historyValEndAfterStart => 'End time must be after start.';
+
+  @override
+  String historyStart(String time) {
+    return 'Start: $time';
+  }
+
+  @override
+  String historyEnd(String time) {
+    return 'End: $time';
+  }
+
+  @override
+  String get historyMenuEdit => 'Edit';
+
+  @override
+  String get historyMenuDelete => 'Delete';
+
+  @override
+  String get workspacesNewTitle => 'New workspace';
+
+  @override
+  String get workspacesRenameTitle => 'Rename';
+
+  @override
+  String get workspacesNameLabel => 'Name';
+
+  @override
+  String get workspacesActive => 'Active';
+
+  @override
+  String get workspacesInactive => 'Inactive';
+
+  @override
+  String get workspacesFab => 'Add workspace';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsAppearance => 'Appearance';
+
+  @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get settingsLanguageSystem => 'System default';
+
+  @override
+  String get settingsLanguagePl => 'Polski';
+
+  @override
+  String get settingsLanguageEn => 'English';
+
+  @override
+  String get settingsTheme => 'Theme';
+
+  @override
+  String get settingsThemeLight => 'Light';
+
+  @override
+  String get settingsThemeDark => 'Dark';
+
+  @override
+  String get settingsThemeSystem => 'System default';
+
+  @override
+  String get signOut => 'Sign out';
+}

@@ -1,0 +1,115 @@
+{
+  "@@locale": "en",
+  "appTitle": "Work Timer",
+  "splashLoading": "Loading…",
+  "navTimer": "Timer",
+  "navHistory": "History",
+  "navStats": "Stats",
+  "navWorkspaces": "Workspaces",
+  "navSettings": "Settings",
+  "authTitle": "Sign in",
+  "authEmail": "E-mail",
+  "authPassword": "Password",
+  "authForgotPassword": "Forgot password?",
+  "authSignIn": "Sign in",
+  "authSignUp": "Create account",
+  "authToggleToSignIn": "Have an account? Sign in",
+  "authToggleToSignUp": "No account? Create one",
+  "authValEmailRequired": "Enter e-mail",
+  "authValEmailInvalid": "Invalid e-mail",
+  "authValPasswordShort": "Password at least 6 characters",
+  "authResetTitle": "Reset password",
+  "authResetBody": "Enter the account e-mail — we’ll send a link to set a new password.",
+  "authResetSend": "Send link",
+  "authResetSnack": "If the account exists, we sent a reset link to the e-mail.",
+  "commonCancel": "Cancel",
+  "commonAdd": "Add",
+  "commonSave": "Save",
+  "timerWorkMode": "Work mode",
+  "timerWorkspace": "Workspace",
+  "timerWorkspaceLoading": "Loading workspaces…",
+  "timerLockedMode": "Mode is locked for the session.",
+  "timerReady": "Ready",
+  "timerRunning": "Running…",
+  "timerPaused": "Paused",
+  "timerPlay": "Play",
+  "timerPause": "Pause",
+  "timerStop": "Stop",
+  "workModeRemote": "Remote",
+  "workModeOffice": "Office",
+  "statsWeek": "Week",
+  "statsMonth": "Month",
+  "statsBasicTitle": "Basic stats",
+  "statsTotal": "Total: {duration}",
+  "@statsTotal": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "statsActiveDays": "Active days: {count}",
+  "@statsActiveDays": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "statsAvgPerDay": "Average / active day: {duration}",
+  "@statsAvgPerDay": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "statsDailyChart": "Daily chart",
+  "statsWorkspaceShare": "Workspace share",
+  "statsNoData": "No data",
+  "statsAllWorkspaces": "All",
+  "historyFilters": "Filters",
+  "historyWorkMode": "Work mode",
+  "historyAllModes": "All",
+  "historyWorkspaceLabel": "Workspace: {name}",
+  "@historyWorkspaceLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "historyFilteredSum": "In filter: {duration}",
+  "@historyFilteredSum": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "historyEmptyFiltered": "No entries for the selected filters.",
+  "historyAddEntry": "Add entry",
+  "historyEditEntry": "Edit entry",
+  "historyValEndAfterStart": "End time must be after start.",
+  "historyStart": "Start: {time}",
+  "@historyStart": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "historyEnd": "End: {time}",
+  "@historyEnd": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "historyMenuEdit": "Edit",
+  "historyMenuDelete": "Delete",
+  "workspacesNewTitle": "New workspace",
+  "workspacesRenameTitle": "Rename",
+  "workspacesNameLabel": "Name",
+  "workspacesActive": "Active",
+  "workspacesInactive": "Inactive",
+  "workspacesFab": "Add workspace",
+  "settingsTitle": "Settings",
+  "settingsAppearance": "Appearance",
+  "settingsLanguage": "Language",
+  "settingsLanguageSystem": "System default",
+  "settingsLanguagePl": "Polski",
+  "settingsLanguageEn": "English",
+  "settingsTheme": "Theme",
+  "settingsThemeLight": "Light",
+  "settingsThemeDark": "Dark",
+  "settingsThemeSystem": "System default",
+  "signOut": "Sign out"
+}

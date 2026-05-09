@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../l10n/app_localizations.dart';
 
 import '../bloc/auth_cubit.dart';
 import '../bloc/timer_cubit.dart';
@@ -205,18 +206,18 @@ class _AuthScreenState extends State<_AuthScreen> {
       ),
     );
     if (!mounted || sent != true) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Jeśli konto istnieje, wysłaliśmy link do resetu na e-mail.'),
-      ),
+      SnackBar(content: Text(l10n.authResetSnack)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Scaffold(
-      appBar: AppBar(title: const Text('Logowanie')),
+      appBar: AppBar(title: Text(l10n.authTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
@@ -232,22 +233,24 @@ class _AuthScreenState extends State<_AuthScreen> {
                   children: [
                   TextFormField(
                     controller: _emailCtrl,
-                    decoration: const InputDecoration(labelText: 'E-mail'),
+                    decoration: InputDecoration(labelText: l10n.authEmail),
                     keyboardType: TextInputType.emailAddress,
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Podaj e-mail';
-                      if (!v.contains('@')) return 'Niepoprawny e-mail';
+                      if (v == null || v.trim().isEmpty) {
+                        return l10n.authValEmailRequired;
+                      }
+                      if (!v.contains('@')) return l10n.authValEmailInvalid;
                       return null;
                     },
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _passwordCtrl,
-                    decoration: const InputDecoration(labelText: 'Hasło'),
+                    decoration: InputDecoration(labelText: l10n.authPassword),
                     obscureText: true,
                     validator: (v) {
                       if (v == null || v.length < 6) {
-                        return 'Hasło min. 6 znaków';
+                        return l10n.authValPasswordShort;
                       }
                       return null;
                     },
@@ -257,7 +260,7 @@ class _AuthScreenState extends State<_AuthScreen> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: _submitting ? null : _openPasswordResetDialog,
-                        child: const Text('Zapomniałeś hasła?'),
+                        child: Text(l10n.authForgotPassword),
                       ),
                     ),
                   ],
@@ -273,7 +276,7 @@ class _AuthScreenState extends State<_AuthScreen> {
                   const SizedBox(height: 20),
                   FilledButton(
                     onPressed: _submitting ? null : _submit,
-                    child: Text(_isSignUp ? 'Załóż konto' : 'Zaloguj'),
+                    child: Text(_isSignUp ? l10n.authSignUp : l10n.authSignIn),
                   ),
                   TextButton(
                     onPressed: _submitting
@@ -281,8 +284,8 @@ class _AuthScreenState extends State<_AuthScreen> {
                         : () => setState(() => _isSignUp = !_isSignUp),
                     child: Text(
                       _isSignUp
-                          ? 'Masz konto? Zaloguj się'
-                          : 'Nie masz konta? Załóż',
+                          ? l10n.authToggleToSignIn
+                          : l10n.authToggleToSignUp,
                     ),
                   ),
                   ],
@@ -348,26 +351,27 @@ class _PasswordResetDialogState extends State<_PasswordResetDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Reset hasła'),
+      title: Text(l10n.authResetTitle),
       content: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Podaj adres e-mail konta — wyślemy link do ustawienia nowego hasła.',
-            ),
+            Text(l10n.authResetBody),
             const SizedBox(height: 16),
             TextFormField(
               controller: _emailCtrl,
-              decoration: const InputDecoration(labelText: 'E-mail'),
+              decoration: InputDecoration(labelText: l10n.authEmail),
               keyboardType: TextInputType.emailAddress,
               autofocus: true,
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Podaj e-mail';
-                if (!v.contains('@')) return 'Niepoprawny e-mail';
+                if (v == null || v.trim().isEmpty) {
+                  return l10n.authValEmailRequired;
+                }
+                if (!v.contains('@')) return l10n.authValEmailInvalid;
                 return null;
               },
             ),
@@ -386,7 +390,7 @@ class _PasswordResetDialogState extends State<_PasswordResetDialog> {
       actions: [
         TextButton(
           onPressed: _loading ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Anuluj'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           onPressed: _loading ? null : _send,
@@ -396,7 +400,7 @@ class _PasswordResetDialogState extends State<_PasswordResetDialog> {
                   height: 22,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Wyślij link'),
+              : Text(l10n.authResetSend),
         ),
       ],
     );

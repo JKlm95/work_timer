@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 import '../theme/app_colors.dart';
 import 'history_tab.dart';
+import 'settings_tab.dart';
 import 'stats_tab.dart';
 import 'timer_tab.dart';
 import 'workspaces_tab.dart';
@@ -20,9 +22,10 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Work Timer'),
+        title: Text(l10n.appTitle),
         centerTitle: true,
         elevation: 0,
         backgroundColor: AppColors.transparent,
@@ -31,7 +34,7 @@ class _HomeShellState extends State<HomeShell> {
           IconButton(
             onPressed: widget.onSignOut,
             icon: const Icon(Icons.logout),
-            tooltip: 'Wyloguj',
+            tooltip: l10n.signOut,
           ),
         ],
       ),
@@ -41,32 +44,39 @@ class _HomeShellState extends State<HomeShell> {
           0 => const TimerTab(key: ValueKey('timer')),
           1 => const HistoryTab(key: ValueKey('history')),
           2 => const StatsTab(key: ValueKey('stats')),
-          _ => const WorkspacesTab(key: ValueKey('workspaces')),
+          3 => const WorkspacesTab(key: ValueKey('workspaces')),
+          4 => const SettingsTab(key: ValueKey('settings')),
+          _ => const TimerTab(key: ValueKey('timer')),
         },
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.timer_outlined),
-            selectedIcon: Icon(Icons.timer),
-            label: 'Timer',
+            icon: const Icon(Icons.timer_outlined),
+            selectedIcon: const Icon(Icons.timer),
+            label: l10n.navTimer,
           ),
           NavigationDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history),
-            label: 'Historia',
+            icon: const Icon(Icons.history_outlined),
+            selectedIcon: const Icon(Icons.history),
+            label: l10n.navHistory,
           ),
           NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
-            label: 'Statystyki',
+            icon: const Icon(Icons.bar_chart_outlined),
+            selectedIcon: const Icon(Icons.bar_chart),
+            label: l10n.navStats,
           ),
           NavigationDestination(
-            icon: Icon(Icons.workspaces_outline),
-            selectedIcon: Icon(Icons.workspaces),
-            label: 'Workspace',
+            icon: const Icon(Icons.workspaces_outline),
+            selectedIcon: const Icon(Icons.workspaces),
+            label: l10n.navWorkspaces,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: l10n.navSettings,
           ),
         ],
       ),

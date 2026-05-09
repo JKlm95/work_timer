@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../l10n/app_localizations.dart';
 
 import '../bloc/timer_cubit.dart';
+import '../l10n/work_mode_strings.dart';
 import '../models/work_mode.dart';
 
 class TimerTab extends StatelessWidget {
@@ -16,16 +18,17 @@ class TimerTab extends StatelessWidget {
         '${s.toString().padLeft(2, '0')}';
   }
 
-  static String _stateLabel(TimerRunState state) {
+  static String _stateLabel(TimerRunState state, AppLocalizations l10n) {
     return switch (state) {
-      TimerRunState.idle => 'Gotowy',
-      TimerRunState.running => 'Liczę…',
-      TimerRunState.paused => 'Pauza',
+      TimerRunState.idle => l10n.timerReady,
+      TimerRunState.running => l10n.timerRunning,
+      TimerRunState.paused => l10n.timerPaused,
     };
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<TimerCubit, TimerState>(
       builder: (context, state) {
         final cubit = context.read<TimerCubit>();
@@ -37,18 +40,18 @@ class TimerTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Tryb pracy',
+                l10n.timerWorkMode,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
               InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Workspace',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.timerWorkspace,
+                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
                 child: state.workspaces.isEmpty
-                    ? const Text('Ladowanie workspace...')
+                    ? Text(l10n.timerWorkspaceLoading)
                     : DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           isExpanded: true,
@@ -75,12 +78,12 @@ class TimerTab extends StatelessWidget {
                 segments: [
                   ButtonSegment(
                     value: WorkMode.remote,
-                    label: Text(WorkMode.remote.labelPl),
+                    label: Text(WorkMode.remote.localized(l10n)),
                     icon: const Icon(Icons.home_outlined),
                   ),
                   ButtonSegment(
                     value: WorkMode.office,
-                    label: Text(WorkMode.office.labelPl),
+                    label: Text(WorkMode.office.localized(l10n)),
                     icon: const Icon(Icons.apartment_outlined),
                   ),
                 ],
@@ -93,7 +96,7 @@ class TimerTab extends StatelessWidget {
               if (!canSetMode) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'Tryb zablokowany na czas sesji.',
+                  l10n.timerLockedMode,
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: scheme.outline),
@@ -107,7 +110,7 @@ class TimerTab extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                _stateLabel(state.runState),
+                _stateLabel(state.runState, l10n),
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,
@@ -120,21 +123,21 @@ class TimerTab extends StatelessWidget {
                   FilledButton.tonalIcon(
                     onPressed: cubit.play,
                     icon: const Icon(Icons.play_arrow),
-                    label: const Text('Play'),
+                    label: Text(l10n.timerPlay),
                   ),
                   FilledButton.tonalIcon(
                     onPressed: state.runState == TimerRunState.running
                         ? cubit.pause
                         : null,
                     icon: const Icon(Icons.pause),
-                    label: const Text('Pause'),
+                    label: Text(l10n.timerPause),
                   ),
                   FilledButton.icon(
                     onPressed: state.runState != TimerRunState.idle
                         ? () => cubit.stop()
                         : null,
                     icon: const Icon(Icons.stop),
-                    label: const Text('Stop'),
+                    label: Text(l10n.timerStop),
                   ),
                 ],
               ),
