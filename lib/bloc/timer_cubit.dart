@@ -13,6 +13,7 @@ import '../models/workspace.dart';
 import '../services/local_cache_store.dart';
 import '../services/timer_service_bridge.dart';
 import '../services/work_repository.dart';
+import '../utils/calendar_utils.dart' show weekStartMonday;
 
 enum TimerRunState { idle, running, paused }
 
@@ -381,9 +382,17 @@ class TimerCubit extends Cubit<TimerState> {
 
   Future<void> refreshStatsEntries({DateTimeRange? range}) async {
     final now = DateTime.now();
+    // Bierzemy zakres od wcześniejszej z: początek miesiąca / poniedziałek ISO.
+    // Sam miesiąc obcinał dane gdy tydzień kalendarzowy zaczynał się w poprzednim
+    // miesiącu — wykres „Podsumowanie tygodnia” był pusty mimo wpisów w tygodniu.
     final selectedRange =
         range ??
-        DateTimeRange(start: DateTime(now.year, now.month, 1), end: now);
+        () {
+          final monthStart = DateTime(now.year, now.month, 1);
+          final weekStart = weekStartMonday(now);
+          final start = weekStart.isBefore(monthStart) ? weekStart : monthStart;
+          return DateTimeRange(start: start, end: now);
+        }();
     final entries = await _repository.loadEntriesForWorkspaces(
       range: selectedRange,
       workspaceIds: const {},

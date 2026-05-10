@@ -45,12 +45,17 @@ class _StatsTabState extends State<StatsTab> {
     return BlocBuilder<TimerCubit, TimerState>(
       builder: (context, state) {
         final filtered = _filteredForSelection(state.statsEntries).toList();
+        final monthEntries = filtered
+            .where(
+              (e) => e.start.year == now.year && e.start.month == now.month,
+            )
+            .toList();
         final todayList = entriesStartingOnDay(filtered, now);
         final weekList = entriesInCurrentWeek(filtered, now);
         final today = _sum(todayList);
         final week = _sum(weekList);
-        final month = _sum(filtered);
-        final count = filtered.length;
+        final month = _sum(monthEntries);
+        final count = monthEntries.length;
         final avg = count == 0
             ? Duration.zero
             : Duration(seconds: month.inSeconds ~/ count);
