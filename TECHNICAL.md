@@ -16,6 +16,7 @@ Dokument dla **deweloperów i rekrutera technicznego**: architektura, integracja
 | Lokalnie | **shared_preferences** (JSON, prefs Flutter + zapis z Kotlina), **home_widget** (Android widget prefs) |
 | Sieć / offline | **connectivity_plus** do warunkowania zapytań; kolejka pending |
 | Android | **Kotlin** — `ForegroundService`, `AppWidgetProvider` (home_widget), **MethodChannel** `work_timer/service_control` |
+| iOS | **Swift** — `AppDelegate` + **WidgetKit** + **App Groups** (`UserDefaults`), te same nazwy metod MethodChannel co na Androidzie; brak ForegroundService (timer = Flutter + cache) |
 
 ---
 
@@ -112,6 +113,16 @@ lib/
 - **Przełączanie ‹/›:** intencje **`ACTION_PREVIOUS_WORKSPACE`** / **`ACTION_NEXT_WORKSPACE`** → `WorkTimerForegroundService`. Jeśli w prefs `runState` to `running` lub `paused`, indeks się nie zmienia — tylko odświeżenie widoku. Przy `idle` następuje cykliczna zmiana indeksu po lokalnej liście i zapis `activeWorkspaceId` / `workspaceName`.
 - **Flutter:** przy starcie i przy **`syncFromNativeStoresOnResume`** metoda **`getWidgetWorkspaceSelection`** — jeśli timer jest **idle** i ID z Androida występuje w załadowanej liście repo, wywoływane jest **`setActiveWorkspace`** (bez zmiany kolejki Firebase z poziomu widgetu).
 
+### 6.6 iOS (WidgetKit, App Groups, różnice względem Androida)
+
+- **Brak ForegroundService** — timer żyje w **Flutter + `LocalCacheStore`**; stan oparty o **`sessionStart` / `resumeAt` / `accumulated`** (timestampy), a nie o tick w tle na iOS.
+- **MethodChannel** `work_timer/service_control` w **`AppDelegate.swift`**: `sync`, `syncWidgetWorkspaces`, `play`/`pause`/`stop` (no-op + odświeżenie timeline), `getNativeTimerSnapshot` (lustro z App Group), `getWidgetWorkspaceSelection`, `reloadWidgets`.
+- **App Group** (to samo ID w Runner i w rozszerzeniu): `group.com.worktimer.workTimer`; zapis przez **`UserDefaults(suiteName:)`** — klucze `wt_*` (m.in. `wt_runState`, `wt_selectedWorkspaceId`, `wt_startTimestampMs`, `wt_elapsedSeconds`, `wt_pausedAccumulatedSeconds`, `wt_resumeAtMs`, `wt_workspacesJson`, `wt_lastUpdatedAtMs`).
+- **WidgetKit:** kod źródłowy w **`ios/WorkTimerWidgetExtension/`** (`WorkTimerWidget.swift`, `Info.plist`, `WorkTimerWidgetExtension.entitlements`). W Xcode trzeba **dodać target Widget Extension**, wskazać te pliki, ustawić **App Groups** jak w Runner, osadzić appex (Embed Foundation Extensions). Repozytorium dostarcza kod — pełna konfiguracja targetu jest po stronie Xcode (Team / podpisy).
+- **Deep link** `worktimer://` — w **`Info.plist`** Runnera; **`IosDeepLinkNav`** + kanał `work_timer/deeplink` (`onOpenUrl`). Przykład: `worktimer://workspaces` przełącza zakładkę na workspace’y.
+- **Throttle:** `TimerCubit` wysyła pełny `sync` do iOS co **~15 s** podczas `running`, żeby nie obciążać bridge co sekundę; przy zdarzeniach dyskretnych (`play`/`pause`/`stop`/zmiana workspace) synchronizacja jest natychmiastowa.
+- **Widget iOS:** podgląd — workspace, status (Idle / Running / Paused), czas (dla `running` liczony z `resumeAt` + `pausedAccumulatedSeconds` w Swift). Tap na nazwie workspace → `worktimer://workspaces`. Sterowanie timera z widgetu **App Intents** nie jest wymagane na tym etapie (można dodać później z zapisem do App Group + `WidgetCenter.reloadAllTimelines()`).
+
 ---
 
 ## 7. Splash / bootstrap
@@ -153,7 +164,9 @@ lib/
 
 3. W repozytorium zwykle commituje się `lib/firebase_options.dart` oraz pliki wygenerowane dla platform (`google-services.json`, `GoogleService-Info.plist`, itd.) i ewentualnie `firebase.json`.
 
-4. **Reguły Firestore:** wgraj `firestore.rules` ( konsola lub `firebase deploy --only firestore:rules` po skonfigurowaniu projektu).
+4. **iOS — `GoogleService-Info.plist`:** jeśli w **`ios/Runner/`** nie ma tego pliku, dodaj aplikację iOS w **Firebase Console**, pobierz plist i umieść go w Runnerze, potem `flutterfire configure` (lub ręcznie). Bez tego `Firebase.initializeApp` na urządzeniu iOS może się nie powieść — **nie commituj** fikcyjnego pliku.
+
+5. **Reguły Firestore:** wgraj `firestore.rules` ( konsola lub `firebase deploy --only firestore:rules` po skonfigurowaniu projektu).
 
 ---
 
@@ -178,7 +191,9 @@ W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **Stats
 
 ## 10a. GitHub Actions (CI)
 
-**Po co:** przy każdym **push** lub **pull requeście** do gałęzi `main` GitHub uruchamia workflow (plik **`.github/workflows/flutter_ci.yml`**) na maszynie w chmurze: `flutter pub get` → **`dart analyze lib test`** → **`flutter test`**. Dzięki temu od razu widać, czy projekt się analizuje i czy testy przechodzą — bez ręcznego odpalania u siebie przed mergem.
+**Po co:** przy każdym **push** lub **pull requeście** do gałęzi `main` GitHub uruchamia workflow (plik **`.github/workflows/flutter_ci.yml`**) na maszynie w chmurze: `flutter pub get` → **`dart format --set-exit-if-changed .`** → **`flutter analyze --no-fatal-infos`** → **`flutter test`** → **`flutter build apk --debug`** (z przygotowaniem JDK 17 i Android SDK na runnerze). Dzięki temu widać, czy format, analiza, testy i build przechodzą bez uruchamiania lokalnie przed mergem.
+
+**Build iOS** na **Ubuntu** w CI nie jest uruchamiany (wymaga **macOS** i Xcode). Opcjonalny job `macos-latest` + `flutter build ios` można dodać dopiero przy kompletnej konfiguracji certyfikatów i `GoogleService-Info.plist`.
 
 Włącz **Actions** w ustawieniach repozytorium (domyślnie w publicznych repach jest OK). Pierwsze uruchomienie po dodaniu workflowa: zakładka **Actions** w GitHubie.
 
@@ -186,7 +201,8 @@ Włącz **Actions** w ustawieniach repozytorium (domyślnie w publicznych repach
 
 ## 11. Znane założenia / ograniczenia
 
-- Widget opisany powyżej jest **zaimplementowany pod Android**; iOS/macOS mogą używać innych ścieżek (`TimerServiceBridge` no-op poza Androidem gdzie wskazano).
+- **Android:** widget + ForegroundService jak w § 6. **iOS:** timestampy + **WidgetKit** + App Group (§ 6.6) — zachowanie w tle **nie** jest jak pełny serwis pierwszoplanowy na Androidzie.
+- **macOS / desktop:** `TimerServiceBridge` nie wywołuje natywnego widgetu iOS/Android; opcjonalnie **`home_widget`** w ścieżce „innej niż Android/iOS” w **`TimerCubit`** (zgodnie z kodem).
 - Czasy wyświetlane w sekundach mogą różnić się o pojedyncze sekundy w logach Kotlina vs intenty Fluttera (zaokrąglenie sekund w sync).
 
 ---

@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
+import '../services/ios_deep_link_nav.dart';
 import 'history_tab.dart';
 import 'settings_tab.dart';
 import 'stats_tab.dart';
@@ -18,6 +21,30 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isIOS) {
+      IosDeepLinkNav.instance.init();
+      IosDeepLinkNav.instance.pendingTabIndex.addListener(_onIosDeepLinkTab);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isIOS) {
+      IosDeepLinkNav.instance.pendingTabIndex.removeListener(_onIosDeepLinkTab);
+    }
+    super.dispose();
+  }
+
+  void _onIosDeepLinkTab() {
+    final next = IosDeepLinkNav.instance.pendingTabIndex.value;
+    if (next == null || !mounted) return;
+    setState(() => _index = next.clamp(0, 4));
+    IosDeepLinkNav.instance.pendingTabIndex.value = null;
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -128,6 +128,7 @@ class TimerCubit extends Cubit<TimerState> {
   final Uuid _uuid = const Uuid();
   Timer? _tick;
   int _lastWidgetElapsedSecond = -1;
+  DateTime? _lastIosWidgetThrottle;
 
   Future<void> init() async {
     await _repository.initForUser(state.uid);
@@ -396,8 +397,16 @@ class TimerCubit extends Cubit<TimerState> {
         elapsed.inSeconds != _lastWidgetElapsedSecond) {
       _lastWidgetElapsedSecond = elapsed.inSeconds;
       _persistSession();
-      if (!Platform.isAndroid) {
-        _writeWidgetSnapshot();
+      if (Platform.isIOS) {
+        final t = DateTime.now();
+        if (_lastIosWidgetThrottle == null ||
+            t.difference(_lastIosWidgetThrottle!) >=
+                const Duration(seconds: 15)) {
+          _lastIosWidgetThrottle = t;
+          unawaited(_writeWidgetSnapshot());
+        }
+      } else if (!Platform.isAndroid) {
+        unawaited(_writeWidgetSnapshot());
       }
     }
   }
@@ -427,7 +436,7 @@ class TimerCubit extends Cubit<TimerState> {
     return super.close();
   }
 
-  Future<void> _syncWorkspacesJsonToAndroid() async {
+  Future<void> _syncWorkspacesJsonToNative() async {
     final list = state.workspaces
         .map((w) => <String, String>{'id': w.id, 'name': w.name})
         .toList();
@@ -457,7 +466,7 @@ class TimerCubit extends Cubit<TimerState> {
           '[TimerCubit] sync->service state=${state.runState.name} elapsed=${state.elapsed.inSeconds}s workspace=${state.activeWorkspaceId}',
         );
         try {
-          await _syncWorkspacesJsonToAndroid();
+          await _syncWorkspacesJsonToNative();
         } catch (e, st) {
           debugPrint('[TimerCubit] syncWidgetWorkspaces failed: $e $st');
         }
@@ -467,6 +476,25 @@ class TimerCubit extends Cubit<TimerState> {
           workspaceId: state.activeWorkspaceId,
           workspaceName: state.activeWorkspace.name,
           nextSessionMode: state.nextSessionMode.name,
+        );
+        return;
+      }
+
+      if (Platform.isIOS) {
+        try {
+          await _syncWorkspacesJsonToNative();
+        } catch (e, st) {
+          debugPrint('[TimerCubit] iOS syncWidgetWorkspaces failed: $e $st');
+        }
+        await TimerServiceBridge.sync(
+          runState: state.runState.name,
+          elapsedSeconds: state.elapsed.inSeconds,
+          workspaceId: state.activeWorkspaceId,
+          workspaceName: state.activeWorkspace.name,
+          nextSessionMode: state.nextSessionMode.name,
+          sessionStartMs: state.sessionStart?.millisecondsSinceEpoch,
+          resumeAtMs: state.resumeAt?.millisecondsSinceEpoch,
+          pausedAccumulatedSeconds: state.accumulated.inSeconds,
         );
         return;
       }

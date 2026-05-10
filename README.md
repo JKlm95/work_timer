@@ -1,113 +1,83 @@
 # Work Timer — aplikacja do śledzenia czasu pracy
 
-> **Sugerowany opis repozytorium (GitHub → About → Description):**  
-> *Offline-first time tracking app built with Flutter, BLoC, Firebase and native Android foreground service.*
+[![Flutter CI](https://github.com/JKlm95/work_timer/actions/workflows/flutter_ci.yml/badge.svg)](https://github.com/JKlm95/work_timer/actions/workflows/flutter_ci.yml)
 
-Flutterowa aplikacja mobilna z **Firebase** (logowanie e-mail, synchronizacja w chmurze), **wieloma workspace’ami**, timerem sesji, historią wpisów, statystykami oraz **widgetem na ekranie głównym (Android)**. Projekt demonstracyjny — pokazuje pracę end-to-end: UI, warstwę danych, integrację natywną i obsługę offline.
+**Work Timer** to aplikacja mobilna (Flutter) do rejestrowania czasu pracy w **wielu workspace’ach**, z **Firebase** (logowanie e-mail, Firestore), **timera sesji**, historią, statystykami i **widgetem na ekranie głównym Androida** (MethodChannel, foreground service, SharedPreferences) oraz ścieżką **iOS** (WidgetKit, App Groups, `UserDefaults` — bez ForegroundService; timer w oparciu o timestampy w Flutterze). Obsługa **offline** (cache, kolejka synchronizacji). Motyw jasny/ciemny i lokalizacja PL/EN.
+
+Szczegóły architektury, setup Firebase i dane: **[TECHNICAL.md](TECHNICAL.md)**.
 
 ---
 
-## Dla rekrutera w skrócie
+## Dla rekrutera
 
 | | |
 |---|---|
-| **Rola w projekcie** | *Tu wpisz: autor / zakres (np. samodzielnie, czas trwania)* |
-| **Stack** | Flutter (Dart), Firebase Auth & Firestore, Bloc, widget + serwis Android |
-| **Szczegóły techniczne** | Pełny opis architektury, kanałów natywnych i strategii danych → **[TECHNICAL.md](TECHNICAL.md)** |
+| **Zakres** | Projekt portfolio — pełna ścieżka: UI, warstwa danych, integracja natywna Android, testy, CI. |
+| **Stack** | Flutter (Dart), Firebase Auth & Firestore, **flutter_bloc**, **home_widget** / **MethodChannel** (Android), **Swift** WidgetKit + App Group (iOS, patrz TECHNICAL). |
+| **Dokumentacja techniczna** | **[TECHNICAL.md](TECHNICAL.md)** — przepływy danych, widget, reguły Firestore, testy. |
 
-**Ścieżka danych widgetu (Android, skrót):**  
-Flutter (`TimerServiceBridge`) → **MethodChannel** `work_timer/service_control` → **Kotlin** (`WorkTimerForegroundService`) → **SharedPreferences** (prefs Flutter + home_widget) → **odświeżenie widżetu** (`AppWidgetProvider`).
-
-**GitHub → Topics** *(wklej ręcznie, bez spacji w nazwie topicu):*  
-`flutter` · `firebase` · `bloc` · `offline-first` · `android-widget` · `foreground-service` · *(opcjonalnie)* `method-channel` · `kotlin`
+**Skrót przepływu widgetu (Android):**  
+Flutter (`TimerServiceBridge`) → **MethodChannel** `work_timer/service_control` → **Kotlin** (`WorkTimerForegroundService`) → **SharedPreferences** → odświeżenie **`WorkTimerWidgetProvider`**.
 
 ---
 
 ## Problem i rozwiązanie
 
-Śledzenie czasu pracy (np. home office vs biuro) często rozjeżdża się między „timerem w głowie” a późniejszym uzupełnianiem arkuszy. **Work Timer** zbiera to w jednym miejscu: szybki timer, widoczny skrót na pulpicie telefonu oraz historia i podsumowania per workspace.
+Śledzenie czasu pracy (np. home office vs biuro) często rozjeżdża się między „timerem w głowie” a późniejszym uzupełnianiem arkuszy. **Work Timer** zbiera to w jednym miejscu: szybki timer, skrót na pulpicie telefonu oraz historia i podsumowania per workspace.
 
 ---
 
-## Główne możliwości
+## Możliwości
 
-- **Konto użytkownika** — logowanie, rejestracja, wylogowanie, reset hasła (Firebase Auth).
-- **Workspace’y** — tworzenie, zmiana nazwy, przełączanie aktywnego kontekstu; wpisy przypisane do workspace’u.
-- **Timer sesji** — start / pauza / stop, tryb pracy (np. zdalna / stacjonarna).
-- **Historia** — zakres dat, filtry, ręczne dodawanie i edycja wpisów.
-- **Statystyki** — agregaty w tygodniu / miesiącu, wykresy, udział workspace’ów.
-- **Eksport do Excela (CSV)** — ikona tabeli przy filtrach na **Historii**: UTF-8 BOM, separator `;` (PL) / `,` (EN), udostępnianie przez arkusz systemowy (`share_plus`); logika w `lib/export/work_entries_csv.dart`.
-- **Widget (Android)** — podgląd czasu i sterowanie z ekranu głównego; **bez zalogowania** widget prowadzi do aplikacji zamiast odpalać timer *(zabezpieczenie pokazujące myślenie o UX i bezpieczeństwie)*. Przy **idle** można przełączać workspace strzałkami ‹/› (lista synchronizowana z Fluttera przez MethodChannel; przy running/pauzie przełączanie jest ignorowane).
-- **Offline** — cache i kolejka zmian; synchronizacja po powrocie sieci.
-- **Motyw i język** — **jasny / ciemny / systemowy** oraz **polski / angielski / język systemu** (zakładka Ustawienia); spójna paleta **`AppColors`**, motyw w **`buildWorkTimerTheme`**, teksty w **ARB** (`lib/l10n/app_en.arb`, `app_pl.arb`). Sterowanie czasem timera etykietami Play / Pause / Stop pozostaje po angielsku w obu lokalizacjach.
-
----
-
-## Zrzuty ekranu *(do uzupełnienia przez autora)*
-
-Poniżej: **propozycja nazw plików** i **co warto pokazać**. Umieść pliki np. w folderze `docs/screenshots/` i podlinkuj obrazki w tej sekcji.
-
-<!--
-  INSTRUKCJA DLA CIEBIE, KUBA:
-  1. Utwórz folder docs/screenshots/
-  2. Zrób zrzuty na emulatorze lub urządzeniu (jasny motyw, spójna rozdzielczość).
-  3. Zamień ścieżki poniżej na prawdziwe linki markdown: ![opis](docs/screenshots/nazwa.png)
-  4. Opcjonalnie: jeden plik złożony (np. Figma export) — wtedy jeden wiersz w tabeli.
--->
-
-| Sugerowana nazwa pliku | Co pokazać |
-|------------------------|------------|
-| `01_splash_lub_login.png` | Ekran powitalny / logowanie (pierwszy kontakt z aplikacją). |
-| `02_timer_glowny.png` | Zakładka Timera z widocznym licznikiem i wyborem trybu / workspace. |
-| `03_historia.png` | Lista wpisów z filtrami lub szczegół edycji. |
-| `04_statystyki.png` | Statystyki (wykres / podsumowanie). |
-| `05_workspaces.png` | Zarządzanie workspace’ami. |
-| `06_widget_android.png` | Widget na launcherze (opcjonalnie obok otwartej apki). |
-| `07_ustawienia_lub_dark.png` | *(opcjonalnie)* Ustawienia języka/motywu albo ten sam ekran w trybie ciemnym. |
-
-**Placeholder pod galerię** *(usuń ten blok po dodaniu grafik):*
-
-```markdown
-<!-- Przykład po dodaniu plików:
-![Logowanie](docs/screenshots/01_splash_lub_login.png)
-![Timer](docs/screenshots/02_timer_glowny.png)
--->
-```
+- **Konto** — rejestracja, logowanie, reset hasła (Firebase Auth).
+- **Workspace’y** — tworzenie, zmiana nazwy, przełączanie kontekstu; wpisy powiązane z workspace.
+- **Timer** — start / pauza / stop, tryb pracy (np. zdalna / biuro).
+- **Historia** — zakres dat, filtry, ręczne wpisy, eksport **CSV** (`lib/export/work_entries_csv.dart`, `share_plus`).
+- **Statystyki** — agregaty, wykres tygodniowy, udział workspace’ów.
+- **Widget (Android)** — czas i sterowanie z launchera; bez logowania — otwarcie aplikacji. Przy **idle** przełączanie workspace (‹/›), lista zsynchronizowana z Fluttera.
+- **Widget (iOS)** — podgląd workspace, stan (Idle / Running / Paused) i czasu; dane z **App Group** (`TimerServiceBridge` → `AppDelegate`). Tap otwiera aplikację (`worktimer://workspaces`). Pełna konfiguracja targetu Widget Extension w Xcode: **[TECHNICAL.md](TECHNICAL.md)** § 6.6.
+- **Offline** — kolejka zmian, sync po powrocie sieci.
+- **Motyw i język** — jasny / ciemny / system; polski / angielski / locale systemu (`SettingsCubit`, ARB w `lib/l10n/`).
 
 ---
 
-## Krótki opis do CV lub listu motywacyjnego *(szkic)*
+## Screenshots
 
-> Aplikacja mobilna **Work Timer** (Flutter) służy do rejestrowania czasu pracy w wielu workspace’ach, z synchronizacją **Firebase** i obsługą **offline**. Zrealizowałem m.in. integrację **widgetu Android** z warstwą Flutter (współdzielony stan, foreground service, kanał natywny), spójny UX przy powrocie do aplikacji oraz ekran startowy ładowania danych przed wejściem w główny interfejs. Szczegóły techniczne: repozytorium → **TECHNICAL.md**.
-
-*(Dostosuj pierwszą osobę / „my” wg kontekstu.)*
+Brak wbudowanych grafik w repozytorium. Aby dodać zrzuty: utwórz folder **`docs/screenshots/`**, umieść pliki PNG/WebP i w tej sekcji wstaw linki Markdown, np. `![Timer](docs/screenshots/timer.png)`.
 
 ---
 
-## Uruchomienie (skrót)
+## Pitch (CV / opis projektu)
 
-Wymagany **Flutter** i projekt **Firebase** (konfiguracja `firebase_options` i pliki platform). Szczegółowy przewodnik setupu, reguły Firestore i strategia danych: **[TECHNICAL.md](TECHNICAL.md)**.
+> Aplikacja **Work Timer** (Flutter) rejestruje czas pracy w wielu workspace’ach z synchronizacją **Firebase** i obsługą **offline**. Zawiera integrację **widgetu Android** z warstwą Dart (współdzielony stan, foreground service, kanał natywny), spójność przy powrocie do aplikacji oraz ekran startowy przed wejściem w główny interfejs. Szczegóły implementacji: **[TECHNICAL.md](TECHNICAL.md)**.
+
+---
+
+## Uruchomienie
+
+Wymagany **Flutter** i skonfigurowany projekt **Firebase** (`lib/firebase_options.dart`, pliki platform — na iOS dodaj **`GoogleService-Info.plist`** do `ios/Runner` z konsoli Firebase, jeśli go brakuje). Pełny setup: **[TECHNICAL.md](TECHNICAL.md)** § 8.
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-Po edycji plików **`.arb`** (tłumaczenia) uruchom ponownie `flutter pub get` lub `flutter gen-l10n`, aby odświeżyć wygenerowane klasy w `lib/l10n/`.
+**iOS (Mac + Xcode):** po pierwszym `flutter pub get` w katalogu `ios` uruchom `pod install`. W **Signing & Capabilities** włącz **App Groups** dla `group.com.worktimer.workTimer` (Runner + rozszerzenie widgetu, gdy dodasz target). **URL scheme:** `worktimer` jest zadeklarowany w `Info.plist` Runnera.
+
+Po zmianach w plikach **`.arb`**: `flutter pub get` lub `flutter gen-l10n`.
 
 ---
 
-## CI/CD
+## CI
 
-Projekt używa **GitHub Actions**: workflow [`.github/workflows/flutter_ci.yml`](.github/workflows/flutter_ci.yml) uruchamia się przy **pushu** i **pull requestach** do brancha `main`. Na runnerze **Ubuntu** pobierane są zależności (`flutter pub get`), sprawdzany jest format kodu (`dart format`), uruchamiana jest statyczna analiza (`flutter analyze --no-fatal-infos`, żeby same komunikaty poziomu *info* — np. deprecation API — nie przerywały joba) oraz testy (`flutter test`), a na końcu weryfikowany jest build **`flutter build apk --debug`**. W repozytorium na GitHubie muszą być włączone **Actions** (Settings → Actions).
-
----
-
-## Licencja i kontakt
-
-- **Licencja:** *do uzupełnienia (np. MIT, własna, tylko portfolio)*  
-- **Kontakt / portfolio:** *link do LinkedIn, strony lub e-mail*
+Workflow **[`.github/workflows/flutter_ci.yml`](.github/workflows/flutter_ci.yml)** — przy pushu i PR do **`main`**: `flutter pub get`, `dart format`, `flutter analyze --no-fatal-infos`, `flutter test`, `flutter build apk --debug`. W repozytorium GitHub włącz **Actions** (Settings → Actions), jeśli wyłączone.
 
 ---
 
-*Ten plik jest przeznaczony dla **rekrutera i przeglądu portfolio**. Dokumentacja dla deweloperów znajduje się w **TECHNICAL.md**.*
+## Licencja
+
+Repozytorium nie zawiera pliku `LICENSE` — przy publikacji dodaj wybraną licencję lub ustaw ją w ustawieniach repozytorium na GitHubie.
+
+---
+
+*Ten plik jest czytelny dla **rekrutera i przeglądu portfolio**. Dokumentacja developerska: **[TECHNICAL.md](TECHNICAL.md)**.*

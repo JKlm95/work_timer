@@ -1,7 +1,5 @@
-# Launch Screen Assets (iOS)
+# Launch screen (iOS)
 
-Szablon Flutter / Xcode dla ekranu startowego **Work Timer**. Możesz podmienić pliki graficzne w tym katalogu albo w Xcode: `open ios/Runner.xcworkspace` → **Runner** → **Assets.xcassets** → **LaunchImage**.
+Zasoby ekranu startowego **Work Timer**. Grafiki można podmienić w tym katalogu albo w Xcode: **Runner** → **Assets.xcassets** → **LaunchImage**.
 
-You can customize the launch screen with your own desired assets by replacing the image files in this directory.
-
-You can also do it by opening your Flutter project's Xcode project with `open ios/Runner.xcworkspace`, selecting `Runner/Assets.xcassets` in the Project Navigator and dropping in the desired images.
+Command line: `open ios/Runner.xcworkspace`
