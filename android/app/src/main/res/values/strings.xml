@@ -9,4 +9,7 @@
     <string name="widget_cd_play">Start or resume timer</string>
     <string name="widget_cd_pause">Pause timer</string>
     <string name="widget_cd_stop">Stop timer</string>
+    <string name="widget_cd_prev_workspace">Previous workspace</string>
+    <string name="widget_cd_next_workspace">Next workspace</string>
+    <string name="widget_no_workspace">Brak workspace</string>
 </resources>

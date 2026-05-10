@@ -4,6 +4,7 @@ import android.content.Intent
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
+import org.json.JSONArray
 
 class MainActivity : FlutterActivity() {
     private val channelName = "work_timer/service_control"
@@ -66,6 +67,45 @@ class MainActivity : FlutterActivity() {
 
                     "getNativeTimerSnapshot" -> {
                         result.success(WorkTimerForegroundService.getMirrorSnapshot())
+                    }
+
+                    "syncWidgetWorkspaces" -> {
+                        val json = call.argument<String>("workspacesJson") ?: "[]"
+                        val selectedId =
+                            call.argument<String>("selectedWorkspaceId") ?: "default"
+                        val prefs =
+                            getSharedPreferences(WorkTimerForegroundService.PREFS_HOME_WIDGET, MODE_PRIVATE)
+                        var nameForSelected =
+                            prefs.getString("workspaceName", "Domyslny") ?: "Domyslny"
+                        runCatching {
+                            val arr = JSONArray(json)
+                            for (i in 0 until arr.length()) {
+                                val o = arr.optJSONObject(i) ?: continue
+                                if (o.optString("id") == selectedId) {
+                                    nameForSelected = o.optString("name", nameForSelected)
+                                    break
+                                }
+                            }
+                        }
+                        prefs.edit().apply {
+                            putString(WorkspaceListStore.KEY_WORKSPACES_JSON, json)
+                            putString("activeWorkspaceId", selectedId)
+                            putString("workspaceName", nameForSelected)
+                            apply()
+                        }
+                        WorkTimerWidgetUi.requestUpdate(this)
+                        result.success(true)
+                    }
+
+                    "getWidgetWorkspaceSelection" -> {
+                        val prefs =
+                            getSharedPreferences(WorkTimerForegroundService.PREFS_HOME_WIDGET, MODE_PRIVATE)
+                        result.success(
+                            mapOf(
+                                "activeWorkspaceId" to (prefs.getString("activeWorkspaceId", "default") ?: "default"),
+                                "workspaceName" to (prefs.getString("workspaceName", "") ?: ""),
+                            ),
+                        )
                     }
 
                     else -> result.notImplemented()

@@ -85,14 +85,14 @@ lib/
 
 ### 6.1 Foreground service
 
-- `WorkTimerForegroundService` — akcje: `PLAY`, `PAUSE`, `STOP`, `SYNC`.
+- `WorkTimerForegroundService` — akcje: `PLAY`, `PAUSE`, `STOP`, `SYNC`, `PREVIOUS_WORKSPACE`, `NEXT_WORKSPACE`.
 - **Ticker** co ~1 s aktualizuje stan, notyfikację i widoki widgetu.
 - **`persistAndRender`** — zapis do `HomeWidgetPreferences` + JSON sesji do `FlutterSharedPreferences` + **lustro stanu JVM** (`publishMirrorForFlutter`) dla szybkiego odczytu z Fluttera.
 
 ### 6.2 MethodChannel
 
 - Kanał: `work_timer/service_control` w **`MainActivity`**.
-- Metody: `play`, `pause`, `stop`, `sync`, **`getNativeTimerSnapshot`** (mapa: runState, elapsedSeconds, workspace, sessionMode).
+- Metody: `play`, `pause`, `stop`, `sync`, **`getNativeTimerSnapshot`**, **`syncWidgetWorkspaces`**, **`getWidgetWorkspaceSelection`** (mapa: activeWorkspaceId, workspaceName).
 - Flutter: `TimerServiceBridge`.
 
 ### 6.3 Spójność Flutter ↔ native
@@ -104,6 +104,13 @@ lib/
 ### 6.4 Widget UI
 
 - `WorkTimerWidgetProvider` — odczyt prefs; przy braku sesji pokazuje stan „zablokowany” i otwiera `MainActivity`.
+- **`WorkTimerWidgetUi`** — wspólne budowanie `RemoteViews` dla providera i serwisu (nagłówek z ‹/›, status, timer, kontrolki).
+
+### 6.5 Widget — przełączanie workspace (tylko przy idle)
+
+- **Źródło listy:** Flutter zapisuje JSON workspace’ów (`id` + `name`) w **`HomeWidgetPreferences`** pod kluczem `widget_workspaces_json` oraz aktualny wybór (`activeWorkspaceId`, `workspaceName`) metodą MethodChannel **`syncWidgetWorkspaces`** (`TimerServiceBridge`), wywoływaną przed każdym `sync` timera w **`TimerCubit._writeWidgetSnapshot`**.
+- **Przełączanie ‹/›:** intencje **`ACTION_PREVIOUS_WORKSPACE`** / **`ACTION_NEXT_WORKSPACE`** → `WorkTimerForegroundService`. Jeśli w prefs `runState` to `running` lub `paused`, indeks się nie zmienia — tylko odświeżenie widoku. Przy `idle` następuje cykliczna zmiana indeksu po lokalnej liście i zapis `activeWorkspaceId` / `workspaceName`.
+- **Flutter:** przy starcie i przy **`syncFromNativeStoresOnResume`** metoda **`getWidgetWorkspaceSelection`** — jeśli timer jest **idle** i ID z Androida występuje w załadowanej liście repo, wywoływane jest **`setActiveWorkspace`** (bez zmiany kolejki Firebase z poziomu widgetu).
 
 ---
 

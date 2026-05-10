@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -148,6 +149,7 @@ class TimerCubit extends Cubit<TimerState> {
       ),
     );
     await _hydrateTimerFromPersistedStores();
+    await _applyAndroidWorkspaceSelectionIfIdle();
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
   }
@@ -156,6 +158,7 @@ class TimerCubit extends Cubit<TimerState> {
   /// przestarzały cache dopóki [LocalCacheStore.reloadPreferencesFromDisk].
   Future<void> syncFromNativeStoresOnResume() async {
     await _hydrateTimerFromPersistedStores();
+    await _applyAndroidWorkspaceSelectionIfIdle();
     await _writeWidgetSnapshot();
   }
 
@@ -424,12 +427,40 @@ class TimerCubit extends Cubit<TimerState> {
     return super.close();
   }
 
+  Future<void> _syncWorkspacesJsonToAndroid() async {
+    final list = state.workspaces
+        .map((w) => <String, String>{'id': w.id, 'name': w.name})
+        .toList();
+    await TimerServiceBridge.syncWidgetWorkspaces(
+      workspacesJson: jsonEncode(list),
+      selectedWorkspaceId: state.activeWorkspaceId,
+    );
+  }
+
+  /// Gdy użytkownik zmienił workspace na widgetcie, a timer jest w spoczynku — zsynchronizuj z repozytorium.
+  Future<void> _applyAndroidWorkspaceSelectionIfIdle() async {
+    if (!Platform.isAndroid) return;
+    if (state.runState != TimerRunState.idle) return;
+    final sel = await TimerServiceBridge.getWidgetWorkspaceSelection();
+    if (sel == null) return;
+    final id = sel['activeWorkspaceId'] as String?;
+    if (id == null || id.isEmpty) return;
+    if (id == state.activeWorkspaceId) return;
+    if (!state.workspaces.any((w) => w.id == id)) return;
+    await setActiveWorkspace(id);
+  }
+
   Future<void> _writeWidgetSnapshot() async {
     try {
       if (Platform.isAndroid) {
         debugPrint(
           '[TimerCubit] sync->service state=${state.runState.name} elapsed=${state.elapsed.inSeconds}s workspace=${state.activeWorkspaceId}',
         );
+        try {
+          await _syncWorkspacesJsonToAndroid();
+        } catch (e, st) {
+          debugPrint('[TimerCubit] syncWidgetWorkspaces failed: $e $st');
+        }
         await TimerServiceBridge.sync(
           runState: state.runState.name,
           elapsedSeconds: state.elapsed.inSeconds,

@@ -12,7 +12,6 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
-import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -27,6 +26,8 @@ class WorkTimerForegroundService : Service() {
         const val ACTION_PAUSE = "com.worktimer.work_timer.action.PAUSE"
         const val ACTION_STOP = "com.worktimer.work_timer.action.STOP"
         const val ACTION_SYNC = "com.worktimer.work_timer.action.SYNC"
+        const val ACTION_PREVIOUS_WORKSPACE = "com.worktimer.work_timer.action.PREVIOUS_WORKSPACE"
+        const val ACTION_NEXT_WORKSPACE = "com.worktimer.work_timer.action.NEXT_WORKSPACE"
         const val EXTRA_WORKSPACE_ID = "workspaceId"
         const val EXTRA_WORKSPACE_NAME = "workspaceName"
         const val EXTRA_NEXT_MODE = "nextSessionMode"
@@ -35,7 +36,7 @@ class WorkTimerForegroundService : Service() {
 
         private const val CHANNEL_ID = "work_timer_channel"
         private const val NOTIFICATION_ID = 61234
-        private const val HOME_WIDGET_PREFS = "HomeWidgetPreferences"
+        const val PREFS_HOME_WIDGET = "HomeWidgetPreferences"
         private const val FLUTTER_PREFS = "FlutterSharedPreferences"
         private const val TIMER_SESSION_KEY = "flutter.timer_session_v1"
         private const val TAG = "WorkTimerService"
@@ -97,7 +98,7 @@ class WorkTimerForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand action=${intent?.action}")
         val action = intent?.action
-        if (!AuthPrefs.isSignedIn(this) && isTimerControlAction(action)) {
+        if (!AuthPrefs.isSignedIn(this) && isTimerOrWorkspaceAction(action)) {
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -107,6 +108,14 @@ class WorkTimerForegroundService : Service() {
             return START_NOT_STICKY
         }
         when (action) {
+            ACTION_PREVIOUS_WORKSPACE -> {
+                handleWorkspaceStep(next = false)
+                return finishIfWorkspaceOnlyIntent()
+            }
+            ACTION_NEXT_WORKSPACE -> {
+                handleWorkspaceStep(next = true)
+                return finishIfWorkspaceOnlyIntent()
+            }
             ACTION_PLAY -> handlePlay(intent!!)
             ACTION_PAUSE -> handlePause()
             ACTION_STOP -> handleStop()
@@ -116,8 +125,72 @@ class WorkTimerForegroundService : Service() {
         return START_STICKY
     }
 
-    private fun isTimerControlAction(action: String?): Boolean {
-        return action == ACTION_PLAY || action == ACTION_PAUSE || action == ACTION_STOP
+    private fun isTimerOrWorkspaceAction(action: String?): Boolean {
+        return action == ACTION_PLAY ||
+            action == ACTION_PAUSE ||
+            action == ACTION_STOP ||
+            action == ACTION_PREVIOUS_WORKSPACE ||
+            action == ACTION_NEXT_WORKSPACE
+    }
+
+    private fun finishIfWorkspaceOnlyIntent(): Int {
+        if (runState != "idle" || ticker != null) {
+            return START_STICKY
+        }
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+        return START_NOT_STICKY
+    }
+
+    private fun handleWorkspaceStep(next: Boolean) {
+        val homePrefs = getSharedPreferences(PREFS_HOME_WIDGET, MODE_PRIVATE)
+        val prefState = (homePrefs.getString("runState", "idle") ?: "idle").lowercase()
+        if (prefState == "running" || prefState == "paused") {
+            WorkTimerWidgetUi.requestUpdate(this)
+            return
+        }
+        if (runState == "running" || runState == "paused") {
+            WorkTimerWidgetUi.requestUpdate(this)
+            return
+        }
+
+        var list = WorkspaceListStore.readWorkspaces(homePrefs)
+        val activeId = homePrefs.getString("activeWorkspaceId", "default") ?: "default"
+        val activeName = homePrefs.getString("workspaceName", "") ?: ""
+        if (list.isEmpty() && activeId.isNotEmpty()) {
+            list = listOf(WorkspaceListStore.Entry(activeId, activeName.ifEmpty { activeId }))
+        }
+        if (list.size <= 1) {
+            WorkTimerWidgetUi.requestUpdate(this)
+            return
+        }
+
+        var idx = list.indexOfFirst { it.id == activeId }
+        if (idx < 0) idx = 0
+        val len = list.size
+        val newIdx = if (next) {
+            (idx + 1) % len
+        } else {
+            (idx - 1 + len) % len
+        }
+        val pick = list[newIdx]
+        val mode = homePrefs.getString("nextSessionMode", sessionMode) ?: sessionMode
+        homePrefs.edit().apply {
+            putString("activeWorkspaceId", pick.id)
+            putString("workspaceName", pick.name)
+            apply()
+        }
+        workspaceId = pick.id
+        workspaceName = pick.name
+        val elapsed = homePrefs.getInt("elapsedSeconds", 0)
+        publishMirrorForFlutter(
+            "idle",
+            elapsed,
+            pick.id,
+            pick.name,
+            mode,
+        )
+        WorkTimerWidgetUi.requestUpdate(this)
     }
 
     override fun onDestroy() {
@@ -126,7 +199,7 @@ class WorkTimerForegroundService : Service() {
     }
 
     private fun handlePlay(intent: Intent) {
-        val homePrefs = getSharedPreferences(HOME_WIDGET_PREFS, MODE_PRIVATE)
+        val homePrefs = getSharedPreferences(PREFS_HOME_WIDGET, MODE_PRIVATE)
         workspaceId =
             intent.getStringExtra(EXTRA_WORKSPACE_ID)
                 ?: homePrefs.getString("activeWorkspaceId", workspaceId)
@@ -290,7 +363,7 @@ class WorkTimerForegroundService : Service() {
             TAG,
             "persistAndRender state=$runState elapsed=${elapsedSeconds}s workspace=$workspaceId",
         )
-        val homePrefs = getSharedPreferences(HOME_WIDGET_PREFS, MODE_PRIVATE).edit()
+        val homePrefs = getSharedPreferences(PREFS_HOME_WIDGET, MODE_PRIVATE).edit()
         homePrefs.putString("workspaceName", workspaceName)
         homePrefs.putString("runState", runState)
         homePrefs.putInt("elapsedSeconds", elapsedSeconds)
@@ -306,48 +379,7 @@ class WorkTimerForegroundService : Service() {
             workspaceName,
             sessionMode,
         )
-        updateWidgetViews()
-    }
-
-    private fun updateWidgetViews() {
-        val manager = android.appwidget.AppWidgetManager.getInstance(this)
-        val component = android.content.ComponentName(this, WorkTimerWidgetProvider::class.java)
-        val ids = manager.getAppWidgetIds(component)
-        ids.forEach { id ->
-            val views = RemoteViews(packageName, R.layout.work_timer_widget)
-            if (!AuthPrefs.isSignedIn(this)) {
-                views.setTextViewText(R.id.widgetWorkspace, getString(R.string.app_name))
-                views.setTextViewText(R.id.widgetTimer, getString(R.string.widget_locked_placeholder))
-                views.setTextViewText(R.id.widgetState, getString(R.string.widget_sign_in_hint))
-                val openApp = AuthPrefs.openAppPendingIntent(this, 190)
-                views.setOnClickPendingIntent(R.id.widgetPlay, openApp)
-                views.setOnClickPendingIntent(R.id.widgetPause, openApp)
-                views.setOnClickPendingIntent(R.id.widgetStop, openApp)
-            } else {
-                views.setTextViewText(R.id.widgetWorkspace, workspaceName)
-                views.setTextViewText(R.id.widgetTimer, formatElapsed(elapsedSeconds))
-                views.setTextViewText(R.id.widgetState, runState)
-                views.setOnClickPendingIntent(R.id.widgetPlay, actionPendingIntent(ACTION_PLAY, 11))
-                views.setOnClickPendingIntent(R.id.widgetPause, actionPendingIntent(ACTION_PAUSE, 12))
-                views.setOnClickPendingIntent(R.id.widgetStop, actionPendingIntent(ACTION_STOP, 13))
-            }
-            manager.updateAppWidget(id, views)
-        }
-    }
-
-    private fun actionPendingIntent(action: String, requestCode: Int): PendingIntent {
-        val i = Intent(this, WorkTimerForegroundService::class.java).apply {
-            this.action = action
-            putExtra(EXTRA_WORKSPACE_ID, workspaceId)
-            putExtra(EXTRA_WORKSPACE_NAME, workspaceName)
-            putExtra(EXTRA_NEXT_MODE, sessionMode)
-        }
-        return PendingIntent.getService(
-            this,
-            requestCode,
-            i,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+        WorkTimerWidgetUi.requestUpdate(this)
     }
 
     private fun saveTimerSession() {

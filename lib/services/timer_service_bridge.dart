@@ -57,6 +57,35 @@ class TimerServiceBridge {
   }
 
   /// Ostatni stan z JVM (persistAndRender) — pewniejsze niż sam reload SharedPreferences.
+  /// Synchronizacja listy workspace’ów i [selectedWorkspaceId] do Android [HomeWidgetPreferences].
+  static Future<void> syncWidgetWorkspaces({
+    required String workspacesJson,
+    required String selectedWorkspaceId,
+  }) async {
+    if (!Platform.isAndroid) return;
+    await _channel.invokeMethod<void>('syncWidgetWorkspaces', <String, dynamic>{
+      'workspacesJson': workspacesJson,
+      'selectedWorkspaceId': selectedWorkspaceId,
+    });
+  }
+
+  static Future<Map<String, Object?>?> getWidgetWorkspaceSelection() async {
+    if (!Platform.isAndroid) return null;
+    try {
+      final raw = await _channel.invokeMethod<Object?>(
+        'getWidgetWorkspaceSelection',
+      );
+      if (raw is Map) {
+        return Map<String, Object?>.from(
+          raw.map((k, v) => MapEntry(k.toString(), v)),
+        );
+      }
+    } catch (e) {
+      debugPrint('[TimerServiceBridge] getWidgetWorkspaceSelection failed: $e');
+    }
+    return null;
+  }
+
   static Future<Map<String, Object?>?> getNativeTimerSnapshot() async {
     if (!Platform.isAndroid) return null;
     try {

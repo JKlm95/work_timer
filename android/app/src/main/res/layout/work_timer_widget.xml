@@ -9,17 +9,47 @@
     android:paddingEnd="14dp"
     android:paddingBottom="12dp">
 
-    <TextView
-        android:id="@+id/widgetWorkspace"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:gravity="center_horizontal"
-        android:maxLines="1"
-        android:text="@string/app_name"
-        android:textColor="@color/widget_title_text"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/widget_workspace_prev"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/widget_button_background"
+            android:contentDescription="@string/widget_cd_prev_workspace"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_widget_chevron_left" />
+
+        <TextView
+            android:id="@+id/widget_workspace_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="@string/app_name"
+            android:textColor="@color/widget_title_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/widget_workspace_next"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/widget_button_background"
+            android:contentDescription="@string/widget_cd_next_workspace"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_widget_chevron_right" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/widgetState"
