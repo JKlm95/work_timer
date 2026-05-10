@@ -33,13 +33,14 @@ lib/
 ├── export/                   # work_entries_csv.dart — CSV pod Excel (BOM, separator z locale)
 ├── services/
 │   ├── auth_service.dart
-│   ├── auth_native_sync.dart      # flaga zalogowania dla Android widget (SharedPreferences)
-│   ├── work_repository.dart        # orchestracja cache + [WorkRemoteStore] + sync
+│   ├── auth_native_sync.dart      # flaga zalogowania — Android widget; iOS reload widgetów
+│   ├── ios_deep_link_nav.dart      # worktimer:// → zakładka (iOS)
+│   ├── work_repository.dart        # orchestracja cache + merge miesiąca + kolejki pending
 │   ├── work_remote_store.dart      # abstrakcja Firestore (testy: FakeWorkRemoteStore)
 │   ├── online_checker.dart         # abstrakcja sieci (testy: FixedOnlineChecker)
-│   ├── local_cache_store.dart      # prefs: wpisy, workspace, sesja timera
+│   ├── local_cache_store.dart      # prefs: wpisy, workspace, sesja; kolejka upsert workspace (offline)
 │   ├── firebase_work_store.dart
-│   ├── timer_service_bridge.dart   # MethodChannel → serwis Android
+│   ├── timer_service_bridge.dart   # MethodChannel Android + iOS (App Group / reload)
 │   └── stats_service.dart
 └── widgets/
     └── splash_loading_view.dart
@@ -63,7 +64,7 @@ lib/
 - **Firestore** (wysokopoziomowo):
   - `users/{uid}/entries/{entryId}`
   - `users/{uid}/workspaces/{workspaceId}`
-- **Reguły:** `firestore.rules` w repozytorium — wdrożenie przez konsolę lub CLI (`firebase deploy --only firestore:rules` po powiązaniu projektu).
+- **Reguły:** plik **`firestore.rules`** w repozytorium — **wdroż całość** (konsola lub `firebase deploy --only firestore:rules`). Reguły muszą obejmować **obie** podkolekcje (`entries` **i** `workspaces`). Same reguły tylko dla `entries` skutkują **`permission-denied`** przy zapisie/odczycie workspace’ów i po reinstalacji „znikały” workspace’y w chmurze.
 
 ---
 
@@ -72,9 +73,11 @@ lib/
 - **Pełna historia** w Firestore (powyższe ścieżki).
 - **Lokalnie** (`LocalCacheStore`):
   - cache bieżącego miesiąca per workspace,
-  - kolejka **pending** dla operacji offline,
+  - kolejka **pending** wpisów (`work_entries_pending_v2`) oraz przy offline/błędzie sieci kolejka **`upsertWorkspace`** (`workspaces_remote_pending_v1`),
   - list workspace’ów i aktywny workspace,
   - migracja legacy `work_entries_v1` → workspace `default` (jednorazowo).
+- **Merge przy online:** dla zakresu „bieżący miesiąc” wynik Firestore jest scalany z lokalnym cache miesiąca (uniknięcie „znikania” świeżych wpisów przed sync).
+- **Workspace w Firestore:** `fetchWorkspaces` pobiera całą kolekcję i filtruje `!isArchived` po stronie klienta (dokumenty bez pola `isArchived` nadal działają); pojedynczy uszkodzony dokument nie przerywa importu.
 - **Timer session** — JSON w `SharedPreferences` pod kluczem zgodnym z zapisem Kotlin (`flutter.timer_session_v1`), spójny format z `LocalTimerSession`.
 
 ---
@@ -148,6 +151,14 @@ lib/
 
 ---
 
+## 7c. Statystyki (`StatsTab`)
+
+- **`refreshStatsEntries`** (domyślnie) ładuje wpisy od **wcześniejszej** z dat: pierwszy dzień bieżącego miesiąca **albo** poniedziałek tygodnia ISO (`weekStartMonday`). Dzięki temu przy początku miesiąca wykres „Podsumowanie tygodnia” ma dane także z dni leżących w poprzednim miesiąku, ale w tym samym tygodniu kalendarzowym.
+- Kafelki **„Ten miesiąc”**, liczba sesji i średnia liczą tylko wpisy z **bieżącego miesiąca kalendarzowego** (niezależnie od rozszerzonego zakresu pobrania).
+- **Wykres słupkowy:** kubełki z `weekDayDurations` / suma z `entriesInCurrentWeek`; rysowanie przez **`LayoutBuilder` + `SizedBox`** (jawna wysokość słupka) — unika niewidocznych słupków przy starszym wzorcu `FractionallySizedBox` + `DecoratedBox` bez dziecka.
+
+---
+
 ## 8. Konfiguracja Firebase (setup deweloperski)
 
 1. Utwórz projekt Firebase i włącz:
@@ -166,7 +177,7 @@ lib/
 
 4. **iOS — `GoogleService-Info.plist`:** jeśli w **`ios/Runner/`** nie ma tego pliku, dodaj aplikację iOS w **Firebase Console**, pobierz plist i umieść go w Runnerze, potem `flutterfire configure` (lub ręcznie). Bez tego `Firebase.initializeApp` na urządzeniu iOS może się nie powieść — **nie commituj** fikcyjnego pliku.
 
-5. **Reguły Firestore:** wgraj `firestore.rules` ( konsola lub `firebase deploy --only firestore:rules` po skonfigurowaniu projektu).
+5. **Reguły Firestore:** wgraj **pełny** plik `firestore.rules` z repozytorium — musi zawierać reguły dla **`users/{uid}/workspaces/{...}`** oraz **`users/{uid}/entries/{...}`** (patrz § 4). Sam „allow” tylko na `entries` w konsoli blokuje workspace’y w produkcji.
 
 ---
 
@@ -204,7 +215,8 @@ Włącz **Actions** w ustawieniach repozytorium (domyślnie w publicznych repach
 - **Android:** widget + ForegroundService jak w § 6. **iOS:** timestampy + **WidgetKit** + App Group (§ 6.6) — zachowanie w tle **nie** jest jak pełny serwis pierwszoplanowy na Androidzie.
 - **macOS / desktop:** `TimerServiceBridge` nie wywołuje natywnego widgetu iOS/Android; opcjonalnie **`home_widget`** w ścieżce „innej niż Android/iOS” w **`TimerCubit`** (zgodnie z kodem).
 - Czasy wyświetlane w sekundach mogą różnić się o pojedyncze sekundy w logach Kotlina vs intenty Fluttera (zaokrąglenie sekund w sync).
+- **Timer:** po **`stop`** wywoływane jest **`refreshStatsEntries`**, żeby **`statsEntries`** odświeżyły się razem z historią.
 
 ---
 
-*Ostatnia aktualizacja dokumentu: motywy jasny/ciemny (`AppColors` + `app_theme`), l10n PL/EN (ARB + `SettingsCubit`), zakładka Ustawienia.*
+*Ostatnia aktualizacja dokumentu: reguły Firestore (workspaces + entries), kolejka workspace’ów, statystyki (zakres tygodnia/miesiąca, wykres), § 7c.*

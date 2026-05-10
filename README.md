@@ -33,10 +33,10 @@ Flutter (`TimerServiceBridge`) → **MethodChannel** `work_timer/service_control
 - **Workspace’y** — tworzenie, zmiana nazwy, przełączanie kontekstu; wpisy powiązane z workspace.
 - **Timer** — start / pauza / stop, tryb pracy (np. zdalna / biuro).
 - **Historia** — zakres dat, filtry, ręczne wpisy, eksport **CSV** (`lib/export/work_entries_csv.dart`, `share_plus`).
-- **Statystyki** — agregaty, wykres tygodniowy, udział workspace’ów.
+- **Statystyki** — agregaty, wykres tygodnia (ISO, pon–nd), udział workspace’ów; zakres danych i kafelki vs wykres — **[TECHNICAL.md](TECHNICAL.md)** § 7c.
 - **Widget (Android)** — czas i sterowanie z launchera; bez logowania — otwarcie aplikacji. Przy **idle** przełączanie workspace (‹/›), lista zsynchronizowana z Fluttera.
 - **Widget (iOS)** — podgląd workspace, stan (Idle / Running / Paused) i czasu; dane z **App Group** (`TimerServiceBridge` → `AppDelegate`). Tap otwiera aplikację (`worktimer://workspaces`). Pełna konfiguracja targetu Widget Extension w Xcode: **[TECHNICAL.md](TECHNICAL.md)** § 6.6.
-- **Offline** — kolejka zmian, sync po powrocie sieci.
+- **Offline** — kolejka wpisów i **ponawiany zapis workspace’ów** do Firestore po powrocie sieci (`syncPending`).
 - **Motyw i język** — jasny / ciemny / system; polski / angielski / locale systemu (`SettingsCubit`, ARB w `lib/l10n/`).
 
 ---
@@ -56,6 +56,8 @@ Brak wbudowanych grafik w repozytorium. Aby dodać zrzuty: utwórz folder **`doc
 ## Uruchomienie
 
 Wymagany **Flutter** i skonfigurowany projekt **Firebase** (`lib/firebase_options.dart`, pliki platform — na iOS dodaj **`GoogleService-Info.plist`** do `ios/Runner` z konsoli Firebase, jeśli go brakuje). Pełny setup: **[TECHNICAL.md](TECHNICAL.md)** § 8.
+
+**Firestore — reguły bezpieczeństwa:** w konsoli Firebase wdroż **`firestore.rules`** z tego repozytorium (albo `firebase deploy --only firestore:rules`). Muszą obejmować **`users/{uid}/entries`** **oraz** **`users/{uid}/workspaces`** — same reguły tylko dla wpisów blokują zapis/odczyt workspace’ów w produkcji (objaw: brak listy workspace’ów po reinstalacji). Szczegóły: **[TECHNICAL.md](TECHNICAL.md)** § 4 i § 8.
 
 ```bash
 flutter pub get
