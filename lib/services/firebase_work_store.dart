@@ -59,23 +59,28 @@ class FirebaseWorkStore implements WorkRemoteStore {
 
   @override
   Future<List<Workspace>> fetchWorkspaces(String uid) async {
-    final snapshot = await _workspacesRef(
-      uid,
-    ).where('isArchived', isEqualTo: false).get();
-    return snapshot.docs.map((doc) {
-      String toIso(dynamic value) {
-        if (value is Timestamp) return value.toDate().toIso8601String();
-        if (value is DateTime) return value.toIso8601String();
-        if (value is String) return value;
-        return DateTime.now().toIso8601String();
-      }
+    // Nie używamy where('isArchived', isEqualTo: false): w Firestore dokumenty
+    // **bez** pola `isArchived` nie pasują do takiego zapytania — po reinstalacji
+    // znikały workspace'y zsynchronizowane wcześniej bez tego pola.
+    final snapshot = await _workspacesRef(uid).get();
+    String toIso(dynamic value) {
+      if (value is Timestamp) return value.toDate().toIso8601String();
+      if (value is DateTime) return value.toIso8601String();
+      if (value is String) return value;
+      return DateTime.now().toIso8601String();
+    }
 
-      return Workspace.fromJson({
-        'id': doc.id,
-        ...doc.data(),
-        'createdAt': toIso(doc.data()['createdAt']),
-        'updatedAt': toIso(doc.data()['updatedAt']),
-      });
-    }).toList();
+    return snapshot.docs
+        .map((doc) {
+          final data = doc.data();
+          return Workspace.fromJson({
+            'id': doc.id,
+            ...data,
+            'createdAt': toIso(data['createdAt']),
+            'updatedAt': toIso(data['updatedAt']),
+          });
+        })
+        .where((w) => !w.isArchived)
+        .toList();
   }
 }
