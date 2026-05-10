@@ -9,6 +9,7 @@ import '../models/workspace.dart';
 const _legacyEntriesKey = 'work_entries_v1';
 const _currentMonthCacheKey = 'work_entries_current_month_v2';
 const _pendingQueueKey = 'work_entries_pending_v2';
+const _workspacesUpsertPendingKey = 'workspaces_remote_pending_v1';
 const _workspacesKey = 'workspaces_v1';
 const _activeWorkspaceKey = 'active_workspace_v1';
 const _timerSessionKey = 'timer_session_v1';
@@ -125,6 +126,35 @@ class LocalCacheStore {
     final prefs = await SharedPreferences.getInstance();
     final raw = jsonEncode(workspaces.map((w) => w.toJson()).toList());
     await prefs.setString(_workspacesKey, raw);
+  }
+
+  /// Kolejka [upsertWorkspace] do Firestore (offline lub błąd sieci).
+  Future<List<Workspace>> loadWorkspacesUpsertPending() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_workspacesUpsertPendingKey);
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list
+          .map((e) => Workspace.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> saveWorkspacesUpsertPending(List<Workspace> workspaces) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = jsonEncode(workspaces.map((w) => w.toJson()).toList());
+    await prefs.setString(_workspacesUpsertPendingKey, raw);
+  }
+
+  /// Powiązanie przez [id] — ta sama operacja nadpisuje poprzedni wpis.
+  Future<void> enqueueWorkspaceUpsert(Workspace workspace) async {
+    final pending = await loadWorkspacesUpsertPending();
+    final byId = {for (final w in pending) w.id: w};
+    byId[workspace.id] = workspace;
+    await saveWorkspacesUpsertPending(byId.values.toList());
   }
 
   Future<String?> loadActiveWorkspaceId() async {

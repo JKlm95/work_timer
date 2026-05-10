@@ -144,4 +144,71 @@ void main() {
     final queueAfter = await cache.loadPendingQueue(Workspace.defaultId);
     expect(queueAfter, isEmpty);
   });
+
+  test(
+    'createWorkspace offline odkłada workspace w kolejce do zapisu na serwer',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
+      await markMigrationDone();
+
+      final cache = LocalCacheStore();
+      final remote = FakeWorkRemoteStore();
+      final online = FixedOnlineChecker(false);
+
+      final repo = WorkRepository(
+        localCache: cache,
+        remoteStore: remote,
+        onlineChecker: online,
+      );
+      await repo.initForUser(uid);
+      await repo.createWorkspace('Projekt test');
+
+      expect(remote.upsertedWorkspaces, isEmpty);
+      final pending = await cache.loadWorkspacesUpsertPending();
+      expect(pending.where((w) => w.name == 'Projekt test'), hasLength(1));
+
+      online.online = true;
+      await repo.syncPending();
+
+      expect(
+        remote.upsertedWorkspaces.where((w) => w.name == 'Projekt test'),
+        hasLength(1),
+      );
+      expect(await cache.loadWorkspacesUpsertPending(), isEmpty);
+    },
+  );
+
+  test('createWorkspace online z błędem upsert kolejkuje ponowienie', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+    await markMigrationDone();
+
+    final cache = LocalCacheStore();
+    final remote = FakeWorkRemoteStore()
+      ..workspacesResponse = [Workspace.defaultWorkspace()]
+      ..failNextWorkspaceUpserts = 1;
+    final online = FixedOnlineChecker(true);
+
+    final repo = WorkRepository(
+      localCache: cache,
+      remoteStore: remote,
+      onlineChecker: online,
+    );
+    await repo.initForUser(uid);
+
+    remote.upsertedWorkspaces.clear();
+
+    await repo.createWorkspace('Po błędzie');
+
+    expect(await cache.loadWorkspacesUpsertPending(), hasLength(1));
+
+    await repo.syncPending();
+
+    expect(await cache.loadWorkspacesUpsertPending(), isEmpty);
+    expect(
+      remote.upsertedWorkspaces.where((w) => w.name == 'Po błędzie'),
+      hasLength(1),
+    );
+  });
 }

@@ -16,11 +16,15 @@ class FixedOnlineChecker implements OnlineChecker {
 /// Fałszywy zdalny store — brak Firestore, rejestruje [upsertEntry] i zwraca skonfigurowane listy.
 class FakeWorkRemoteStore implements WorkRemoteStore {
   final List<WorkEntry> upsertedEntries = [];
+  final List<Workspace> upsertedWorkspaces = [];
   List<Workspace> workspacesResponse = const [];
   final Map<String, List<WorkEntry>> entriesByWorkspace = {};
 
   /// Ile następnych wywołań [upsertEntry] ma rzucić wyjątek (symulacja sieci).
   int failNextUpserts = 0;
+
+  /// Ile następnych [upsertWorkspace] ma rzucić wyjątek.
+  int failNextWorkspaceUpserts = 0;
 
   void setRangeResult(String workspaceId, List<WorkEntry> entries) {
     entriesByWorkspace[workspaceId] = entries;
@@ -54,7 +58,13 @@ class FakeWorkRemoteStore implements WorkRemoteStore {
   Future<void> upsertWorkspace({
     required String uid,
     required Workspace workspace,
-  }) async {}
+  }) async {
+    if (failNextWorkspaceUpserts > 0) {
+      failNextWorkspaceUpserts--;
+      throw Exception('workspace upsert failed');
+    }
+    upsertedWorkspaces.add(workspace);
+  }
 
   @override
   Future<List<Workspace>> fetchWorkspaces(String uid) async {

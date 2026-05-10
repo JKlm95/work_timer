@@ -57,10 +57,7 @@ class WorkRepository {
           await _localCache.saveWorkspaces(_workspaces);
           for (final workspace in _workspaces) {
             if (remote.every((r) => r.id != workspace.id)) {
-              await _remoteStore.upsertWorkspace(
-                uid: uid,
-                workspace: workspace,
-              );
+              await _scheduleWorkspaceRemoteUpsert(workspace);
             }
           }
         } catch (e) {
@@ -93,12 +90,7 @@ class WorkRepository {
     await _localCache.saveWorkspaces(_workspaces);
     await _localCache.saveActiveWorkspaceId(workspace.id);
     _activeWorkspaceId = workspace.id;
-    final uid = _uid;
-    if (uid != null && await _onlineChecker.check()) {
-      try {
-        await _remoteStore.upsertWorkspace(uid: uid, workspace: workspace);
-      } catch (_) {}
-    }
+    await _scheduleWorkspaceRemoteUpsert(workspace);
     return workspace;
   }
 
@@ -114,13 +106,8 @@ class WorkRepository {
         )
         .toList();
     await _localCache.saveWorkspaces(_workspaces);
-    final uid = _uid;
     final target = _workspaces.firstWhere((w) => w.id == workspaceId);
-    if (uid != null && await _onlineChecker.check()) {
-      try {
-        await _remoteStore.upsertWorkspace(uid: uid, workspace: target);
-      } catch (_) {}
-    }
+    await _scheduleWorkspaceRemoteUpsert(target);
   }
 
   Future<void> addEntry(WorkEntry entry) async {
@@ -239,6 +226,8 @@ class WorkRepository {
     final uid = _uid;
     if (uid == null || !await _onlineChecker.check()) return;
 
+    await _flushPendingWorkspaceUpserts();
+
     for (final workspace in _workspaces) {
       final queue = await _localCache.loadPendingQueue(workspace.id);
       if (queue.isEmpty) continue;
@@ -253,6 +242,44 @@ class WorkRepository {
         }
       }
       await _localCache.savePendingQueue(workspace.id, remaining);
+    }
+  }
+
+  Future<void> _flushPendingWorkspaceUpserts() async {
+    final uid = _uid;
+    if (uid == null) return;
+
+    final pending = await _localCache.loadWorkspacesUpsertPending();
+    if (pending.isEmpty) return;
+
+    final remaining = <Workspace>[];
+    for (final w in pending) {
+      try {
+        await _remoteStore.upsertWorkspace(uid: uid, workspace: w);
+      } catch (e) {
+        debugPrint('syncPending workspace ${w.id}: $e');
+        remaining.add(w);
+      }
+    }
+    await _localCache.saveWorkspacesUpsertPending(remaining);
+  }
+
+  /// Zapis workspace’u do Firestore; przy braku sieci / błędzie — kolejka lokalna.
+  Future<void> _scheduleWorkspaceRemoteUpsert(Workspace workspace) async {
+    final uid = _uid;
+    if (uid == null) {
+      await _localCache.enqueueWorkspaceUpsert(workspace);
+      return;
+    }
+    if (!await _onlineChecker.check()) {
+      await _localCache.enqueueWorkspaceUpsert(workspace);
+      return;
+    }
+    try {
+      await _remoteStore.upsertWorkspace(uid: uid, workspace: workspace);
+    } catch (e) {
+      debugPrint('upsertWorkspace ${workspace.id}: $e');
+      await _localCache.enqueueWorkspaceUpsert(workspace);
     }
   }
 

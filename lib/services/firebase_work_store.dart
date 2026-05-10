@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/work_entry.dart';
 import '../models/workspace.dart';
@@ -70,17 +71,25 @@ class FirebaseWorkStore implements WorkRemoteStore {
       return DateTime.now().toIso8601String();
     }
 
-    return snapshot.docs
-        .map((doc) {
-          final data = doc.data();
-          return Workspace.fromJson({
-            'id': doc.id,
-            ...data,
-            'createdAt': toIso(data['createdAt']),
-            'updatedAt': toIso(data['updatedAt']),
-          });
-        })
-        .where((w) => !w.isArchived)
-        .toList();
+    final out = <Workspace>[];
+    for (final doc in snapshot.docs) {
+      try {
+        final data = doc.data();
+        final w = Workspace.fromJson({
+          'id': doc.id,
+          ...data,
+          'createdAt': toIso(data['createdAt']),
+          'updatedAt': toIso(data['updatedAt']),
+        });
+        if (!w.isArchived) {
+          out.add(w);
+        }
+      } catch (e, st) {
+        debugPrint(
+          'fetchWorkspaces: pomijam uszkodzony dokument ${doc.id}: $e $st',
+        );
+      }
+    }
+    return out;
   }
 }
