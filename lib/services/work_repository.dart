@@ -168,8 +168,11 @@ class WorkRepository {
       }
 
       final remote = await _fetchRemote(from: from, to: to);
-      await _localCache.saveCurrentMonthCache(_activeWorkspaceId, remote);
-      return EntriesResult(entries: remote, offlineFallback: false);
+      final merged = _sortDesc(
+        _mergedVisibleMonthEntries(remote: remote, local: local),
+      );
+      await _localCache.saveCurrentMonthCache(_activeWorkspaceId, merged);
+      return EntriesResult(entries: merged, offlineFallback: false);
     }
 
     if (!await _onlineChecker.check()) {
@@ -192,26 +195,41 @@ class WorkRepository {
     final results = <WorkEntry>[];
 
     for (final workspaceId in targetIds) {
+      final online = await _onlineChecker.check();
+
       if (_isCurrentMonthRange(range)) {
-        final local = await _localCache.loadCurrentMonthCache(workspaceId);
-        if (!await _onlineChecker.check()) {
-          results.addAll(local.where((e) => !e.isDeleted));
+        final localMonth = await _localCache.loadCurrentMonthCache(workspaceId);
+        if (!online) {
+          results.addAll(localMonth.where((e) => !e.isDeleted));
           continue;
         }
+        final uid = _uid;
+        if (uid == null) continue;
+        final remote = await _remoteStore.fetchEntriesInRange(
+          uid: uid,
+          workspaceId: workspaceId,
+          from: from,
+          to: to,
+        );
+        final merged = _sortDesc(
+          _mergedVisibleMonthEntries(remote: remote, local: localMonth),
+        );
+        await _localCache.saveCurrentMonthCache(workspaceId, merged);
+        results.addAll(merged);
+        continue;
       }
-      if (!await _onlineChecker.check()) continue;
+
+      if (!online) continue;
       final uid = _uid;
       if (uid == null) continue;
-      final remote = await _remoteStore.fetchEntriesInRange(
-        uid: uid,
-        workspaceId: workspaceId,
-        from: from,
-        to: to,
+      results.addAll(
+        await _remoteStore.fetchEntriesInRange(
+          uid: uid,
+          workspaceId: workspaceId,
+          from: from,
+          to: to,
+        ),
       );
-      if (_isCurrentMonthRange(range)) {
-        await _localCache.saveCurrentMonthCache(workspaceId, remote);
-      }
-      results.addAll(remote);
     }
 
     return _sortDesc(results);
@@ -332,6 +350,29 @@ class WorkRepository {
   List<WorkEntry> _sortDesc(List<WorkEntry> items) {
     items.sort((a, b) => b.start.compareTo(a.start));
     return items;
+  }
+
+  /// Scala Firestore z cache miesięcznym przy **online**.
+  /// Sam „remote” mógł wyzerować listę zaraz po świeżym wpiszie (Firestore jeszcze
+  /// nie widzi dokumentu lub `syncPending` w toku); wcześniej nadpisywaliśmy cache
+  /// tylko serwerem i **traciliśmy** lokalnie zapisane wpisy nowego workspace’u.
+  List<WorkEntry> _mergedVisibleMonthEntries({
+    required List<WorkEntry> remote,
+    required List<WorkEntry> local,
+  }) {
+    final byId = <String, WorkEntry>{};
+    void mergeIn(Iterable<WorkEntry> list) {
+      for (final e in list) {
+        final prev = byId[e.id];
+        if (prev == null || !e.updatedAt.isBefore(prev.updatedAt)) {
+          byId[e.id] = e;
+        }
+      }
+    }
+
+    mergeIn(remote);
+    mergeIn(local);
+    return byId.values.where((e) => !e.isDeleted).toList();
   }
 
   List<WorkEntry> _upsertById(List<WorkEntry> source, WorkEntry entry) {
