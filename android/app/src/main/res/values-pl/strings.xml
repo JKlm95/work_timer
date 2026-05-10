@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_sign_in_hint">Zaloguj się</string>
+    <string name="widget_status_idle">Bezczynny</string>
+    <string name="widget_status_running">Aktywny</string>
+    <string name="widget_status_paused">Pauza</string>
+    <string name="widget_cd_play">Start timera</string>
+    <string name="widget_cd_pause">Wstrzymaj timer</string>
+    <string name="widget_cd_stop">Zatrzymaj timer</string>
+    <string name="widget_cd_prev_workspace">Poprzedni workspace</string>
+    <string name="widget_cd_next_workspace">Następny workspace</string>
+    <string name="widget_no_workspace">Brak workspace</string>
+    <string name="widget_stop_to_switch_workspace">Zatrzymaj timer, by zmienić workspace</string>
+</resources>
