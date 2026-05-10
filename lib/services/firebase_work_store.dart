@@ -52,35 +52,30 @@ class FirebaseWorkStore implements WorkRemoteStore {
     required String uid,
     required Workspace workspace,
   }) async {
-    await _workspacesRef(uid).doc(workspace.id).set(
-      workspace.toFirestore(),
-      SetOptions(merge: true),
-    );
+    await _workspacesRef(
+      uid,
+    ).doc(workspace.id).set(workspace.toFirestore(), SetOptions(merge: true));
   }
 
   @override
   Future<List<Workspace>> fetchWorkspaces(String uid) async {
-    final snapshot = await _workspacesRef(uid)
-        .where('isArchived', isEqualTo: false)
-        .get();
-    return snapshot.docs
-        .map(
-          (doc) {
-            String toIso(dynamic value) {
-              if (value is Timestamp) return value.toDate().toIso8601String();
-              if (value is DateTime) return value.toIso8601String();
-              if (value is String) return value;
-              return DateTime.now().toIso8601String();
-            }
+    final snapshot = await _workspacesRef(
+      uid,
+    ).where('isArchived', isEqualTo: false).get();
+    return snapshot.docs.map((doc) {
+      String toIso(dynamic value) {
+        if (value is Timestamp) return value.toDate().toIso8601String();
+        if (value is DateTime) return value.toIso8601String();
+        if (value is String) return value;
+        return DateTime.now().toIso8601String();
+      }
 
-            return Workspace.fromJson({
-              'id': doc.id,
-              ...doc.data(),
-              'createdAt': toIso(doc.data()['createdAt']),
-              'updatedAt': toIso(doc.data()['updatedAt']),
-            });
-          },
-        )
-        .toList();
+      return Workspace.fromJson({
+        'id': doc.id,
+        ...doc.data(),
+        'createdAt': toIso(doc.data()['createdAt']),
+        'updatedAt': toIso(doc.data()['updatedAt']),
+      });
+    }).toList();
   }
 }

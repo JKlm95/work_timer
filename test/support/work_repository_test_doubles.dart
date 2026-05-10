@@ -18,6 +18,7 @@ class FakeWorkRemoteStore implements WorkRemoteStore {
   final List<WorkEntry> upsertedEntries = [];
   List<Workspace> workspacesResponse = const [];
   final Map<String, List<WorkEntry>> entriesByWorkspace = {};
+
   /// Ile następnych wywołań [upsertEntry] ma rzucić wyjątek (symulacja sieci).
   int failNextUpserts = 0;
 

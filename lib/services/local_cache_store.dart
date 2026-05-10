@@ -71,14 +71,20 @@ class LocalCacheStore {
     String workspaceId,
     List<WorkEntry> entries,
   ) async {
-    await _saveToKey(_workspaceKey(_currentMonthCacheKey, workspaceId), entries);
+    await _saveToKey(
+      _workspaceKey(_currentMonthCacheKey, workspaceId),
+      entries,
+    );
   }
 
   Future<List<WorkEntry>> loadPendingQueue(String workspaceId) async {
     return _loadFromKey(_workspaceKey(_pendingQueueKey, workspaceId));
   }
 
-  Future<void> savePendingQueue(String workspaceId, List<WorkEntry> entries) async {
+  Future<void> savePendingQueue(
+    String workspaceId,
+    List<WorkEntry> entries,
+  ) async {
     await _saveToKey(_workspaceKey(_pendingQueueKey, workspaceId), entries);
   }
 

@@ -100,9 +100,7 @@ class _AuthGateState extends State<AuthGate> {
           return BlocProvider.value(
             value: _timerCubit!,
             child: _TimerResumeSyncScope(
-              child: HomeShell(
-                onSignOut: context.read<AuthCubit>().signOut,
-              ),
+              child: HomeShell(onSignOut: context.read<AuthCubit>().signOut),
             ),
           );
         },
@@ -210,9 +208,9 @@ class _AuthScreenState extends State<_AuthScreen> {
     );
     if (!mounted || sent != true) return;
     final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.authResetSnack)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.authResetSnack)));
   }
 
   @override
@@ -234,63 +232,67 @@ class _AuthScreenState extends State<_AuthScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                  TextFormField(
-                    controller: _emailCtrl,
-                    decoration: InputDecoration(labelText: l10n.authEmail),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) {
-                        return l10n.authValEmailRequired;
-                      }
-                      if (!v.contains('@')) return l10n.authValEmailInvalid;
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _passwordCtrl,
-                    decoration: InputDecoration(labelText: l10n.authPassword),
-                    obscureText: true,
-                    validator: (v) {
-                      if (v == null || v.length < 6) {
-                        return l10n.authValPasswordShort;
-                      }
-                      return null;
-                    },
-                  ),
-                  if (!_isSignUp) ...[
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _submitting ? null : _openPasswordResetDialog,
-                        child: Text(l10n.authForgotPassword),
-                      ),
+                    TextFormField(
+                      controller: _emailCtrl,
+                      decoration: InputDecoration(labelText: l10n.authEmail),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return l10n.authValEmailRequired;
+                        }
+                        if (!v.contains('@')) return l10n.authValEmailInvalid;
+                        return null;
+                      },
                     ),
-                  ],
-                  if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(
-                      _error!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
+                    TextFormField(
+                      controller: _passwordCtrl,
+                      decoration: InputDecoration(labelText: l10n.authPassword),
+                      obscureText: true,
+                      validator: (v) {
+                        if (v == null || v.length < 6) {
+                          return l10n.authValPasswordShort;
+                        }
+                        return null;
+                      },
+                    ),
+                    if (!_isSignUp) ...[
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _submitting
+                              ? null
+                              : _openPasswordResetDialog,
+                          child: Text(l10n.authForgotPassword),
+                        ),
+                      ),
+                    ],
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: _submitting ? null : _submit,
+                      child: Text(
+                        _isSignUp ? l10n.authSignUp : l10n.authSignIn,
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: _submitting ? null : _submit,
-                    child: Text(_isSignUp ? l10n.authSignUp : l10n.authSignIn),
-                  ),
-                  TextButton(
-                    onPressed: _submitting
-                        ? null
-                        : () => setState(() => _isSignUp = !_isSignUp),
-                    child: Text(
-                      _isSignUp
-                          ? l10n.authToggleToSignIn
-                          : l10n.authToggleToSignUp,
+                    TextButton(
+                      onPressed: _submitting
+                          ? null
+                          : () => setState(() => _isSignUp = !_isSignUp),
+                      child: Text(
+                        _isSignUp
+                            ? l10n.authToggleToSignIn
+                            : l10n.authToggleToSignUp,
+                      ),
                     ),
-                  ),
                   ],
                 ),
               ),

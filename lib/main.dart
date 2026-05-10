@@ -17,9 +17,7 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final prefs = await SharedPreferences.getInstance();
   final authService = AuthService();
   final repository = WorkRepository(
@@ -66,9 +64,7 @@ class WorkTimerApp extends StatelessWidget {
             ],
             localeResolutionCallback: (deviceLocale, supportedLocales) {
               if (settings.localePreference != AppLocalePreference.system) {
-                return resolveMaterialLocale(
-                  settings.localePreference,
-                )!;
+                return resolveMaterialLocale(settings.localePreference)!;
               }
               for (final l in supportedLocales) {
                 if (l.languageCode == deviceLocale?.languageCode) {

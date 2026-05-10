@@ -103,11 +103,7 @@ abstract final class AppColors {
       surfaceContainerHigh: surfaceCardDark,
       surfaceContainerHighest: surfaceInputDark,
       outline: borderInputIdleDark,
-      outlineVariant: Color.lerp(
-        borderInputIdleDark,
-        surfaceAppDark,
-        0.45,
-      )!,
+      outlineVariant: Color.lerp(borderInputIdleDark, surfaceAppDark, 0.45)!,
     );
   }
 }

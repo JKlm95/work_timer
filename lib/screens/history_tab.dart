@@ -41,7 +41,11 @@ class _HistoryTabState extends State<HistoryTab> {
   }
 
   bool _entryInRange(WorkEntry e) {
-    final from = DateTime(_range.start.year, _range.start.month, _range.start.day);
+    final from = DateTime(
+      _range.start.year,
+      _range.start.month,
+      _range.start.day,
+    );
     final to = DateTime(
       _range.end.year,
       _range.end.month,
@@ -76,13 +80,15 @@ class _HistoryTabState extends State<HistoryTab> {
     final filtered = _filtered(cubit.state.entries).toList();
     if (filtered.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.historyExportEmpty)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportEmpty)));
       return;
     }
     final names = {for (final w in cubit.state.workspaces) w.id: w.name};
-    final sep = Localizations.localeOf(context).languageCode == 'pl' ? ';' : ',';
+    final sep = Localizations.localeOf(context).languageCode == 'pl'
+        ? ';'
+        : ',';
     try {
       final csv = workEntriesToCsv(
         filtered,
@@ -103,9 +109,9 @@ class _HistoryTabState extends State<HistoryTab> {
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.historyExportError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportError)));
     }
   }
 
@@ -146,7 +152,11 @@ class _HistoryTabState extends State<HistoryTab> {
   }) async {
     final outerContext = context;
     final l10n = AppLocalizations.of(outerContext)!;
-    var date = DateTime(startInitial.year, startInitial.month, startInitial.day);
+    var date = DateTime(
+      startInitial.year,
+      startInitial.month,
+      startInitial.day,
+    );
     var start = TimeOfDay.fromDateTime(startInitial);
     var end = TimeOfDay.fromDateTime(endInitial);
     var mode = existing?.mode ?? WorkMode.office;
@@ -173,7 +183,8 @@ class _HistoryTabState extends State<HistoryTab> {
                         initialDate: date,
                         locale: Localizations.localeOf(context),
                       );
-                      if (selected != null) setDialogState(() => date = selected);
+                      if (selected != null)
+                        setDialogState(() => date = selected);
                     },
                     icon: const Icon(Icons.calendar_today_outlined),
                     label: Text(
@@ -196,9 +207,7 @@ class _HistoryTabState extends State<HistoryTab> {
                               setDialogState(() => start = selected);
                             }
                           },
-                          child: Text(
-                            l10n.historyStart(start.format(context)),
-                          ),
+                          child: Text(l10n.historyStart(start.format(context))),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -272,9 +281,7 @@ class _HistoryTabState extends State<HistoryTab> {
                     end.minute,
                   );
                   if (!endDate.isAfter(startDate)) {
-                    setDialogState(
-                      () => error = l10n.historyValEndAfterStart,
-                    );
+                    setDialogState(() => error = l10n.historyValEndAfterStart);
                     return;
                   }
                   if (existing == null) {
@@ -380,7 +387,9 @@ class _HistoryTabState extends State<HistoryTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          l10n.historyWorkspaceLabel(state.activeWorkspace.name),
+                          l10n.historyWorkspaceLabel(
+                            state.activeWorkspace.name,
+                          ),
                         ),
                         Text(
                           l10n.historyFilteredSum(_formatHm(_sum(filtered))),
@@ -417,7 +426,9 @@ class _HistoryTabState extends State<HistoryTab> {
                               await context.read<TimerCubit>().deleteEntry(e);
                               if (!context.mounted) return;
                               if (mounted) {
-                                await context.read<TimerCubit>().loadHistory(_range);
+                                await context.read<TimerCubit>().loadHistory(
+                                  _range,
+                                );
                               }
                             }
                           },

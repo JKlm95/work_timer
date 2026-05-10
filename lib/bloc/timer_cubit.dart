@@ -453,7 +453,10 @@ class TimerCubit extends Cubit<TimerState> {
         state.nextSessionMode.name,
       );
       await HomeWidget.saveWidgetData<String>('runState', state.runState.name);
-      await HomeWidget.saveWidgetData<int>('elapsedSeconds', state.elapsed.inSeconds);
+      await HomeWidget.saveWidgetData<int>(
+        'elapsedSeconds',
+        state.elapsed.inSeconds,
+      );
       await HomeWidget.updateWidget(androidName: 'WorkTimerWidgetProvider');
     } catch (_) {}
   }
@@ -491,7 +494,8 @@ class TimerCubit extends Cubit<TimerState> {
   }
 
   void _applyStoredTimerSession(LocalTimerSession saved) {
-    final restoredWorkspaceId = state.workspaces.any((w) => w.id == saved.workspaceId)
+    final restoredWorkspaceId =
+        state.workspaces.any((w) => w.id == saved.workspaceId)
         ? saved.workspaceId
         : state.activeWorkspaceId;
 
@@ -557,16 +561,14 @@ class TimerCubit extends Cubit<TimerState> {
   }
 
   void _applyAndroidExternalSnapshot(Map<String, Object?> data) {
-    final runStateRaw =
-        data['runState'] as String? ?? TimerRunState.idle.name;
-    final elapsedSeconds =
-        (data['elapsedSeconds'] as num?)?.toInt() ?? 0;
+    final runStateRaw = data['runState'] as String? ?? TimerRunState.idle.name;
+    final elapsedSeconds = (data['elapsedSeconds'] as num?)?.toInt() ?? 0;
     final workspaceId =
         data['workspaceId'] as String? ?? state.activeWorkspaceId;
     final modeStr =
         data['sessionMode'] as String? ??
-            data['nextSessionMode'] as String? ??
-            WorkMode.office.name;
+        data['nextSessionMode'] as String? ??
+        WorkMode.office.name;
     final mode = workModeFromStorage(modeStr);
 
     final runState = TimerRunState.values.firstWhere(
@@ -594,12 +596,12 @@ class TimerCubit extends Cubit<TimerState> {
         runState: runState,
         sessionStart: now.subtract(accumulated),
         sessionMode: mode,
-        accumulated:
-            runState == TimerRunState.running ? Duration.zero : accumulated,
-        resumeAt:
-            runState == TimerRunState.running
-                ? now.subtract(accumulated)
-                : null,
+        accumulated: runState == TimerRunState.running
+            ? Duration.zero
+            : accumulated,
+        resumeAt: runState == TimerRunState.running
+            ? now.subtract(accumulated)
+            : null,
         elapsed: accumulated,
       ),
     );

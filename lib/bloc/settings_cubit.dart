@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AppLocalePreference {
-  system,
-  pl,
-  en,
-}
+enum AppLocalePreference { system, pl, en }
 
 class SettingsState {
   const SettingsState({

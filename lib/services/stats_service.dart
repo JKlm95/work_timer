@@ -42,7 +42,9 @@ class StatsService {
           workspaceIds.isEmpty || workspaceIds.contains(e.workspaceId);
       return inWorkspace &&
           !e.start.isBefore(DateTime(from.year, from.month, from.day)) &&
-          !e.start.isAfter(DateTime(to.year, to.month, to.day, 23, 59, 59, 999));
+          !e.start.isAfter(
+            DateTime(to.year, to.month, to.day, 23, 59, 59, 999),
+          );
     }).toList();
 
     final total = filtered.fold<Duration>(
@@ -59,14 +61,16 @@ class StatsService {
           (byWorkspace[entry.workspaceId] ?? Duration.zero) + entry.duration;
     }
 
-    final daily = byDay.entries
-        .map((e) => StatsPoint(label: e.key, duration: e.value))
-        .toList()
-      ..sort((a, b) => a.label.compareTo(b.label));
-    final shares = byWorkspace.entries
-        .map((e) => WorkspaceShare(workspaceId: e.key, duration: e.value))
-        .toList()
-      ..sort((a, b) => b.duration.compareTo(a.duration));
+    final daily =
+        byDay.entries
+            .map((e) => StatsPoint(label: e.key, duration: e.value))
+            .toList()
+          ..sort((a, b) => a.label.compareTo(b.label));
+    final shares =
+        byWorkspace.entries
+            .map((e) => WorkspaceShare(workspaceId: e.key, duration: e.value))
+            .toList()
+          ..sort((a, b) => b.duration.compareTo(a.duration));
 
     final activeDays = daily.length;
     final average = activeDays == 0

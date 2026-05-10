@@ -60,7 +60,9 @@ class TimerServiceBridge {
   static Future<Map<String, Object?>?> getNativeTimerSnapshot() async {
     if (!Platform.isAndroid) return null;
     try {
-      final raw = await _channel.invokeMethod<Object?>('getNativeTimerSnapshot');
+      final raw = await _channel.invokeMethod<Object?>(
+        'getNativeTimerSnapshot',
+      );
       if (raw is Map) {
         return Map<String, Object?>.from(
           raw.map((k, v) => MapEntry(k.toString(), v)),

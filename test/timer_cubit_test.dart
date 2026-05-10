@@ -30,29 +30,32 @@ void main() {
     return (repo, remote);
   }
 
-  test('TimerCubit: init → idle, play → running, stop → idle i zapis wpisu', () async {
-    TestWidgetsFlutterBinding.ensureInitialized();
-    final (repo, remote) = await makeRepo();
-    await repo.initForUser(uid);
+  test(
+    'TimerCubit: init → idle, play → running, stop → idle i zapis wpisu',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      final (repo, remote) = await makeRepo();
+      await repo.initForUser(uid);
 
-    final cubit = TimerCubit(uid: uid, repository: repo);
-    await cubit.init();
+      final cubit = TimerCubit(uid: uid, repository: repo);
+      await cubit.init();
 
-    expect(cubit.state.runState, TimerRunState.idle);
+      expect(cubit.state.runState, TimerRunState.idle);
 
-    cubit.play();
-    expect(cubit.state.runState, TimerRunState.running);
+      cubit.play();
+      expect(cubit.state.runState, TimerRunState.running);
 
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    await cubit.stop();
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      await cubit.stop();
 
-    expect(cubit.state.runState, TimerRunState.idle);
-    expect(cubit.state.elapsed, Duration.zero);
+      expect(cubit.state.runState, TimerRunState.idle);
+      expect(cubit.state.elapsed, Duration.zero);
 
-    expect(remote.upsertedEntries, isNotEmpty);
+      expect(remote.upsertedEntries, isNotEmpty);
 
-    await cubit.close();
-  });
+      await cubit.close();
+    },
+  );
 
   test('TimerCubit: play → pause zatrzymuje running', () async {
     TestWidgetsFlutterBinding.ensureInitialized();

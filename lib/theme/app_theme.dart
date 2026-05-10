@@ -7,33 +7,30 @@ ThemeData buildWorkTimerTheme(Brightness brightness) {
   final isLight = brightness == Brightness.light;
   final scheme = AppColors.colorSchemeFor(brightness);
 
-  final cardColor =
-      isLight ? AppColors.surfaceCard : scheme.surfaceContainerHigh;
-  final inputFill =
-      isLight ? AppColors.surfaceCard : scheme.surfaceContainerHighest;
-  final borderIdle =
-      isLight ? AppColors.borderInputIdle : scheme.outline;
+  final cardColor = isLight
+      ? AppColors.surfaceCard
+      : scheme.surfaceContainerHigh;
+  final inputFill = isLight
+      ? AppColors.surfaceCard
+      : scheme.surfaceContainerHighest;
+  final borderIdle = isLight ? AppColors.borderInputIdle : scheme.outline;
 
   return ThemeData(
     colorScheme: scheme,
     brightness: brightness,
     textTheme: AppTypography.textTheme(scheme),
-    scaffoldBackgroundColor:
-        isLight ? AppColors.surfaceApp : AppColors.surfaceAppDark,
+    scaffoldBackgroundColor: isLight
+        ? AppColors.surfaceApp
+        : AppColors.surfaceAppDark,
     cardTheme: CardThemeData(
       color: cardColor,
       elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: inputFill,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 12,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
@@ -44,25 +41,21 @@ ThemeData buildWorkTimerTheme(Brightness brightness) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: AppColors.brandPrimary,
-          width: 1.4,
-        ),
+        borderSide: const BorderSide(color: AppColors.brandPrimary, width: 1.4),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.brandPrimary,
         foregroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor:
-          isLight ? AppColors.surfaceCard : AppColors.surfaceNavDark,
+      backgroundColor: isLight
+          ? AppColors.surfaceCard
+          : AppColors.surfaceNavDark,
       indicatorColor: isLight
           ? AppColors.brandNavIndicator
           : AppColors.brandNavIndicatorDark,

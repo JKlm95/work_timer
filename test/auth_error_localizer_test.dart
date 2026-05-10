@@ -15,20 +15,14 @@ void main() {
 
   test('wrong-password → wrong password message', () {
     expect(
-      localizedAuthError(
-        FirebaseAuthException(code: 'wrong-password'),
-        en,
-      ),
+      localizedAuthError(FirebaseAuthException(code: 'wrong-password'), en),
       en.errorAuthWrongPassword,
     );
   });
 
   test('user-not-found', () {
     expect(
-      localizedAuthError(
-        FirebaseAuthException(code: 'user-not-found'),
-        en,
-      ),
+      localizedAuthError(FirebaseAuthException(code: 'user-not-found'), en),
       en.errorAuthUserNotFound,
     );
   });
@@ -45,18 +39,12 @@ void main() {
 
   test('unknown Firebase code → generic', () {
     expect(
-      localizedAuthError(
-        FirebaseAuthException(code: 'unknown-code-xyz'),
-        en,
-      ),
+      localizedAuthError(FirebaseAuthException(code: 'unknown-code-xyz'), en),
       en.errorAuthGeneric,
     );
   });
 
   test('non-Firebase → generic', () {
-    expect(
-      localizedAuthError(FormatException('bad'), en),
-      en.errorAuthGeneric,
-    );
+    expect(localizedAuthError(FormatException('bad'), en), en.errorAuthGeneric);
   });
 }

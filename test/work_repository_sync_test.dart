@@ -17,37 +17,40 @@ void main() {
     await p.setBool('migration_done_v1_$uid', true);
   }
 
-  test('syncPending wysyła kolejkę do zdalnego store i czyści ją przy sukcesie', () async {
-    TestWidgetsFlutterBinding.ensureInitialized();
-    SharedPreferences.setMockInitialValues({});
-    await markMigrationDone();
+  test(
+    'syncPending wysyła kolejkę do zdalnego store i czyści ją przy sukcesie',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
+      await markMigrationDone();
 
-    final cache = LocalCacheStore();
-    final remote = FakeWorkRemoteStore();
-    final online = FixedOnlineChecker(true);
+      final cache = LocalCacheStore();
+      final remote = FakeWorkRemoteStore();
+      final online = FixedOnlineChecker(true);
 
-    final entry = WorkEntry(
-      id: 'e1',
-      workspaceId: Workspace.defaultId,
-      start: DateTime(2026, 5, 10, 9),
-      end: DateTime(2026, 5, 10, 10),
-      mode: WorkMode.office,
-      updatedAt: DateTime(2026, 5, 10, 10),
-    );
-    await cache.savePendingQueue(Workspace.defaultId, [entry]);
+      final entry = WorkEntry(
+        id: 'e1',
+        workspaceId: Workspace.defaultId,
+        start: DateTime(2026, 5, 10, 9),
+        end: DateTime(2026, 5, 10, 10),
+        mode: WorkMode.office,
+        updatedAt: DateTime(2026, 5, 10, 10),
+      );
+      await cache.savePendingQueue(Workspace.defaultId, [entry]);
 
-    final repo = WorkRepository(
-      localCache: cache,
-      remoteStore: remote,
-      onlineChecker: online,
-    );
-    await repo.initForUser(uid);
+      final repo = WorkRepository(
+        localCache: cache,
+        remoteStore: remote,
+        onlineChecker: online,
+      );
+      await repo.initForUser(uid);
 
-    expect(remote.upsertedEntries.length, 1);
-    expect(remote.upsertedEntries.single.id, 'e1');
-    final queueAfter = await cache.loadPendingQueue(Workspace.defaultId);
-    expect(queueAfter, isEmpty);
-  });
+      expect(remote.upsertedEntries.length, 1);
+      expect(remote.upsertedEntries.single.id, 'e1');
+      final queueAfter = await cache.loadPendingQueue(Workspace.defaultId);
+      expect(queueAfter, isEmpty);
+    },
+  );
 
   test('syncPending offline nie wywołuje upsertEntry', () async {
     TestWidgetsFlutterBinding.ensureInitialized();

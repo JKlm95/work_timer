@@ -3,10 +3,7 @@ import '../models/workspace.dart';
 
 /// Warstwa zdalna (Firestore) — implementacja produkcyjna: [FirebaseWorkStore].
 abstract class WorkRemoteStore {
-  Future<void> upsertEntry({
-    required String uid,
-    required WorkEntry entry,
-  });
+  Future<void> upsertEntry({required String uid, required WorkEntry entry});
 
   Future<List<WorkEntry>> fetchEntriesInRange({
     required String uid,

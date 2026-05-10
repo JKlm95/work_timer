@@ -44,8 +44,8 @@ class WorkRepository {
   Future<void> _loadWorkspaceState() async {
     final localWorkspaces = await _localCache.loadWorkspaces();
     _workspaces = _sortWorkspaces(localWorkspaces);
-    _activeWorkspaceId = await _localCache.loadActiveWorkspaceId() ??
-        _workspaces.first.id;
+    _activeWorkspaceId =
+        await _localCache.loadActiveWorkspaceId() ?? _workspaces.first.id;
 
     if (await _onlineChecker.check()) {
       final uid = _uid;
@@ -57,7 +57,10 @@ class WorkRepository {
           await _localCache.saveWorkspaces(_workspaces);
           for (final workspace in _workspaces) {
             if (remote.every((r) => r.id != workspace.id)) {
-              await _remoteStore.upsertWorkspace(uid: uid, workspace: workspace);
+              await _remoteStore.upsertWorkspace(
+                uid: uid,
+                workspace: workspace,
+              );
             }
           }
         } catch (e) {
@@ -257,7 +260,9 @@ class WorkRepository {
         )
         .toList();
     if (currentMonth.isNotEmpty) {
-      final cache = await _localCache.loadCurrentMonthCache(Workspace.defaultId);
+      final cache = await _localCache.loadCurrentMonthCache(
+        Workspace.defaultId,
+      );
       final merged = [...cache];
       for (final entry in normalizedCurrent) {
         merged.removeWhere((e) => e.id == entry.id);

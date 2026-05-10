@@ -91,8 +91,9 @@ class WorkspacesTab extends StatelessWidget {
                   subtitle: Text(
                     selected ? l10n.workspacesActive : l10n.workspacesInactive,
                   ),
-                  onTap: () =>
-                      context.read<TimerCubit>().setActiveWorkspace(workspace.id),
+                  onTap: () => context.read<TimerCubit>().setActiveWorkspace(
+                    workspace.id,
+                  ),
                   trailing: IconButton(
                     icon: const Icon(Icons.edit_outlined),
                     onPressed: () => _rename(context, workspace: workspace),

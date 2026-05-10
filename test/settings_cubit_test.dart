@@ -47,10 +47,7 @@ void main() {
   });
 
   test('SettingsCubit: load from prefs', () async {
-    SharedPreferences.setMockInitialValues({
-      _kLang: 'en',
-      _kTheme: 'light',
-    });
+    SharedPreferences.setMockInitialValues({_kLang: 'en', _kTheme: 'light'});
     final prefs = await SharedPreferences.getInstance();
     final cubit = SettingsCubit(prefs);
 
