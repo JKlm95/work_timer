@@ -95,7 +95,11 @@ flutter run
 
 Po edycji plików **`.arb`** (tłumaczenia) uruchom ponownie `flutter pub get` lub `flutter gen-l10n`, aby odświeżyć wygenerowane klasy w `lib/l10n/`.
 
-Na GitHubie włącz **Actions** — po pushu do `main` odpala się **Flutter CI** (`analyze` + `flutter test`), szczegóły w **[TECHNICAL.md](TECHNICAL.md)** (sekcja GitHub Actions).
+---
+
+## CI/CD
+
+Projekt używa **GitHub Actions**: workflow [`.github/workflows/flutter_ci.yml`](.github/workflows/flutter_ci.yml) uruchamia się przy **pushu** i **pull requestach** do brancha `main`. Na runnerze **Ubuntu** pobierane są zależności (`flutter pub get`), sprawdzany jest format kodu (`dart format`), uruchamiana jest statyczna analiza (`flutter analyze --no-fatal-infos`, żeby same komunikaty poziomu *info* — np. deprecation API — nie przerywały joba) oraz testy (`flutter test`), a na końcu weryfikowany jest build **`flutter build apk --debug`**. W repozytorium na GitHubie muszą być włączone **Actions** (Settings → Actions).
 
 ---
 
