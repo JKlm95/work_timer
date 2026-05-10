@@ -405,48 +405,63 @@ class _WeekBarChart extends StatelessWidget {
     }
 
     final dayFmt = DateFormat.E(localeCode);
+    const labelReserve = 28.0;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: List.generate(7, (i) {
-        final sec = buckets[i].inSeconds.toDouble();
-        final ratio = maxSec <= 0 ? 0.0 : sec / maxSec;
-        final day = monday.add(Duration(days: i));
-        final label = dayFmt.format(day);
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FractionallySizedBox(
-                      heightFactor: ratio <= 0 ? 0.0 : ratio.clamp(0.08, 1.0),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: scheme.primary,
-                          borderRadius: BorderRadius.circular(8),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final barAreaHeight = math.max(
+          0.0,
+          constraints.maxHeight - labelReserve,
+        );
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: List.generate(7, (i) {
+            final sec = buckets[i].inSeconds.toDouble();
+            final ratio = maxSec <= 0 ? 0.0 : sec / maxSec;
+            final day = monday.add(Duration(days: i));
+            final label = dayFmt.format(day);
+            final h = ratio <= 0
+                ? 0.0
+                : (barAreaHeight * ratio.clamp(0.08, 1.0));
+
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      height: barAreaHeight,
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: h,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: scheme.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          }),
         );
-      }),
+      },
     );
   }
 }
