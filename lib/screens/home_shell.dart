@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
-import '../theme/app_colors.dart';
 import 'history_tab.dart';
 import 'settings_tab.dart';
 import 'stats_tab.dart';
@@ -23,13 +22,14 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appTitle),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: AppColors.transparent,
-        surfaceTintColor: AppColors.transparent,
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
             onPressed: widget.onSignOut,

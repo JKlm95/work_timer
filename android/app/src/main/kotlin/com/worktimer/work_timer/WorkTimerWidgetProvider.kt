@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.app.PendingIntent
 import android.widget.RemoteViews
+import androidx.core.content.ContextCompat
 import es.antonborri.home_widget.HomeWidgetProvider
+import java.util.Locale
 
 class WorkTimerWidgetProvider : HomeWidgetProvider() {
     override fun onUpdate(
@@ -26,6 +28,10 @@ class WorkTimerWidgetProvider : HomeWidgetProvider() {
                     R.id.widgetState,
                     context.getString(R.string.widget_sign_in_hint),
                 )
+                views.setTextColor(
+                    R.id.widgetState,
+                    ContextCompat.getColor(context, R.color.widget_status_idle),
+                )
                 val openApp = AuthPrefs.openAppPendingIntent(context, 190)
                 views.setOnClickPendingIntent(R.id.widgetPlay, openApp)
                 views.setOnClickPendingIntent(R.id.widgetPause, openApp)
@@ -40,7 +46,8 @@ class WorkTimerWidgetProvider : HomeWidgetProvider() {
 
                 views.setTextViewText(R.id.widgetWorkspace, workspace)
                 views.setTextViewText(R.id.widgetTimer, elapsed)
-                views.setTextViewText(R.id.widgetState, runState)
+                views.setTextViewText(R.id.widgetState, statusLabel(context, runState))
+                views.setTextColor(R.id.widgetState, statusColor(context, runState))
 
                 views.setOnClickPendingIntent(
                     R.id.widgetPlay,
@@ -78,6 +85,23 @@ class WorkTimerWidgetProvider : HomeWidgetProvider() {
             }
             appWidgetManager.updateAppWidget(widgetId, views)
         }
+    }
+
+    private fun statusLabel(context: Context, runState: String): String {
+        return when (runState.lowercase(Locale.US)) {
+            "running" -> context.getString(R.string.widget_status_running)
+            "paused" -> context.getString(R.string.widget_status_paused)
+            else -> context.getString(R.string.widget_status_idle)
+        }
+    }
+
+    private fun statusColor(context: Context, runState: String): Int {
+        val resId = when (runState.lowercase(Locale.US)) {
+            "running" -> R.color.widget_status_running
+            "paused" -> R.color.widget_status_paused
+            else -> R.color.widget_status_idle
+        }
+        return ContextCompat.getColor(context, resId)
     }
 
     private fun pendingIntent(

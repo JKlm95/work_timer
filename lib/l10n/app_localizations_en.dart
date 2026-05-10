@@ -107,6 +107,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timerPaused => 'Paused';
 
   @override
+  String get timerStatusIdle => 'Idle';
+
+  @override
+  String get timerStatusRunning => 'Running';
+
+  @override
+  String get timerStatusPaused => 'Paused';
+
+  @override
   String get timerPlay => 'Play';
 
   @override
@@ -114,6 +123,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get timerStop => 'Stop';
+
+  @override
+  String get timerActionStart => 'Start';
+
+  @override
+  String get timerActionResume => 'Resume';
+
+  @override
+  String get dashboardToday => 'Today';
+
+  @override
+  String get dashboardThisWeek => 'This week';
+
+  @override
+  String get dashboardLastSession => 'Last session';
+
+  @override
+  String get dashboardNoSessionsTitle => 'No sessions yet';
+
+  @override
+  String get dashboardNoSessionsBody =>
+      'Start the timer or add an entry from History to see your time here.';
+
+  @override
+  String get historyEmptyNoDataInRange => 'No sessions in this period.';
+
+  @override
+  String get historyEmptyAdjustFilters =>
+      'Try adjusting filters or pick another date range.';
+
+  @override
+  String get syncOfflineBanner =>
+      'Showing cached data. Sync may be limited while offline.';
+
+  @override
+  String get statsCardToday => 'Today';
+
+  @override
+  String get statsCardThisWeek => 'This week';
+
+  @override
+  String get statsCardThisMonth => 'This month';
+
+  @override
+  String get statsAvgSession => 'Average session';
+
+  @override
+  String get statsSessionCount => 'Sessions';
+
+  @override
+  String get statsWeeklyOverview => 'Week overview';
+
+  @override
+  String get statsEmptyTitle => 'No statistics yet';
+
+  @override
+  String get statsEmptyBody =>
+      'Log some work sessions to see summaries and charts here.';
+
+  @override
+  String get settingsWidgetTitle => 'Home screen widget';
+
+  @override
+  String get settingsWidgetDescription =>
+      'Control the timer directly from your Android home screen widget.';
 
   @override
   String get workModeRemote => 'Remote';

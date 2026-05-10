@@ -51,6 +51,10 @@ abstract final class AppTypography {
     }
 
     return base.copyWith(
+      displayLarge: base.displayLarge?.copyWith(
+        letterSpacing: AppTextLayout.timerDigitsLetterSpacing,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
       displayMedium: base.displayMedium?.copyWith(
         letterSpacing: AppTextLayout.timerDigitsLetterSpacing,
         fontFeatures: const [FontFeature.tabularFigures()],

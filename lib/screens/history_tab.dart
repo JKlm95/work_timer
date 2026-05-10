@@ -14,6 +14,7 @@ import '../bloc/timer_cubit.dart';
 import '../l10n/work_mode_strings.dart';
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
+import '../utils/format_duration.dart';
 
 class HistoryTab extends StatefulWidget {
   const HistoryTab({super.key});
@@ -61,18 +62,20 @@ class _HistoryTabState extends State<HistoryTab> {
   bool _entryMatchesMode(WorkEntry e) =>
       _modeFilter == null || e.mode == _modeFilter;
 
+  static String _workspaceName(TimerState state, WorkEntry e) {
+    return state.workspaces
+        .firstWhere(
+          (w) => w.id == e.workspaceId,
+          orElse: () => state.activeWorkspace,
+        )
+        .name;
+  }
+
   Iterable<WorkEntry> _filtered(List<WorkEntry> entries) =>
       entries.where(_entryInRange).where(_entryMatchesMode);
 
   Duration _sum(Iterable<WorkEntry> items) =>
       items.fold(Duration.zero, (a, e) => a + e.duration);
-
-  static String _formatHm(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    if (h <= 0) return '$m min';
-    return '$h h ${m.toString().padLeft(2, '0')} min';
-  }
 
   Future<void> _shareFilteredCsv() async {
     final l10n = AppLocalizations.of(context)!;
@@ -183,8 +186,9 @@ class _HistoryTabState extends State<HistoryTab> {
                         initialDate: date,
                         locale: Localizations.localeOf(context),
                       );
-                      if (selected != null)
+                      if (selected != null) {
                         setDialogState(() => date = selected);
+                      }
                     },
                     icon: const Icon(Icons.calendar_today_outlined),
                     label: Text(
@@ -325,6 +329,16 @@ class _HistoryTabState extends State<HistoryTab> {
         BlocBuilder<TimerCubit, TimerState>(
           builder: (context, state) {
             final filtered = _filtered(state.entries).toList();
+            final scheme = Theme.of(context).colorScheme;
+            final textTheme = Theme.of(context).textTheme;
+
+            final hasNoLoadedData =
+                !state.historyLoading && state.entries.isEmpty;
+            final filtersExcludeAll =
+                !state.historyLoading &&
+                state.entries.isNotEmpty &&
+                filtered.isEmpty;
+
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
               children: [
@@ -333,8 +347,10 @@ class _HistoryTabState extends State<HistoryTab> {
                   children: [
                     Expanded(
                       child: Text(
-                        l10n.historyFilters,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        l10n.navHistory,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -344,6 +360,62 @@ class _HistoryTabState extends State<HistoryTab> {
                     ),
                   ],
                 ),
+                Text(
+                  l10n.historyFilters,
+                  style: textTheme.titleSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (state.historyLoading)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        minHeight: 3,
+                        backgroundColor: scheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ),
+                if (state.historyOfflineFallback)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: scheme.secondaryContainer.withValues(
+                          alpha: 0.55,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.cloud_off_outlined,
+                              color: scheme.onSecondaryContainer,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                l10n.syncOfflineBanner,
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSecondaryContainer,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: _pickRange,
@@ -392,62 +464,84 @@ class _HistoryTabState extends State<HistoryTab> {
                           ),
                         ),
                         Text(
-                          l10n.historyFilteredSum(_formatHm(_sum(filtered))),
+                          l10n.historyFilteredSum(
+                            formatDurationHm(_sum(filtered)),
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (filtered.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(child: Text(l10n.historyEmptyFiltered)),
+                if (hasNoLoadedData)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.history_toggle_off_outlined,
+                            size: 52,
+                            color: scheme.outline,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            l10n.historyEmptyNoDataInRange,
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.dashboardNoSessionsBody,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else if (filtersExcludeAll)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.filter_alt_off_outlined,
+                            size: 48,
+                            color: scheme.outline,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            l10n.historyEmptyAdjustFilters,
+                            style: textTheme.titleMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
                   )
                 else
                   ...filtered.map(
-                    (e) => Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: Icon(
-                          e.mode == WorkMode.remote
-                              ? Icons.home_outlined
-                              : Icons.apartment_outlined,
-                        ),
-                        title: Text(
-                          '${dateFmt.format(e.start)} ${timeFmt.format(e.start)} — ${timeFmt.format(e.end)}',
-                        ),
-                        subtitle: Text(e.mode.localized(l10n)),
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            if (value == 'edit') {
-                              await _editEntryDialog(e);
-                            } else {
-                              await context.read<TimerCubit>().deleteEntry(e);
-                              if (!context.mounted) return;
-                              if (mounted) {
-                                await context.read<TimerCubit>().loadHistory(
-                                  _range,
-                                );
-                              }
-                            }
-                          },
-                          itemBuilder: (_) => [
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Text(l10n.historyMenuEdit),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Text(l10n.historyMenuDelete),
-                            ),
-                          ],
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Text(_formatHm(e.duration)),
-                          ),
-                        ),
-                      ),
+                    (e) => _HistorySessionCard(
+                      entry: e,
+                      dateFmt: dateFmt,
+                      timeFmt: timeFmt,
+                      modeLabel: e.mode.localized(l10n),
+                      workspaceLabel: _workspaceName(state, e),
+                      onEdit: () => _editEntryDialog(e),
+                      onDelete: () async {
+                        await context.read<TimerCubit>().deleteEntry(e);
+                        if (!context.mounted) return;
+                        if (mounted) {
+                          await context.read<TimerCubit>().loadHistory(_range);
+                        }
+                      },
+                      l10n: l10n,
                     ),
                   ),
               ],
@@ -464,6 +558,121 @@ class _HistoryTabState extends State<HistoryTab> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _HistorySessionCard extends StatelessWidget {
+  const _HistorySessionCard({
+    required this.entry,
+    required this.dateFmt,
+    required this.timeFmt,
+    required this.modeLabel,
+    required this.workspaceLabel,
+    required this.onEdit,
+    required this.onDelete,
+    required this.l10n,
+  });
+
+  final WorkEntry entry;
+  final DateFormat dateFmt;
+  final DateFormat timeFmt;
+  final String modeLabel;
+  final String workspaceLabel;
+  final VoidCallback onEdit;
+  final Future<void> Function() onDelete;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              backgroundColor: scheme.primaryContainer,
+              foregroundColor: scheme.onPrimaryContainer,
+              child: Icon(
+                entry.mode == WorkMode.remote
+                    ? Icons.home_outlined
+                    : Icons.apartment_outlined,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    dateFmt.format(entry.start),
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${timeFmt.format(entry.start)} — ${timeFmt.format(entry.end)}',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Text(
+                        formatDurationHm(entry.duration),
+                        style: textTheme.labelLarge?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '· $modeLabel',
+                        style: textTheme.labelLarge?.copyWith(
+                          color: scheme.outline,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.historyWorkspaceLabel(workspaceLabel),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                if (value == 'edit') {
+                  onEdit();
+                } else {
+                  await onDelete();
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'edit', child: Text(l10n.historyMenuEdit)),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text(l10n.historyMenuDelete),
+                ),
+              ],
+              icon: Icon(Icons.more_vert, color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

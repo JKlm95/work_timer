@@ -290,6 +290,24 @@ abstract class AppLocalizations {
   /// **'Paused'**
   String get timerPaused;
 
+  /// No description provided for @timerStatusIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get timerStatusIdle;
+
+  /// No description provided for @timerStatusRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get timerStatusRunning;
+
+  /// No description provided for @timerStatusPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get timerStatusPaused;
+
   /// No description provided for @timerPlay.
   ///
   /// In en, this message translates to:
@@ -307,6 +325,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop'**
   String get timerStop;
+
+  /// No description provided for @timerActionStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get timerActionStart;
+
+  /// No description provided for @timerActionResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get timerActionResume;
+
+  /// No description provided for @dashboardToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get dashboardToday;
+
+  /// No description provided for @dashboardThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get dashboardThisWeek;
+
+  /// No description provided for @dashboardLastSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Last session'**
+  String get dashboardLastSession;
+
+  /// No description provided for @dashboardNoSessionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions yet'**
+  String get dashboardNoSessionsTitle;
+
+  /// No description provided for @dashboardNoSessionsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the timer or add an entry from History to see your time here.'**
+  String get dashboardNoSessionsBody;
+
+  /// No description provided for @historyEmptyNoDataInRange.
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions in this period.'**
+  String get historyEmptyNoDataInRange;
+
+  /// No description provided for @historyEmptyAdjustFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Try adjusting filters or pick another date range.'**
+  String get historyEmptyAdjustFilters;
+
+  /// No description provided for @syncOfflineBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing cached data. Sync may be limited while offline.'**
+  String get syncOfflineBanner;
+
+  /// No description provided for @statsCardToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get statsCardToday;
+
+  /// No description provided for @statsCardThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get statsCardThisWeek;
+
+  /// No description provided for @statsCardThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get statsCardThisMonth;
+
+  /// No description provided for @statsAvgSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Average session'**
+  String get statsAvgSession;
+
+  /// No description provided for @statsSessionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions'**
+  String get statsSessionCount;
+
+  /// No description provided for @statsWeeklyOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Week overview'**
+  String get statsWeeklyOverview;
+
+  /// No description provided for @statsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No statistics yet'**
+  String get statsEmptyTitle;
+
+  /// No description provided for @statsEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Log some work sessions to see summaries and charts here.'**
+  String get statsEmptyBody;
+
+  /// No description provided for @settingsWidgetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Home screen widget'**
+  String get settingsWidgetTitle;
+
+  /// No description provided for @settingsWidgetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Control the timer directly from your Android home screen widget.'**
+  String get settingsWidgetDescription;
 
   /// No description provided for @workModeRemote.
   ///

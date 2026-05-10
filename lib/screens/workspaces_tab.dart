@@ -77,7 +77,7 @@ class WorkspacesTab extends StatelessWidget {
       builder: (context, state) {
         return Scaffold(
           body: ListView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             itemCount: state.workspaces.length,
             itemBuilder: (context, index) {
               final workspace = state.workspaces[index];

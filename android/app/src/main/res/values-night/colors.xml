@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="splash_background">#0D47A1</color>
+
+    <!-- Widget (dark) -->
+    <color name="widget_title_text">#E3E2E6</color>
+    <color name="widget_timer_text">#E3E2E6</color>
+    <color name="widget_control_icon">#C4C6CF</color>
+    <color name="widget_button_surface">#2D3745</color>
+    <color name="widget_button_surface_stop">#26303D</color>
+    <color name="widget_status_idle">#9CA3AF</color>
+    <color name="widget_status_running">#81C784</color>
+    <color name="widget_status_paused">#FFB74D</color>
+</resources>

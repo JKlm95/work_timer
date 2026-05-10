@@ -3,4 +3,10 @@
     <string name="app_name">Work Timer</string>
     <string name="widget_sign_in_hint">Zaloguj się</string>
     <string name="widget_locked_placeholder">—</string>
+    <string name="widget_status_idle">Idle</string>
+    <string name="widget_status_running">Running</string>
+    <string name="widget_status_paused">Paused</string>
+    <string name="widget_cd_play">Start or resume timer</string>
+    <string name="widget_cd_pause">Pause timer</string>
+    <string name="widget_cd_stop">Stop timer</string>
 </resources>

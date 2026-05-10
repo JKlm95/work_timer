@@ -107,6 +107,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get timerPaused => 'Pauza';
 
   @override
+  String get timerStatusIdle => 'Bezczynny';
+
+  @override
+  String get timerStatusRunning => 'W toku';
+
+  @override
+  String get timerStatusPaused => 'Wstrzymany';
+
+  @override
   String get timerPlay => 'Play';
 
   @override
@@ -114,6 +123,71 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get timerStop => 'Stop';
+
+  @override
+  String get timerActionStart => 'Start';
+
+  @override
+  String get timerActionResume => 'Wznów';
+
+  @override
+  String get dashboardToday => 'Dziś';
+
+  @override
+  String get dashboardThisWeek => 'Ten tydzień';
+
+  @override
+  String get dashboardLastSession => 'Ostatnia sesja';
+
+  @override
+  String get dashboardNoSessionsTitle => 'Brak sesji';
+
+  @override
+  String get dashboardNoSessionsBody =>
+      'Uruchom timer lub dodaj wpis w Historii, żeby zobaczyć czas tutaj.';
+
+  @override
+  String get historyEmptyNoDataInRange => 'Brak sesji w tym okresie.';
+
+  @override
+  String get historyEmptyAdjustFilters =>
+      'Zmień filtry lub wybierz inny zakres dat.';
+
+  @override
+  String get syncOfflineBanner =>
+      'Widzisz dane z pamięci podręcznej. Synchronizacja może być ograniczona offline.';
+
+  @override
+  String get statsCardToday => 'Dziś';
+
+  @override
+  String get statsCardThisWeek => 'Ten tydzień';
+
+  @override
+  String get statsCardThisMonth => 'Ten miesiąc';
+
+  @override
+  String get statsAvgSession => 'Średnia sesja';
+
+  @override
+  String get statsSessionCount => 'Sesje';
+
+  @override
+  String get statsWeeklyOverview => 'Podsumowanie tygodnia';
+
+  @override
+  String get statsEmptyTitle => 'Brak statystyk';
+
+  @override
+  String get statsEmptyBody =>
+      'Zapisz kilka sesji pracy, żeby zobaczyć podsumowania i wykresy.';
+
+  @override
+  String get settingsWidgetTitle => 'Widżet ekranu głównego';
+
+  @override
+  String get settingsWidgetDescription =>
+      'Steruj timerem prosto z widżetu na ekranie głównym Androida.';
 
   @override
   String get workModeRemote => 'Remote';

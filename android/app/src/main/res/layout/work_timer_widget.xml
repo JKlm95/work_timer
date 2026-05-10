@@ -2,25 +2,23 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/background_light"
+    android:background="@drawable/widget_background"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:paddingStart="14dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="12dp">
 
     <TextView
         android:id="@+id/widgetWorkspace"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Workspace"
-        android:textSize="14sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/widgetTimer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="00:00:00"
-        android:textSize="24sp"
+        android:ellipsize="end"
+        android:gravity="center_horizontal"
+        android:maxLines="1"
+        android:text="@string/app_name"
+        android:textColor="@color/widget_title_text"
+        android:textSize="13sp"
         android:textStyle="bold" />
 
     <TextView
@@ -28,40 +26,63 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="idle"
-        android:textSize="12sp" />
+        android:gravity="center_horizontal"
+        android:letterSpacing="0.02"
+        android:maxLines="1"
+        android:text="@string/widget_status_idle"
+        android:textColor="@color/widget_status_idle"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widgetTimer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="12dp"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:text="00:00:00"
+        android:textColor="@color/widget_timer_text"
+        android:textSize="32sp"
+        android:textStyle="bold" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
         android:gravity="center"
         android:orientation="horizontal">
 
-        <TextView
+        <ImageButton
             android:id="@+id/widgetPlay"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
-            android:padding="6dp"
-            android:text="Play"
-            android:textStyle="bold" />
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/widget_button_background"
+            android:contentDescription="@string/widget_cd_play"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_widget_play" />
 
-        <TextView
+        <ImageButton
             android:id="@+id/widgetPause"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
-            android:padding="6dp"
-            android:text="Pause"
-            android:textStyle="bold" />
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/widget_button_background"
+            android:contentDescription="@string/widget_cd_pause"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_widget_pause" />
 
-        <TextView
+        <ImageButton
             android:id="@+id/widgetStop"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="6dp"
-            android:text="Stop"
-            android:textStyle="bold" />
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/widget_button_background_stop"
+            android:contentDescription="@string/widget_cd_stop"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_widget_stop" />
     </LinearLayout>
 </LinearLayout>
