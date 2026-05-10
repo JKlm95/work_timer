@@ -300,6 +300,7 @@ class TimerCubit extends Cubit<TimerState> {
     _lastWidgetElapsedSecond = -1;
     await _repository.localCache.clearTimerSession();
     await TimerServiceBridge.stop();
+    await refreshStatsEntries();
     await _writeWidgetSnapshot();
   }
 

@@ -52,6 +52,7 @@ void main() {
       expect(cubit.state.elapsed, Duration.zero);
 
       expect(remote.upsertedEntries, isNotEmpty);
+      expect(cubit.state.statsEntries, isNotEmpty);
 
       await cubit.close();
     },
