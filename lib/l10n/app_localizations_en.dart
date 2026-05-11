@@ -307,19 +307,72 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyMenuDelete => 'Delete';
 
   @override
-  String get historyExportCsv => 'Export for Excel (CSV)';
+  String get historyExportMenuTooltip => 'Export filtered entries (CSV or PDF)';
 
   @override
-  String get historyExportCsvTooltip => 'Export filtered entries as CSV';
+  String get historyExportShareCsv => 'Share CSV…';
 
   @override
-  String get historyExportShare => 'Share…';
+  String get historyExportSaveCsv => 'Save CSV to device';
 
   @override
-  String get historyExportSaveLocal => 'Save to device';
+  String get historyExportSharePdf => 'Share PDF…';
 
   @override
-  String get historyExportSaveDialogTitle => 'Save CSV file';
+  String get historyExportSavePdf => 'Save PDF to device';
+
+  @override
+  String get historyExportSaveCsvDialogTitle => 'Save CSV file';
+
+  @override
+  String get historyExportSavePdfDialogTitle => 'Save PDF file';
+
+  @override
+  String get exportPdfTitle => 'Work Timer — sessions';
+
+  @override
+  String exportPdfMeta(String from, String to, String at) {
+    return 'Range: $from — $to · Generated: $at';
+  }
+
+  @override
+  String get exportHdrId => 'ID';
+
+  @override
+  String get exportHdrWorkspaceId => 'Project ID';
+
+  @override
+  String get exportHdrProject => 'Project';
+
+  @override
+  String get exportHdrStart => 'Start';
+
+  @override
+  String get exportHdrEnd => 'End';
+
+  @override
+  String get exportHdrDurationHm => 'Duration';
+
+  @override
+  String get exportHdrMode => 'Work mode';
+
+  @override
+  String get exportHdrEntryType => 'Entry type';
+
+  @override
+  String get exportHdrBillable => 'Billable';
+
+  @override
+  String get exportHdrTask => 'Task / title';
+
+  @override
+  String get exportHdrNote => 'Note';
+
+  @override
+  String get exportBillableYes => 'Yes';
+
+  @override
+  String get exportBillableNo => 'No';
 
   @override
   String historyExportSaved(String fileName) {
@@ -328,7 +381,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyExportSaveWebHint =>
-      'In the browser, use Share — local save isn’t supported here.';
+      'In the browser, use Share for CSV / PDF — local save isn’t supported here.';
 
   @override
   String get historyExportEmpty =>

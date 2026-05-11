@@ -47,6 +47,7 @@ dependencies:
   share_plus: ^11.0.0
   file_picker: ^8.3.7
   table_calendar: ^3.2.0
+  pdf: ^3.11.3
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +66,9 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   generate: true
+
+  assets:
+    - assets/fonts/NotoSans-Regular.ttf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

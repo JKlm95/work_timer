@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -10,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../export/work_entries_csv.dart';
+import '../export/work_entries_pdf.dart';
 import '../l10n/app_localizations.dart';
 
 import '../bloc/timer_cubit.dart';
@@ -42,6 +44,8 @@ class HistoryTab extends StatefulWidget {
 }
 
 class _HistoryTabState extends State<HistoryTab> {
+  static const _pdfFontAsset = 'assets/fonts/NotoSans-Regular.ttf';
+
   late DateTimeRange _range;
   WorkMode? _modeFilter;
   EntryType? _entryTypeFilter;
@@ -168,7 +172,7 @@ class _HistoryTabState extends State<HistoryTab> {
     }
     try {
       final path = await FilePicker.platform.saveFile(
-        dialogTitle: l10n.historyExportSaveDialogTitle,
+        dialogTitle: l10n.historyExportSaveCsvDialogTitle,
         fileName: payload.fileName,
         type: FileType.custom,
         allowedExtensions: const ['csv'],
@@ -179,6 +183,151 @@ class _HistoryTabState extends State<HistoryTab> {
         outPath = '$outPath.csv';
       }
       await File(outPath).writeAsString(payload.csv, encoding: utf8);
+      if (!mounted) return;
+      final shortName = outPath
+          .replaceAll(r'\', '/')
+          .split('/')
+          .where((s) => s.isNotEmpty)
+          .last;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.historyExportSaved(shortName))),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportError)));
+    }
+  }
+
+  /// Wiersze [nagłówek, ...dane] dla raportu PDF (lokalizowane etykiety i daty).
+  List<List<String>>? _buildExportTable(AppLocalizations l10n) {
+    final cubit = context.read<TimerCubit>();
+    final filtered = _filtered(cubit.state.entries).toList();
+    if (filtered.isEmpty) return null;
+    final names = {for (final w in cubit.state.workspaces) w.id: w.name};
+    final lc = Localizations.localeOf(context).languageCode;
+    final dFmt = DateFormat.yMMMd(lc);
+    final tFmt = DateFormat.Hm(lc);
+    String when(DateTime d) => '${dFmt.format(d)} ${tFmt.format(d)}';
+
+    final header = [
+      l10n.exportHdrId,
+      l10n.exportHdrWorkspaceId,
+      l10n.exportHdrProject,
+      l10n.exportHdrStart,
+      l10n.exportHdrEnd,
+      l10n.exportHdrDurationHm,
+      l10n.exportHdrMode,
+      l10n.exportHdrEntryType,
+      l10n.exportHdrBillable,
+      l10n.exportHdrTask,
+      l10n.exportHdrNote,
+    ];
+
+    final dataRows = filtered
+        .map(
+          (e) => [
+            e.id,
+            e.workspaceId,
+            names[e.workspaceId] ?? '',
+            when(e.start),
+            when(e.end),
+            formatDurationHm(e.duration),
+            e.mode == WorkMode.remote
+                ? l10n.workModeRemote
+                : l10n.workModeOffice,
+            _localizedEntryType(e.entryType, l10n),
+            e.isBillable ? l10n.exportBillableYes : l10n.exportBillableNo,
+            e.taskTitle ?? '',
+            e.note ?? '',
+          ],
+        )
+        .toList();
+
+    return [header, ...dataRows];
+  }
+
+  Future<Uint8List> _buildPdfBytes(AppLocalizations l10n) async {
+    final table = _buildExportTable(l10n)!;
+    final lc = Localizations.localeOf(context).languageCode;
+    final dFmt = DateFormat.yMMMd(lc);
+    final meta = l10n.exportPdfMeta(
+      dFmt.format(_range.start),
+      dFmt.format(_range.end),
+      DateFormat('yyyy-MM-dd HH:mm', lc).format(DateTime.now()),
+    );
+    return buildWorkEntriesPdfDocument(
+      rowsWithHeader: table,
+      title: l10n.exportPdfTitle,
+      subtitle: meta,
+      assetFontPath: _pdfFontAsset,
+    );
+  }
+
+  Future<void> _shareFilteredPdf() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_buildExportTable(l10n) == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportEmpty)));
+      return;
+    }
+    try {
+      final bytes = await _buildPdfBytes(l10n);
+      final dir = await getTemporaryDirectory();
+      final stamp = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
+      final name = 'work_timer_$stamp.pdf';
+      final file = File('${dir.path}/$name');
+      await file.writeAsBytes(bytes);
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          subject: l10n.historyExportShareSubject,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportError)));
+    }
+  }
+
+  Future<void> _saveFilteredPdfLocally() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (kIsWeb) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportSaveWebHint)));
+      return;
+    }
+    if (_buildExportTable(l10n) == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportEmpty)));
+      return;
+    }
+    try {
+      final bytes = await _buildPdfBytes(l10n);
+      final stamp = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
+      final suggested = 'work_timer_$stamp.pdf';
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: l10n.historyExportSavePdfDialogTitle,
+        fileName: suggested,
+        type: FileType.custom,
+        allowedExtensions: const ['pdf'],
+      );
+      if (path == null || !mounted) return;
+      var outPath = path;
+      if (!outPath.toLowerCase().endsWith('.pdf')) {
+        outPath = '$outPath.pdf';
+      }
+      await File(outPath).writeAsBytes(bytes);
       if (!mounted) return;
       final shortName = outPath
           .replaceAll(r'\', '/')
@@ -507,23 +656,35 @@ class _HistoryTabState extends State<HistoryTab> {
                       ),
                     ),
                     PopupMenuButton<String>(
-                      tooltip: l10n.historyExportCsvTooltip,
-                      icon: const Icon(Icons.table_chart_outlined),
+                      tooltip: l10n.historyExportMenuTooltip,
+                      icon: const Icon(Icons.upload_file_outlined),
                       onSelected: (value) async {
-                        if (value == 'share') {
+                        if (value == 'csvShare') {
                           await _shareFilteredCsv();
-                        } else if (value == 'save') {
+                        } else if (value == 'csvSave') {
                           await _saveFilteredCsvLocally();
+                        } else if (value == 'pdfShare') {
+                          await _shareFilteredPdf();
+                        } else if (value == 'pdfSave') {
+                          await _saveFilteredPdfLocally();
                         }
                       },
                       itemBuilder: (context) => [
                         PopupMenuItem(
-                          value: 'share',
-                          child: Text(l10n.historyExportShare),
+                          value: 'csvShare',
+                          child: Text(l10n.historyExportShareCsv),
                         ),
                         PopupMenuItem(
-                          value: 'save',
-                          child: Text(l10n.historyExportSaveLocal),
+                          value: 'csvSave',
+                          child: Text(l10n.historyExportSaveCsv),
+                        ),
+                        PopupMenuItem(
+                          value: 'pdfShare',
+                          child: Text(l10n.historyExportSharePdf),
+                        ),
+                        PopupMenuItem(
+                          value: 'pdfSave',
+                          child: Text(l10n.historyExportSavePdf),
                         ),
                       ],
                     ),

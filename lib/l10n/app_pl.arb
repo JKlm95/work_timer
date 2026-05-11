@@ -132,18 +132,42 @@
   },
   "historyMenuEdit": "Edytuj",
   "historyMenuDelete": "Usuń",
-  "historyExportCsv": "Eksport do Excela (CSV)",
-  "historyExportCsvTooltip": "Eksport przefiltrowanych wpisów jako CSV",
-  "historyExportShare": "Udostępnij…",
-  "historyExportSaveLocal": "Zapisz na urządzeniu",
-  "historyExportSaveDialogTitle": "Zapisz plik CSV",
+  "historyExportMenuTooltip": "Eksport przefiltrowanych wpisów (CSV lub PDF)",
+  "historyExportShareCsv": "Udostępnij CSV…",
+  "historyExportSaveCsv": "Zapisz CSV na urządzeniu",
+  "historyExportSharePdf": "Udostępnij PDF…",
+  "historyExportSavePdf": "Zapisz PDF na urządzeniu",
+  "historyExportSaveCsvDialogTitle": "Zapisz plik CSV",
+  "historyExportSavePdfDialogTitle": "Zapisz plik PDF",
+  "exportPdfTitle": "Work Timer — sesje",
+  "exportPdfMeta": "Zakres: {from} — {to} · Wygenerowano: {at}",
+  "@exportPdfMeta": {
+    "placeholders": {
+      "from": {"type": "String"},
+      "to": {"type": "String"},
+      "at": {"type": "String"}
+    }
+  },
+  "exportHdrId": "ID",
+  "exportHdrWorkspaceId": "ID projektu",
+  "exportHdrProject": "Projekt",
+  "exportHdrStart": "Start",
+  "exportHdrEnd": "Koniec",
+  "exportHdrDurationHm": "Czas trwania",
+  "exportHdrMode": "Tryb pracy",
+  "exportHdrEntryType": "Typ wpisu",
+  "exportHdrBillable": "Rozliczalny",
+  "exportHdrTask": "Zadanie / tytuł",
+  "exportHdrNote": "Notatka",
+  "exportBillableYes": "Tak",
+  "exportBillableNo": "Nie",
   "historyExportSaved": "Zapisano: {fileName}",
   "@historyExportSaved": {
     "placeholders": {
       "fileName": {"type": "String"}
     }
   },
-  "historyExportSaveWebHint": "W przeglądarce użyj „Udostępnij” — lokalnego zapisu tu nie ma.",
+  "historyExportSaveWebHint": "W przeglądarce użyj „Udostępnij” (CSV / PDF) — lokalnego zapisu tu nie ma.",
   "historyExportEmpty": "Brak wpisów do eksportu przy wybranych filtrach.",
   "historyExportError": "Nie udało się utworzyć lub udostępnić pliku.",
   "historyExportShareSubject": "Eksport Work Timer",

@@ -307,20 +307,73 @@ class AppLocalizationsPl extends AppLocalizations {
   String get historyMenuDelete => 'Usuń';
 
   @override
-  String get historyExportCsv => 'Eksport do Excela (CSV)';
+  String get historyExportMenuTooltip =>
+      'Eksport przefiltrowanych wpisów (CSV lub PDF)';
 
   @override
-  String get historyExportCsvTooltip =>
-      'Eksport przefiltrowanych wpisów jako CSV';
+  String get historyExportShareCsv => 'Udostępnij CSV…';
 
   @override
-  String get historyExportShare => 'Udostępnij…';
+  String get historyExportSaveCsv => 'Zapisz CSV na urządzeniu';
 
   @override
-  String get historyExportSaveLocal => 'Zapisz na urządzeniu';
+  String get historyExportSharePdf => 'Udostępnij PDF…';
 
   @override
-  String get historyExportSaveDialogTitle => 'Zapisz plik CSV';
+  String get historyExportSavePdf => 'Zapisz PDF na urządzeniu';
+
+  @override
+  String get historyExportSaveCsvDialogTitle => 'Zapisz plik CSV';
+
+  @override
+  String get historyExportSavePdfDialogTitle => 'Zapisz plik PDF';
+
+  @override
+  String get exportPdfTitle => 'Work Timer — sesje';
+
+  @override
+  String exportPdfMeta(String from, String to, String at) {
+    return 'Zakres: $from — $to · Wygenerowano: $at';
+  }
+
+  @override
+  String get exportHdrId => 'ID';
+
+  @override
+  String get exportHdrWorkspaceId => 'ID projektu';
+
+  @override
+  String get exportHdrProject => 'Projekt';
+
+  @override
+  String get exportHdrStart => 'Start';
+
+  @override
+  String get exportHdrEnd => 'Koniec';
+
+  @override
+  String get exportHdrDurationHm => 'Czas trwania';
+
+  @override
+  String get exportHdrMode => 'Tryb pracy';
+
+  @override
+  String get exportHdrEntryType => 'Typ wpisu';
+
+  @override
+  String get exportHdrBillable => 'Rozliczalny';
+
+  @override
+  String get exportHdrTask => 'Zadanie / tytuł';
+
+  @override
+  String get exportHdrNote => 'Notatka';
+
+  @override
+  String get exportBillableYes => 'Tak';
+
+  @override
+  String get exportBillableNo => 'Nie';
 
   @override
   String historyExportSaved(String fileName) {
@@ -329,7 +382,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get historyExportSaveWebHint =>
-      'W przeglądarce użyj „Udostępnij” — lokalnego zapisu tu nie ma.';
+      'W przeglądarce użyj „Udostępnij” (CSV / PDF) — lokalnego zapisu tu nie ma.';
 
   @override
   String get historyExportEmpty =>

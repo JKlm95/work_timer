@@ -644,35 +644,137 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get historyMenuDelete;
 
-  /// No description provided for @historyExportCsv.
+  /// No description provided for @historyExportMenuTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Export for Excel (CSV)'**
-  String get historyExportCsv;
+  /// **'Export filtered entries (CSV or PDF)'**
+  String get historyExportMenuTooltip;
 
-  /// No description provided for @historyExportCsvTooltip.
+  /// No description provided for @historyExportShareCsv.
   ///
   /// In en, this message translates to:
-  /// **'Export filtered entries as CSV'**
-  String get historyExportCsvTooltip;
+  /// **'Share CSV…'**
+  String get historyExportShareCsv;
 
-  /// No description provided for @historyExportShare.
+  /// No description provided for @historyExportSaveCsv.
   ///
   /// In en, this message translates to:
-  /// **'Share…'**
-  String get historyExportShare;
+  /// **'Save CSV to device'**
+  String get historyExportSaveCsv;
 
-  /// No description provided for @historyExportSaveLocal.
+  /// No description provided for @historyExportSharePdf.
   ///
   /// In en, this message translates to:
-  /// **'Save to device'**
-  String get historyExportSaveLocal;
+  /// **'Share PDF…'**
+  String get historyExportSharePdf;
 
-  /// No description provided for @historyExportSaveDialogTitle.
+  /// No description provided for @historyExportSavePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Save PDF to device'**
+  String get historyExportSavePdf;
+
+  /// No description provided for @historyExportSaveCsvDialogTitle.
   ///
   /// In en, this message translates to:
   /// **'Save CSV file'**
-  String get historyExportSaveDialogTitle;
+  String get historyExportSaveCsvDialogTitle;
+
+  /// No description provided for @historyExportSavePdfDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save PDF file'**
+  String get historyExportSavePdfDialogTitle;
+
+  /// No description provided for @exportPdfTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Work Timer — sessions'**
+  String get exportPdfTitle;
+
+  /// No description provided for @exportPdfMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'Range: {from} — {to} · Generated: {at}'**
+  String exportPdfMeta(String from, String to, String at);
+
+  /// No description provided for @exportHdrId.
+  ///
+  /// In en, this message translates to:
+  /// **'ID'**
+  String get exportHdrId;
+
+  /// No description provided for @exportHdrWorkspaceId.
+  ///
+  /// In en, this message translates to:
+  /// **'Project ID'**
+  String get exportHdrWorkspaceId;
+
+  /// No description provided for @exportHdrProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Project'**
+  String get exportHdrProject;
+
+  /// No description provided for @exportHdrStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get exportHdrStart;
+
+  /// No description provided for @exportHdrEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get exportHdrEnd;
+
+  /// No description provided for @exportHdrDurationHm.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get exportHdrDurationHm;
+
+  /// No description provided for @exportHdrMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Work mode'**
+  String get exportHdrMode;
+
+  /// No description provided for @exportHdrEntryType.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry type'**
+  String get exportHdrEntryType;
+
+  /// No description provided for @exportHdrBillable.
+  ///
+  /// In en, this message translates to:
+  /// **'Billable'**
+  String get exportHdrBillable;
+
+  /// No description provided for @exportHdrTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Task / title'**
+  String get exportHdrTask;
+
+  /// No description provided for @exportHdrNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get exportHdrNote;
+
+  /// No description provided for @exportBillableYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get exportBillableYes;
+
+  /// No description provided for @exportBillableNo.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get exportBillableNo;
 
   /// No description provided for @historyExportSaved.
   ///
@@ -683,7 +785,7 @@ abstract class AppLocalizations {
   /// No description provided for @historyExportSaveWebHint.
   ///
   /// In en, this message translates to:
-  /// **'In the browser, use Share — local save isn’t supported here.'**
+  /// **'In the browser, use Share for CSV / PDF — local save isn’t supported here.'**
   String get historyExportSaveWebHint;
 
   /// No description provided for @historyExportEmpty.

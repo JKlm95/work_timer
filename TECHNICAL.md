@@ -13,7 +13,7 @@ Dokument dla **deweloperów i rekrutera technicznego**: architektura, integracja
 | Języki UI | **gen-l10n** — `lib/l10n/app_en.arb`, `app_pl.arb`, `l10n.yaml`; delegat **`AppLocalizations`** w `MaterialApp` |
 | Motyw | **`AppColors.colorSchemeFor`**, **`buildWorkTimerTheme`** (`lib/theme/app_theme.dart`); jasny i ciemny zestaw powierzchni w **`app_colors.dart`**; typografia **`AppTypography`** |
 | Backend | **Firebase Auth** (e-mail/hasło), **Cloud Firestore** |
-| Lokalnie | **shared_preferences** (JSON, prefs Flutter + zapis z Kotlina), **home_widget** (Android widget prefs); **`file_picker`** (zapis CSV na dysku), **`path_provider`** (katalog tymczasowy przed `share_plus`) |
+| Lokalnie | **shared_preferences** (JSON, prefs Flutter + zapis z Kotlina), **home_widget** (Android widget prefs); **`file_picker`** (zapis CSV/PDF na dysku), **`path_provider`** (katalog tymczasowy przed `share_plus`) |
 | Kalendarz UI | **`table_calendar`** + `intl` `initializeDateFormatting` w `main` (`en_US`, `pl_PL`) |
 | Sieć / offline | **connectivity_plus** do warunkowania zapytań; kolejka pending |
 | Android | **Kotlin** — `ForegroundService`, `AppWidgetProvider` (home_widget), **MethodChannel** `work_timer/service_control` |
@@ -32,7 +32,7 @@ lib/
 ├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, calendar_tab, workspaces_tab, settings_tab
 ├── models/                   # work_entry, workspace, work_mode, entry_type, billing_currency
 ├── utils/                    # m.in. workspace_color, project_field_utils (slug / domena e-mail)
-├── export/                   # work_entries_csv.dart — CSV pod Excel (BOM, separator z locale; kolumny m.in. entryType, billable)
+├── export/                   # work_entries_csv.dart (CSV / Excel), work_entries_pdf.dart (PDF A4 poziom, Noto Sans z assets)
 ├── services/
 │   ├── auth_service.dart
 │   ├── auth_native_sync.dart      # flaga zalogowania — Android widget; iOS reload widgetów
@@ -173,11 +173,13 @@ lib/
 
 ---
 
-## 7e. Eksport CSV (`HistoryTab`)
+## 7e. Eksport CSV / PDF (`HistoryTab`)
 
-- Generowanie: **`workEntriesToCsv`** (`lib/export/work_entries_csv.dart`) — BOM UTF-8, separator `;` dla locale `pl`, `,` w pozostałych; kolumny m.in. `entryType`, `isBillable`, `taskTitle`, `note`.
-- **Udostępnianie:** zapis tymczasowy w `getTemporaryDirectory`, potem **`SharePlus`**.
+- **CSV:** **`workEntriesToCsv`** (`lib/export/work_entries_csv.dart`) — BOM UTF-8, separator `;` dla locale `pl`, `,` w pozostałych; kolumny m.in. `entryType`, `isBillable`, `taskTitle`, `note`.
+- **PDF:** **`buildWorkEntriesPdfDocument`** (`lib/export/work_entries_pdf.dart`) — pakiet **`pdf`**, format A4 poziom, tabela z nagłówkami; **osadzona czcionka** **`assets/fonts/NotoSans-Regular.ttf`** (Google Noto Sans OFL) dla poprawnego **UTF-8 / polskich znaków** (standardowe fonty PDF Helvetica tego nie pokrywają).
+- **Udostępnianie:** zapis tymczasowy w `getTemporaryDirectory`, potem **`SharePlus`** (CSV: `text/csv`, PDF: `application/pdf`).
 - **Zapis lokalny:** **`FilePicker.platform.saveFile`** (tylko platformy nie-web); na **web** komunikat zachęcający do użycia udostępniania (brak natywnego zapisu ścieżki).
+- **UI:** jedno menu (**`PopupMenuButton`**) — cztery pozycje: udostępnij / zapisz dla CSV i PDF.
 
 ---
 
@@ -208,7 +210,7 @@ lib/
 - Rejestracja, logowanie, reset hasła.
 - Projekty: tworzenie / edycja / archiwum; przełączanie; rozdzielenie wpisów; timer nie startuje na zarchiwizowanym projekcie.
 - Timer online → wpisy w Firestore z poprawnym `workspaceId`.
-- Historia: dodaj / edytuj / usuń; typ wpisu, CSV share + zapis lokalny.
+- Historia: dodaj / edytuj / usuń; typ wpisu, eksport CSV i PDF (udostępnianie + zapis lokalny tam, gdzie wspiera platforma).
 - Statystyki: tydzień/miesiąc, filtry projektów, blok rozliczeń.
 - Kalendarz: zmiana miesiąca, wybór dnia.
 - Offline: operacje lokalne → powrót sieci → **syncPending**.
@@ -219,7 +221,7 @@ lib/
 
 ## 10. Testy automatyczne
 
-W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService** w tym **`buildBillingEstimate`**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, eksport **CSV** `workEntriesToCsv` (nagłówek z nowymi kolumnami), mapowanie błędów Auth, **`SettingsCubit`** w tym **debrief**) — uruchomienie: `flutter test`.
+W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService** w tym **`buildBillingEstimate`**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, eksport **CSV** `workEntriesToCsv` (nagłówek z nowymi kolumnami), mapowanie błędów Auth, **`SettingsCubit`** w tym **debrief**) — uruchomienie: `flutter test`. **PDF** (`buildWorkEntriesPdfDocument`, pakiet **`pdf`**) nie ma osobnego testu jednostkowego; weryfikacja ręczna z menu eksportu w **Historii**.
 
 ---
 
@@ -243,4 +245,4 @@ Włącz **Actions** w ustawieniach repozytorium (domyślnie w publicznych repach
 
 ---
 
-*Ostatnia aktualizacja dokumentu: projekty (model Workspace), typy wpisów, rozliczenia w statystykach, kalendarz, eksport CSV (share + zapis lokalny), debrief po stopie, synchronizacja listy workspace’ów z archiwum (§ 5, § 7c–7e).*
+*Ostatnia aktualizacja dokumentu: projekty (model Workspace), typy wpisów, rozliczenia w statystykach, kalendarz, eksport CSV i PDF (share + zapis lokalny), debrief po stopie, synchronizacja listy workspace’ów z archiwum (§ 5, § 7c–7e).*

@@ -132,18 +132,42 @@
   },
   "historyMenuEdit": "Edit",
   "historyMenuDelete": "Delete",
-  "historyExportCsv": "Export for Excel (CSV)",
-  "historyExportCsvTooltip": "Export filtered entries as CSV",
-  "historyExportShare": "Share…",
-  "historyExportSaveLocal": "Save to device",
-  "historyExportSaveDialogTitle": "Save CSV file",
+  "historyExportMenuTooltip": "Export filtered entries (CSV or PDF)",
+  "historyExportShareCsv": "Share CSV…",
+  "historyExportSaveCsv": "Save CSV to device",
+  "historyExportSharePdf": "Share PDF…",
+  "historyExportSavePdf": "Save PDF to device",
+  "historyExportSaveCsvDialogTitle": "Save CSV file",
+  "historyExportSavePdfDialogTitle": "Save PDF file",
+  "exportPdfTitle": "Work Timer — sessions",
+  "exportPdfMeta": "Range: {from} — {to} · Generated: {at}",
+  "@exportPdfMeta": {
+    "placeholders": {
+      "from": {"type": "String"},
+      "to": {"type": "String"},
+      "at": {"type": "String"}
+    }
+  },
+  "exportHdrId": "ID",
+  "exportHdrWorkspaceId": "Project ID",
+  "exportHdrProject": "Project",
+  "exportHdrStart": "Start",
+  "exportHdrEnd": "End",
+  "exportHdrDurationHm": "Duration",
+  "exportHdrMode": "Work mode",
+  "exportHdrEntryType": "Entry type",
+  "exportHdrBillable": "Billable",
+  "exportHdrTask": "Task / title",
+  "exportHdrNote": "Note",
+  "exportBillableYes": "Yes",
+  "exportBillableNo": "No",
   "historyExportSaved": "Saved: {fileName}",
   "@historyExportSaved": {
     "placeholders": {
       "fileName": {"type": "String"}
     }
   },
-  "historyExportSaveWebHint": "In the browser, use Share — local save isn’t supported here.",
+  "historyExportSaveWebHint": "In the browser, use Share for CSV / PDF — local save isn’t supported here.",
   "historyExportEmpty": "No entries to export for the current filters.",
   "historyExportError": "Could not create or share the file.",
   "historyExportShareSubject": "Work Timer export",
