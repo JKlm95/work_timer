@@ -9,11 +9,12 @@ Dokument dla **deweloperów i rekrutera technicznego**: architektura, integracja
 | Warstwa | Wybór |
 |--------|--------|
 | Framework | Flutter (Dart 3.x) |
-| Stan (globalny) | **flutter_bloc** — `AuthCubit`, `TimerCubit`, **`SettingsCubit`** (język + `ThemeMode`; `SharedPreferences`) |
+| Stan (globalny) | **flutter_bloc** — `AuthCubit`, `TimerCubit`, **`SettingsCubit`** (język, `ThemeMode`, **`showDebriefAfterStop`**; `SharedPreferences`) |
 | Języki UI | **gen-l10n** — `lib/l10n/app_en.arb`, `app_pl.arb`, `l10n.yaml`; delegat **`AppLocalizations`** w `MaterialApp` |
 | Motyw | **`AppColors.colorSchemeFor`**, **`buildWorkTimerTheme`** (`lib/theme/app_theme.dart`); jasny i ciemny zestaw powierzchni w **`app_colors.dart`**; typografia **`AppTypography`** |
 | Backend | **Firebase Auth** (e-mail/hasło), **Cloud Firestore** |
-| Lokalnie | **shared_preferences** (JSON, prefs Flutter + zapis z Kotlina), **home_widget** (Android widget prefs) |
+| Lokalnie | **shared_preferences** (JSON, prefs Flutter + zapis z Kotlina), **home_widget** (Android widget prefs); **`file_picker`** (zapis CSV na dysku), **`path_provider`** (katalog tymczasowy przed `share_plus`) |
+| Kalendarz UI | **`table_calendar`** + `intl` `initializeDateFormatting` w `main` (`en_US`, `pl_PL`) |
 | Sieć / offline | **connectivity_plus** do warunkowania zapytań; kolejka pending |
 | Android | **Kotlin** — `ForegroundService`, `AppWidgetProvider` (home_widget), **MethodChannel** `work_timer/service_control` |
 | iOS | **Swift** — `AppDelegate` + **WidgetKit** + **App Groups** (`UserDefaults`), te same nazwy metod MethodChannel co na Androidzie; brak ForegroundService (timer = Flutter + cache) |
@@ -28,9 +29,10 @@ lib/
 ├── bloc/                     # auth_cubit.dart, timer_cubit.dart, settings_cubit.dart
 ├── l10n/                     # app_*.arb, app_localizations*.dart (generowane), work_mode_strings.dart
 ├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart
-├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, workspaces_tab, settings_tab
-├── models/                   # work_entry, workspace, work_mode
-├── export/                   # work_entries_csv.dart — CSV pod Excel (BOM, separator z locale)
+├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, calendar_tab, workspaces_tab, settings_tab
+├── models/                   # work_entry, workspace, work_mode, entry_type, billing_currency
+├── utils/                    # m.in. workspace_color, project_field_utils (slug / domena e-mail)
+├── export/                   # work_entries_csv.dart — CSV pod Excel (BOM, separator z locale; kolumny m.in. entryType, billable)
 ├── services/
 │   ├── auth_service.dart
 │   ├── auth_native_sync.dart      # flaga zalogowania — Android widget; iOS reload widgetów
@@ -43,7 +45,9 @@ lib/
 │   ├── timer_service_bridge.dart   # MethodChannel Android + iOS (App Group / reload)
 │   └── stats_service.dart
 └── widgets/
-    └── splash_loading_view.dart
+    ├── splash_loading_view.dart
+    ├── project_editor_sheet.dart    # formularz projektu (bottom sheet)
+    └── stop_session_debrief_dialog.dart
 ```
 
 ---
@@ -77,7 +81,8 @@ lib/
   - list workspace’ów i aktywny workspace,
   - migracja legacy `work_entries_v1` → workspace `default` (jednorazowo).
 - **Merge przy online:** dla zakresu „bieżący miesiąc” wynik Firestore jest scalany z lokalnym cache miesiąca (uniknięcie „znikania” świeżych wpisów przed sync).
-- **Workspace w Firestore:** `fetchWorkspaces` pobiera całą kolekcję i filtruje `!isArchived` po stronie klienta (dokumenty bez pola `isArchived` nadal działają); pojedynczy uszkodzony dokument nie przerywa importu.
+- **Workspace w Firestore:** `FirebaseWorkStore.fetchWorkspaces` pobiera **całą** kolekcję (również zarchiwizowane dokumenty) i zwraca listę dla merge w repozytorium; **filtrowanie** „aktywnych” vs archiwum odbywa się w UI (`TimerTab`, `WorkspacesTab`). Dokumenty bez pola `isArchived` nadal działają; pojedynczy uszkodzony dokument nie przerywa importu.
+- **Aktywny projekt przy archiwum:** po wczytaniu stanu lub zapisie projektu `WorkRepository` stara się ustawić aktywny kontekst na pierwszy **niezarchiwizowany** (best effort).
 - **Timer session** — JSON w `SharedPreferences` pod kluczem zgodnym z zapisem Kotlin (`flutter.timer_session_v1`), spójny format z `LocalTimerSession`.
 
 ---
@@ -122,7 +127,7 @@ lib/
 - **MethodChannel** `work_timer/service_control` w **`AppDelegate.swift`**: `sync`, `syncWidgetWorkspaces`, `play`/`pause`/`stop` (no-op + odświeżenie timeline), `getNativeTimerSnapshot` (lustro z App Group), `getWidgetWorkspaceSelection`, `reloadWidgets`.
 - **App Group** (to samo ID w Runner i w rozszerzeniu): `group.com.worktimer.workTimer`; zapis przez **`UserDefaults(suiteName:)`** — klucze `wt_*` (m.in. `wt_runState`, `wt_selectedWorkspaceId`, `wt_startTimestampMs`, `wt_elapsedSeconds`, `wt_pausedAccumulatedSeconds`, `wt_resumeAtMs`, `wt_workspacesJson`, `wt_lastUpdatedAtMs`).
 - **WidgetKit:** kod źródłowy w **`ios/WorkTimerWidgetExtension/`** (`WorkTimerWidget.swift`, `Info.plist`, `WorkTimerWidgetExtension.entitlements`). W Xcode trzeba **dodać target Widget Extension**, wskazać te pliki, ustawić **App Groups** jak w Runner, osadzić appex (Embed Foundation Extensions). Repozytorium dostarcza kod — pełna konfiguracja targetu jest po stronie Xcode (Team / podpisy).
-- **Deep link** `worktimer://` — w **`Info.plist`** Runnera; **`IosDeepLinkNav`** + kanał `work_timer/deeplink` (`onOpenUrl`). Przykład: `worktimer://workspaces` przełącza zakładkę na workspace’y.
+- **Deep link** `worktimer://` — w **`Info.plist`** Runnera; **`IosDeepLinkNav`** + kanał `work_timer/deeplink` (`onOpenUrl`). Indeks zakładki z deep linku jest **obcinany do zakresu 0…5** (kolejność w `HomeShell`: Timer, Historia, Statystyki, Kalendarz, Projekty, Ustawienia); historyczny adres `…/workspaces` mapuje się na zakładkę **Projekty** (indeks **4**).
 - **Throttle:** `TimerCubit` wysyła pełny `sync` do iOS co **~15 s** podczas `running`, żeby nie obciążać bridge co sekundę; przy zdarzeniach dyskretnych (`play`/`pause`/`stop`/zmiana workspace) synchronizacja jest natychmiastowa.
 - **Widget iOS:** podgląd — workspace, status (Idle / Running / Paused), czas (dla `running` liczony z `resumeAt` + `pausedAccumulatedSeconds` w Swift). Tap na nazwie workspace → `worktimer://workspaces`. Sterowanie timera z widgetu **App Intents** nie jest wymagane na tym etapie (można dodać później z zapisem do App Group + `WidgetCenter.reloadAllTimelines()`).
 
@@ -139,7 +144,7 @@ lib/
 
 - **`AppColors`** — paleta marki + powierzchnie jasne; osobne stałe **`surface*Dark`**, **`borderInputIdleDark`**, **`brandNavIndicatorDark`**; metoda **`colorSchemeFor(Brightness)`** łączy `ColorScheme.fromSeed(brandPrimary)` z tymi warstwami w trybie ciemnym.
 - **`buildWorkTimerTheme(brightness)`** (`app_theme.dart`) — `colorScheme`, `textTheme` z **`AppTypography.textTheme`**, `CardTheme`, `InputDecorationTheme`, `FilledButton`, `NavigationBarTheme`, `dividerTheme`, `appBarTheme`.
-- **Ustawienia użytkownika** — `SettingsTab` + `SettingsCubit`: `AppLocalePreference` (system / pl / en) oraz `ThemeMode` (light / dark / system), persystencja w `SharedPreferences`.
+- **Ustawienia użytkownika** — `SettingsTab` + `SettingsCubit`: `AppLocalePreference` (system / pl / en), `ThemeMode` (light / dark / system), **`showDebriefAfterStop`** (dialog podsumowania po zatrzymaniu timera); persystencja w `SharedPreferences`.
 
 ---
 
@@ -156,6 +161,23 @@ lib/
 - **`refreshStatsEntries`** (domyślnie) ładuje wpisy od **wcześniejszej** z dat: pierwszy dzień bieżącego miesiąca **albo** poniedziałek tygodnia ISO (`weekStartMonday`). Dzięki temu przy początku miesiąca wykres „Podsumowanie tygodnia” ma dane także z dni leżących w poprzednim miesiąku, ale w tym samym tygodniu kalendarzowym.
 - Kafelki **„Ten miesiąc”**, liczba sesji i średnia liczą tylko wpisy z **bieżącego miesiąca kalendarzowego** (niezależnie od rozszerzonego zakresu pobrania).
 - **Wykres słupkowy:** kubełki z `weekDayDurations` / suma z `entriesInCurrentWeek`; rysowanie przez **`LayoutBuilder` + `SizedBox`** (jawna wysokość słupka) — unika niewidocznych słupków przy starszym wzorcu `FractionallySizedBox` + `DecoratedBox` bez dziecka.
+- **Rozliczenia (szacunek):** `StatsService.buildBillingEstimate` — sumy czasu z `WorkEntry.isBillable` vs brak flagi; kwoty tylko dla wpisów typu **praca** + billable + dodatnia stawka w `Workspace`, **grupowanie po kodzie waluty** (brak przeliczania między walutami). UI: kafelki + lista linii per waluta.
+
+---
+
+## 7d. Kalendarz (`CalendarTab`)
+
+- Źródło danych: **`TimerCubit.statsEntries`** po **`refreshStatsEntries`** z zakresem **od pierwszego do ostatniego dnia wyświetlanego miesiąca** (przy zmianie strony kalendarza).
+- Markery dni: kropki w kolorze projektu (`Workspace.colorHex` → `workspaceAccentColor`).
+- Szczegóły wpisów pod wybranym dniem: czas trwania, przedział godzin, etykieta projektu (l10n).
+
+---
+
+## 7e. Eksport CSV (`HistoryTab`)
+
+- Generowanie: **`workEntriesToCsv`** (`lib/export/work_entries_csv.dart`) — BOM UTF-8, separator `;` dla locale `pl`, `,` w pozostałych; kolumny m.in. `entryType`, `isBillable`, `taskTitle`, `note`.
+- **Udostępnianie:** zapis tymczasowy w `getTemporaryDirectory`, potem **`SharePlus`**.
+- **Zapis lokalny:** **`FilePicker.platform.saveFile`** (tylko platformy nie-web); na **web** komunikat zachęcający do użycia udostępniania (brak natywnego zapisu ścieżki).
 
 ---
 
@@ -184,10 +206,11 @@ lib/
 ## 9. Testy manualne (skrót checklisty)
 
 - Rejestracja, logowanie, reset hasła.
-- Workspace: tworzenie, zmiana nazwy, przełączanie; rozdzielenie wpisów.
+- Projekty: tworzenie / edycja / archiwum; przełączanie; rozdzielenie wpisów; timer nie startuje na zarchiwizowanym projekcie.
 - Timer online → wpisy w Firestore z poprawnym `workspaceId`.
-- Historia: dodaj / edytuj / usuń.
-- Statystyki: tydzień/miesiąc, filtry workspace.
+- Historia: dodaj / edytuj / usuń; typ wpisu, CSV share + zapis lokalny.
+- Statystyki: tydzień/miesiąc, filtry projektów, blok rozliczeń.
+- Kalendarz: zmiana miesiąca, wybór dnia.
 - Offline: operacje lokalne → powrót sieci → **syncPending**.
 - Reinstalacja → logowanie → dane z chmury.
 - **Widget Android:** aktualizacja po zmianach; bez logowania — otwarcie aplikacji zamiast startu timera; po zalogowaniu — pełna obsługa.
@@ -196,7 +219,7 @@ lib/
 
 ## 10. Testy automatyczne
 
-W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, eksport **CSV** `workEntriesToCsv`, mapowanie błędów Auth, `SettingsCubit`) — uruchomienie: `flutter test`.
+W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService** w tym **`buildBillingEstimate`**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, eksport **CSV** `workEntriesToCsv` (nagłówek z nowymi kolumnami), mapowanie błędów Auth, **`SettingsCubit`** w tym **debrief**) — uruchomienie: `flutter test`.
 
 ---
 
@@ -216,7 +239,8 @@ Włącz **Actions** w ustawieniach repozytorium (domyślnie w publicznych repach
 - **macOS / desktop:** `TimerServiceBridge` nie wywołuje natywnego widgetu iOS/Android; opcjonalnie **`home_widget`** w ścieżce „innej niż Android/iOS” w **`TimerCubit`** (zgodnie z kodem).
 - Czasy wyświetlane w sekundach mogą różnić się o pojedyncze sekundy w logach Kotlina vs intenty Fluttera (zaokrąglenie sekund w sync).
 - **Timer:** po **`stop`** wywoływane jest **`refreshStatsEntries`**, żeby **`statsEntries`** odświeżyły się razem z historią.
+- **Modele Firestore:** wpisy i projekty mogą zawierać **dodatkowe opcjonalne pola** (task, notatka, typ wpisu, billable, stawka, waluta itd.) — reguły w **`firestore.rules`** weryfikują minimalny zestaw wymaganych kluczy; merge zapisu używa **`SetOptions(merge: true)`** tam, gdzie implementacja na to pozwala.
 
 ---
 
-*Ostatnia aktualizacja dokumentu: reguły Firestore (workspaces + entries), kolejka workspace’ów, statystyki (zakres tygodnia/miesiąca, wykres), § 7c.*
+*Ostatnia aktualizacja dokumentu: projekty (model Workspace), typy wpisów, rozliczenia w statystykach, kalendarz, eksport CSV (share + zapis lokalny), debrief po stopie, synchronizacja listy workspace’ów z archiwum (§ 5, § 7c–7e).*

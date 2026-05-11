@@ -45,6 +45,8 @@ dependencies:
   home_widget: ^0.8.0
   path_provider: ^2.1.5
   share_plus: ^11.0.0
+  file_picker: ^8.3.7
+  table_calendar: ^3.2.0
 
 dev_dependencies:
   flutter_test:

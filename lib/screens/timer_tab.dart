@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../bloc/settings_cubit.dart';
 import '../bloc/timer_cubit.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/work_mode_strings.dart';
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
+import '../models/workspace.dart';
 import '../utils/calendar_utils.dart';
 import '../utils/format_duration.dart';
+import '../utils/workspace_color.dart';
+import '../widgets/stop_session_debrief_dialog.dart';
 
 class TimerTab extends StatelessWidget {
   const TimerTab({super.key});
@@ -39,6 +43,21 @@ class TimerTab extends StatelessWidget {
     };
   }
 
+  static List<Workspace> _pickerProjects(TimerState s) {
+    final open = s.workspaces
+        .where((w) => !w.isArchived)
+        .toList(growable: false);
+    return open.isNotEmpty ? open : [...s.workspaces];
+  }
+
+  static String _pickerWorkspaceId(TimerState s) {
+    final list = _pickerProjects(s);
+    if (list.any((w) => w.id == s.activeWorkspaceId))
+      return s.activeWorkspaceId;
+    if (list.isNotEmpty) return list.first.id;
+    return s.activeWorkspaceId;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -65,7 +84,15 @@ class TimerTab extends StatelessWidget {
         late final IconData primaryIcon;
         switch (state.runState) {
           case TimerRunState.idle:
-            primaryOnPressed = cubit.play;
+            primaryOnPressed = () {
+              if (state.activeWorkspace.isArchived) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.timerArchivedProjectSnack)),
+                );
+                return;
+              }
+              cubit.play();
+            };
             primaryLabel = l10n.timerActionStart;
             primaryIcon = Icons.play_arrow_rounded;
             break;
@@ -75,11 +102,22 @@ class TimerTab extends StatelessWidget {
             primaryIcon = Icons.pause_rounded;
             break;
           case TimerRunState.paused:
-            primaryOnPressed = cubit.play;
+            primaryOnPressed = () {
+              if (state.activeWorkspace.isArchived) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.timerArchivedProjectSnack)),
+                );
+                return;
+              }
+              cubit.play();
+            };
             primaryLabel = l10n.timerActionResume;
             primaryIcon = Icons.play_arrow_rounded;
             break;
         }
+
+        final pickerList = _pickerProjects(state);
+        final pickerValue = _pickerWorkspaceId(state);
 
         final pulse =
             state.runState == TimerRunState.running &&
@@ -158,12 +196,33 @@ class TimerTab extends StatelessWidget {
                               : DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     isExpanded: true,
-                                    value: state.activeWorkspaceId,
-                                    items: state.workspaces
+                                    value: pickerValue,
+                                    items: pickerList
                                         .map(
                                           (w) => DropdownMenuItem<String>(
                                             value: w.id,
-                                            child: Text(w.name),
+                                            child: Row(
+                                              children: [
+                                                CircleAvatar(
+                                                  radius: 7,
+                                                  backgroundColor:
+                                                      workspaceAccentColor(
+                                                        w.colorHex,
+                                                        scheme.primary,
+                                                      ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: Text(
+                                                    w.isArchived
+                                                        ? '${w.name} · ${l10n.projectsArchived}'
+                                                        : w.name,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         )
                                         .toList(),
@@ -318,7 +377,23 @@ class TimerTab extends StatelessWidget {
                       SizedBox(
                         height: 48,
                         child: OutlinedButton.icon(
-                          onPressed: () => cubit.stop(),
+                          onPressed: () async {
+                            final settings = context.read<SettingsCubit>();
+                            StopSessionDebriefResult? r;
+                            if (settings.state.showDebriefAfterStop &&
+                                context.mounted) {
+                              r = await showStopSessionDebriefDialog(context);
+                            }
+                            if (!context.mounted) return;
+                            if (r?.neverShowAgain == true) {
+                              await settings.setShowDebriefAfterStop(false);
+                            }
+                            await cubit.stop(
+                              taskTitle: r?.taskTitle,
+                              note: r?.note,
+                              isBillable: r?.isBillable ?? true,
+                            );
+                          },
                           icon: const Icon(Icons.stop_circle_outlined),
                           label: Text(l10n.timerStop),
                         ),

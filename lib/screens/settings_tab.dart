@@ -105,6 +105,21 @@ class SettingsTab extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
+              l10n.settingsDebriefSection,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: SwitchListTile(
+                title: Text(l10n.settingsDebriefToggle),
+                value: settings.showDebriefAfterStop,
+                onChanged: (value) => context
+                    .read<SettingsCubit>()
+                    .setShowDebriefAfterStop(value),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
               l10n.settingsWidgetTitle,
               style: Theme.of(context).textTheme.titleMedium,
             ),

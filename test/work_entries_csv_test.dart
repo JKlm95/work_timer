@@ -23,7 +23,8 @@ void main() {
     );
     expect(
       csv.startsWith(
-        'id,workspaceId,workspaceName,start,end,durationSeconds,mode\n',
+        'id,workspaceId,workspaceName,start,end,durationSeconds,mode,'
+        'entryType,isBillable,taskTitle,note\n',
       ),
       isTrue,
     );

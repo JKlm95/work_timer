@@ -34,7 +34,8 @@ class IosDeepLinkNav {
     final path = uri.pathSegments;
 
     if (host == 'workspaces' || path.contains('workspaces')) {
-      pendingTabIndex.value = 3;
+      // HomeShell: 0 Timer, 1 Historia, 2 Statystyki, 3 Kalendarz, 4 Projekty, 5 Ustawienia
+      pendingTabIndex.value = 4;
       return;
     }
     if (host == 'open' || host.isEmpty) {

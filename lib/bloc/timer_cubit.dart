@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:uuid/uuid.dart';
 
+import '../models/entry_type.dart';
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
 import '../models/workspace.dart';
@@ -175,6 +176,22 @@ class TimerCubit extends Cubit<TimerState> {
     await _writeWidgetSnapshot();
   }
 
+  Future<void> saveProject(Workspace workspace) async {
+    await _repository.saveWorkspace(workspace);
+    emit(
+      state.copyWith(
+        workspaces: _repository.workspaces,
+        activeWorkspaceId: _repository.activeWorkspaceId,
+      ),
+    );
+    final now = DateTime.now();
+    await loadHistory(
+      DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
+    );
+    await refreshStatsEntries();
+    await _writeWidgetSnapshot();
+  }
+
   Future<void> createWorkspace(String name) async {
     final created = await _repository.createWorkspace(name);
     emit(
@@ -206,6 +223,7 @@ class TimerCubit extends Cubit<TimerState> {
   }
 
   void play() {
+    if (state.activeWorkspace.isArchived) return;
     if (state.runState == TimerRunState.running) return;
     if (state.runState == TimerRunState.idle) {
       final now = DateTime.now();
@@ -256,7 +274,11 @@ class TimerCubit extends Cubit<TimerState> {
     _writeWidgetSnapshot();
   }
 
-  Future<void> stop() async {
+  Future<void> stop({
+    String? taskTitle,
+    String? note,
+    bool isBillable = true,
+  }) async {
     if (state.runState == TimerRunState.idle) return;
 
     Duration total = state.accumulated;
@@ -272,6 +294,8 @@ class TimerCubit extends Cubit<TimerState> {
     var currentMonthEntries = state.currentMonthEntries;
     if (total > Duration.zero) {
       final mode = state.sessionMode ?? state.nextSessionMode;
+      final tt = taskTitle?.trim();
+      final nn = note?.trim();
       final entry = WorkEntry(
         id: _uuid.v4(),
         workspaceId: state.activeWorkspaceId,
@@ -279,6 +303,10 @@ class TimerCubit extends Cubit<TimerState> {
         end: end,
         mode: mode,
         updatedAt: DateTime.now(),
+        taskTitle: tt == null || tt.isEmpty ? null : tt,
+        note: nn == null || nn.isEmpty ? null : nn,
+        isBillable: isBillable,
+        entryType: EntryType.work,
       );
       entries = [entry, ...entries]..sort((a, b) => b.start.compareTo(a.start));
       currentMonthEntries = [entry, ...currentMonthEntries]
@@ -309,8 +337,14 @@ class TimerCubit extends Cubit<TimerState> {
     required DateTime start,
     required DateTime end,
     required WorkMode mode,
+    String taskTitleRaw = '',
+    String noteRaw = '',
+    bool isBillable = true,
+    EntryType entryType = EntryType.work,
   }) async {
     if (!end.isAfter(start)) return;
+    final tt = taskTitleRaw.trim();
+    final nn = noteRaw.trim();
     final entry = WorkEntry(
       id: _uuid.v4(),
       workspaceId: state.activeWorkspaceId,
@@ -318,6 +352,10 @@ class TimerCubit extends Cubit<TimerState> {
       end: end,
       mode: mode,
       updatedAt: DateTime.now(),
+      taskTitle: tt.isEmpty ? null : tt,
+      note: nn.isEmpty ? null : nn,
+      isBillable: isBillable,
+      entryType: entryType,
     );
     await _repository.addEntry(entry);
     await loadHistory(DateTimeRange(start: start, end: end));
@@ -329,8 +367,14 @@ class TimerCubit extends Cubit<TimerState> {
     required DateTime start,
     required DateTime end,
     required WorkMode mode,
+    required String taskTitleRaw,
+    required String noteRaw,
+    required bool isBillable,
+    required EntryType entryType,
   }) async {
     if (!end.isAfter(start)) return;
+    final tt = taskTitleRaw.trim();
+    final nn = noteRaw.trim();
     final updated = WorkEntry(
       id: original.id,
       workspaceId: original.workspaceId,
@@ -339,6 +383,10 @@ class TimerCubit extends Cubit<TimerState> {
       mode: mode,
       updatedAt: DateTime.now(),
       isDeleted: false,
+      taskTitle: tt.isEmpty ? null : tt,
+      note: nn.isEmpty ? null : nn,
+      isBillable: isBillable,
+      entryType: entryType,
     );
     await _repository.updateEntry(updated);
     await loadHistory(DateTimeRange(start: start, end: end));

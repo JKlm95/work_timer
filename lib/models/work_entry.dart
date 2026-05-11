@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'entry_type.dart';
 import 'work_mode.dart';
 import 'workspace.dart';
 
@@ -12,6 +13,10 @@ class WorkEntry {
     required this.mode,
     required this.updatedAt,
     this.isDeleted = false,
+    this.taskTitle,
+    this.note,
+    this.isBillable = true,
+    this.entryType = EntryType.work,
   });
 
   final String id;
@@ -22,7 +27,48 @@ class WorkEntry {
   final DateTime updatedAt;
   final bool isDeleted;
 
+  final String? taskTitle;
+  final String? note;
+
+  /// Dla rozliczeń; domyślnie true (sesja timera).
+  final bool isBillable;
+  final EntryType entryType;
+
   Duration get duration => end.difference(start);
+
+  /// Czy wpis liczy się do szacowanego przychodu (stawka × czas).
+  bool get countsTowardEarningsEstimate =>
+      !isDeleted &&
+      entryType == EntryType.work &&
+      isBillable &&
+      start.isBefore(end);
+
+  WorkEntry copyWith({
+    String? workspaceId,
+    DateTime? start,
+    DateTime? end,
+    WorkMode? mode,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    String? taskTitle,
+    String? note,
+    bool? isBillable,
+    EntryType? entryType,
+  }) {
+    return WorkEntry(
+      id: id,
+      workspaceId: workspaceId ?? this.workspaceId,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      mode: mode ?? this.mode,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      taskTitle: taskTitle ?? this.taskTitle,
+      note: note ?? this.note,
+      isBillable: isBillable ?? this.isBillable,
+      entryType: entryType ?? this.entryType,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -32,6 +78,10 @@ class WorkEntry {
     'mode': mode.storageValue,
     'updatedAt': updatedAt.toIso8601String(),
     'isDeleted': isDeleted,
+    'taskTitle': taskTitle,
+    'note': note,
+    'isBillable': isBillable,
+    'entryType': entryTypeStorage(entryType),
   };
 
   Map<String, dynamic> toFirestore() => {
@@ -41,9 +91,21 @@ class WorkEntry {
     'mode': mode.storageValue,
     'updatedAt': updatedAt,
     'isDeleted': isDeleted,
+    'isBillable': isBillable,
+    'entryType': entryTypeStorage(entryType),
+    if (taskTitle != null && taskTitle!.trim().isNotEmpty)
+      'taskTitle': taskTitle!.trim(),
+    if (note != null && note!.trim().isNotEmpty) 'note': note!.trim(),
   };
 
   factory WorkEntry.fromJson(Map<String, dynamic> json) {
+    bool billable(dynamic v, EntryType type) {
+      if (v is bool) return v;
+      if (type != EntryType.work) return false;
+      return true;
+    }
+
+    final type = entryTypeFromStorage(json['entryType'] as String?);
     return WorkEntry(
       id: json['id'] as String,
       workspaceId: json['workspaceId'] as String? ?? Workspace.defaultId,
@@ -54,6 +116,10 @@ class WorkEntry {
         json['updatedAt'] as String? ?? json['end'] as String,
       ),
       isDeleted: json['isDeleted'] as bool? ?? false,
+      taskTitle: json['taskTitle'] as String?,
+      note: json['note'] as String?,
+      isBillable: billable(json['isBillable'], type),
+      entryType: type,
     );
   }
 
@@ -65,6 +131,14 @@ class WorkEntry {
       return DateTime.now();
     }
 
+    bool billable(dynamic v, EntryType type) {
+      if (v is bool) return v;
+      if (type != EntryType.work) return false;
+      return true;
+    }
+
+    final type = entryTypeFromStorage(json['entryType'] as String?);
+
     return WorkEntry(
       id: id,
       workspaceId: json['workspaceId'] as String? ?? Workspace.defaultId,
@@ -73,6 +147,10 @@ class WorkEntry {
       mode: workModeFromStorage(json['mode'] as String?),
       updatedAt: parseDate(json['updatedAt']),
       isDeleted: json['isDeleted'] as bool? ?? false,
+      taskTitle: json['taskTitle'] as String?,
+      note: json['note'] as String?,
+      isBillable: billable(json['isBillable'], type),
+      entryType: type,
     );
   }
 }

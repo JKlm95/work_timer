@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
 import '../services/ios_deep_link_nav.dart';
+import 'calendar_tab.dart';
 import 'history_tab.dart';
 import 'settings_tab.dart';
 import 'stats_tab.dart';
@@ -42,7 +43,7 @@ class _HomeShellState extends State<HomeShell> {
   void _onIosDeepLinkTab() {
     final next = IosDeepLinkNav.instance.pendingTabIndex.value;
     if (next == null || !mounted) return;
-    setState(() => _index = next.clamp(0, 4));
+    setState(() => _index = next.clamp(0, 5));
     IosDeepLinkNav.instance.pendingTabIndex.value = null;
   }
 
@@ -71,8 +72,9 @@ class _HomeShellState extends State<HomeShell> {
           0 => const TimerTab(key: ValueKey('timer')),
           1 => const HistoryTab(key: ValueKey('history')),
           2 => const StatsTab(key: ValueKey('stats')),
-          3 => const WorkspacesTab(key: ValueKey('workspaces')),
-          4 => const SettingsTab(key: ValueKey('settings')),
+          3 => const CalendarTab(key: ValueKey('calendar')),
+          4 => const WorkspacesTab(key: ValueKey('workspaces')),
+          5 => const SettingsTab(key: ValueKey('settings')),
           _ => const TimerTab(key: ValueKey('timer')),
         },
       ),
@@ -96,8 +98,13 @@ class _HomeShellState extends State<HomeShell> {
             label: l10n.navStats,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.workspaces_outline),
-            selectedIcon: const Icon(Icons.workspaces),
+            icon: const Icon(Icons.calendar_month_outlined),
+            selectedIcon: const Icon(Icons.calendar_month),
+            label: l10n.navCalendar,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.folder_outlined),
+            selectedIcon: const Icon(Icons.folder),
             label: l10n.navWorkspaces,
           ),
           NavigationDestination(

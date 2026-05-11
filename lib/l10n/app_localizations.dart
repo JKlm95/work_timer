@@ -131,8 +131,14 @@ abstract class AppLocalizations {
   /// No description provided for @navWorkspaces.
   ///
   /// In en, this message translates to:
-  /// **'Workspaces'**
+  /// **'Projects'**
   String get navWorkspaces;
+
+  /// No description provided for @navCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get navCalendar;
 
   /// No description provided for @navSettings.
   ///
@@ -257,14 +263,20 @@ abstract class AppLocalizations {
   /// No description provided for @timerWorkspace.
   ///
   /// In en, this message translates to:
-  /// **'Workspace'**
+  /// **'Project'**
   String get timerWorkspace;
 
   /// No description provided for @timerWorkspaceLoading.
   ///
   /// In en, this message translates to:
-  /// **'Loading workspaces…'**
+  /// **'Loading projects…'**
   String get timerWorkspaceLoading;
+
+  /// No description provided for @timerArchivedProjectSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'This project is archived — start timer on an active project.'**
+  String get timerArchivedProjectSnack;
 
   /// No description provided for @timerLockedMode.
   ///
@@ -503,8 +515,44 @@ abstract class AppLocalizations {
   /// No description provided for @statsWorkspaceShare.
   ///
   /// In en, this message translates to:
-  /// **'Workspace share'**
+  /// **'Time by project'**
   String get statsWorkspaceShare;
+
+  /// No description provided for @statsBillingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing (estimate)'**
+  String get statsBillingTitle;
+
+  /// No description provided for @statsBillableHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Billable time'**
+  String get statsBillableHours;
+
+  /// No description provided for @statsNonBillableHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-billable time'**
+  String get statsNonBillableHours;
+
+  /// No description provided for @statsEstimatedEarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated earnings by currency'**
+  String get statsEstimatedEarnings;
+
+  /// No description provided for @statsEstimatedEarningsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Set an hourly rate on a project to see estimates.'**
+  String get statsEstimatedEarningsEmpty;
+
+  /// No description provided for @statsEstimatedEarningsLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{code}: {amount}'**
+  String statsEstimatedEarningsLine(String code, String amount);
 
   /// No description provided for @statsNoData.
   ///
@@ -539,7 +587,7 @@ abstract class AppLocalizations {
   /// No description provided for @historyWorkspaceLabel.
   ///
   /// In en, this message translates to:
-  /// **'Workspace: {name}'**
+  /// **'Project: {name}'**
   String historyWorkspaceLabel(String name);
 
   /// No description provided for @historyFilteredSum.
@@ -605,8 +653,38 @@ abstract class AppLocalizations {
   /// No description provided for @historyExportCsvTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Share filtered entries as a CSV file (opens in Excel)'**
+  /// **'Export filtered entries as CSV'**
   String get historyExportCsvTooltip;
+
+  /// No description provided for @historyExportShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share…'**
+  String get historyExportShare;
+
+  /// No description provided for @historyExportSaveLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to device'**
+  String get historyExportSaveLocal;
+
+  /// No description provided for @historyExportSaveDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save CSV file'**
+  String get historyExportSaveDialogTitle;
+
+  /// No description provided for @historyExportSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved: {fileName}'**
+  String historyExportSaved(String fileName);
+
+  /// No description provided for @historyExportSaveWebHint.
+  ///
+  /// In en, this message translates to:
+  /// **'In the browser, use Share — local save isn’t supported here.'**
+  String get historyExportSaveWebHint;
 
   /// No description provided for @historyExportEmpty.
   ///
@@ -625,6 +703,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Work Timer export'**
   String get historyExportShareSubject;
+
+  /// No description provided for @historyEntryTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry type'**
+  String get historyEntryTypeLabel;
+
+  /// No description provided for @historyBillableLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Billable'**
+  String get historyBillableLabel;
+
+  /// No description provided for @historyTaskLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Task / title'**
+  String get historyTaskLabel;
+
+  /// No description provided for @historyNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get historyNoteLabel;
+
+  /// No description provided for @historyAllEntryTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'All types'**
+  String get historyAllEntryTypes;
+
+  /// No description provided for @entryTypeWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get entryTypeWork;
+
+  /// No description provided for @entryTypeVacation.
+  ///
+  /// In en, this message translates to:
+  /// **'Vacation'**
+  String get entryTypeVacation;
+
+  /// No description provided for @entryTypeSickLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Sick leave'**
+  String get entryTypeSickLeave;
+
+  /// No description provided for @entryTypeBusinessTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Business trip'**
+  String get entryTypeBusinessTrip;
+
+  /// No description provided for @entryTypeOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get entryTypeOther;
 
   /// No description provided for @workspacesNewTitle.
   ///
@@ -661,6 +799,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add workspace'**
   String get workspacesFab;
+
+  /// No description provided for @projectsFab.
+  ///
+  /// In en, this message translates to:
+  /// **'Add project'**
+  String get projectsFab;
+
+  /// No description provided for @projectsArchivedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get projectsArchivedSection;
+
+  /// No description provided for @projectsNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New project'**
+  String get projectsNewTitle;
+
+  /// No description provided for @projectsEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit project'**
+  String get projectsEditTitle;
+
+  /// No description provided for @projectsNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Project name'**
+  String get projectsNameLabel;
+
+  /// No description provided for @projectsArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get projectsArchived;
+
+  /// No description provided for @projectsArchivedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide from picker; block timer start.'**
+  String get projectsArchivedSubtitle;
+
+  /// No description provided for @projectsHourlyRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Hourly rate (optional)'**
+  String get projectsHourlyRate;
+
+  /// No description provided for @projectsCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get projectsCurrency;
+
+  /// No description provided for @projectsCompanyName.
+  ///
+  /// In en, this message translates to:
+  /// **'Company name'**
+  String get projectsCompanyName;
+
+  /// No description provided for @projectsCompanySlugHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Company slug (optional)'**
+  String get projectsCompanySlugHint;
+
+  /// No description provided for @projectsEmployeeFirstName.
+  ///
+  /// In en, this message translates to:
+  /// **'Your first name'**
+  String get projectsEmployeeFirstName;
+
+  /// No description provided for @projectsEmployeeLastName.
+  ///
+  /// In en, this message translates to:
+  /// **'Your last name'**
+  String get projectsEmployeeLastName;
+
+  /// No description provided for @projectsEmployeeWorkEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Work e-mail'**
+  String get projectsEmployeeWorkEmail;
+
+  /// No description provided for @projectsEmployerEmailsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Employer e-mails (comma-separated)'**
+  String get projectsEmployerEmailsHint;
+
+  /// No description provided for @projectsShareEmployer.
+  ///
+  /// In en, this message translates to:
+  /// **'Prepare fields for employer sharing'**
+  String get projectsShareEmployer;
+
+  /// No description provided for @projectsArchiveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to archived'**
+  String get projectsArchiveAction;
+
+  /// No description provided for @projectsRestoreAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore project'**
+  String get projectsRestoreAction;
+
+  /// No description provided for @projectsColorSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get projectsColorSection;
+
+  /// No description provided for @projectsColorHexOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom color (hex, optional)'**
+  String get projectsColorHexOptional;
+
+  /// No description provided for @projectsValidationName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a project name.'**
+  String get projectsValidationName;
+
+  /// No description provided for @calendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendarTitle;
+
+  /// No description provided for @debriefTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session summary'**
+  String get debriefTitle;
+
+  /// No description provided for @debriefTaskLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Task / title'**
+  String get debriefTaskLabel;
+
+  /// No description provided for @debriefNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get debriefNoteLabel;
+
+  /// No description provided for @debriefBillableLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Billable'**
+  String get debriefBillableLabel;
+
+  /// No description provided for @debriefDontShowAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t show again'**
+  String get debriefDontShowAgain;
+
+  /// No description provided for @settingsDebriefSection.
+  ///
+  /// In en, this message translates to:
+  /// **'After stopping timer'**
+  String get settingsDebriefSection;
+
+  /// No description provided for @settingsDebriefToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show session summary dialog'**
+  String get settingsDebriefToggle;
 
   /// No description provided for @settingsTitle.
   ///

@@ -2,7 +2,7 @@
 
 [![Flutter CI](https://github.com/JKlm95/work_timer/actions/workflows/flutter_ci.yml/badge.svg)](https://github.com/JKlm95/work_timer/actions/workflows/flutter_ci.yml)
 
-**Work Timer** to aplikacja mobilna (Flutter) do rejestrowania czasu pracy w **wielu workspace’ach**, z **Firebase** (logowanie e-mail, Firestore), **timera sesji**, historią, statystykami i **widgetem na ekranie głównym Androida** (MethodChannel, foreground service, SharedPreferences) oraz ścieżką **iOS** (WidgetKit, App Groups, `UserDefaults` — bez ForegroundService; timer w oparciu o timestampy w Flutterze). Obsługa **offline** (cache, kolejka synchronizacji). Motyw jasny/ciemny i lokalizacja PL/EN.
+**Work Timer** to aplikacja mobilna (Flutter) do rejestrowania czasu pracy w **wielu projektach** (w kodzie nadal **`Workspace`**), z **Firebase** (logowanie e-mail, Firestore), **timera sesji**, historią, statystykami i **widgetem na ekranie głównym Androida** (MethodChannel, foreground service, SharedPreferences) oraz ścieżką **iOS** (WidgetKit, App Groups, `UserDefaults` — bez ForegroundService; timer w oparciu o timestampy w Flutterze). Obsługa **offline** (cache, kolejka synchronizacji). Motyw jasny/ciemny i lokalizacja PL/EN.
 
 Szczegóły architektury, setup Firebase i dane: **[TECHNICAL.md](TECHNICAL.md)**.
 
@@ -23,21 +23,22 @@ Flutter (`TimerServiceBridge`) → **MethodChannel** `work_timer/service_control
 
 ## Problem i rozwiązanie
 
-Śledzenie czasu pracy (np. home office vs biuro) często rozjeżdża się między „timerem w głowie” a późniejszym uzupełnianiem arkuszy. **Work Timer** zbiera to w jednym miejscu: szybki timer, skrót na pulpicie telefonu oraz historia i podsumowania per workspace.
+Śledzenie czasu pracy (np. home office vs biuro) często rozjeżdża się między „timerem w głowie” a późniejszym uzupełnianiem arkuszy. **Work Timer** zbiera to w jednym miejscu: szybki timer, skrót na pulpicie telefonu oraz historia i podsumowania **per projekt**.
 
 ---
 
 ## Możliwości
 
 - **Konto** — rejestracja, logowanie, reset hasła (Firebase Auth).
-- **Workspace’y** — tworzenie, zmiana nazwy, przełączanie kontekstu; wpisy powiązane z workspace.
-- **Timer** — start / pauza / stop, tryb pracy (np. zdalna / biuro).
-- **Historia** — zakres dat, filtry, ręczne wpisy, eksport **CSV** (`lib/export/work_entries_csv.dart`, `share_plus`).
-- **Statystyki** — agregaty, wykres tygodnia (ISO, pon–nd), udział workspace’ów; zakres danych i kafelki vs wykres — **[TECHNICAL.md](TECHNICAL.md)** § 7c.
-- **Widget (Android)** — czas i sterowanie z launchera; bez logowania — otwarcie aplikacji. Przy **idle** przełączanie workspace (‹/›), lista zsynchronizowana z Fluttera.
-- **Widget (iOS)** — podgląd workspace, stan (Idle / Running / Paused) i czasu; dane z **App Group** (`TimerServiceBridge` → `AppDelegate`). Tap otwiera aplikację (`worktimer://workspaces`). Pełna konfiguracja targetu Widget Extension w Xcode: **[TECHNICAL.md](TECHNICAL.md)** § 6.6.
+- **Projekty** (UI „Projects” / „Projekty”) — tworzenie i edycja: nazwa, kolor, **stawka godzinowa + waluta** (PLN/EUR/USD/GBP, bez przeliczników między walutami), opcjonalne pola pod udostępnianie pracodawcy, **archiwum** (ukrycie z pickerów, blokada startu timera na zarchiwizowanym kontekście).
+- **Timer** — start / pauza / stop, tryb pracy (np. zdalna / biuro); opcjonalny **podsumowujący dialog po stopie** (zadanie, notatka, rozliczalność; wyłączenie w ustawieniach).
+- **Historia** — zakres dat, filtry trybu pracy **i typu wpisu** (np. praca / urlop), ręczne wpisy z polami jak przy timerze; eksport **CSV** — udostępnianie (**`share_plus`**) oraz **zapis lokalny** przez systemowy dialog (**`file_picker`**).
+- **Statystyki** — agregaty, wykres tygodnia (ISO, pon–nd), udział czasu wg projektów (z kolorem), **szacunek rozliczeń**: czas rozliczalny / nierozliczalny oraz sumy pieniężne **osobno per waluta** przy ustawionej stawce — **[TECHNICAL.md](TECHNICAL.md)** § 7c–7e.
+- **Kalendarz** — widok miesiąca z markerami wg kolorów projektów (`table_calendar`).
+- **Widget (Android)** — czas i sterowanie z launchera; bez logowania — otwarcie aplikacji. Przy **idle** przełączanie projektu (‹/›), lista zsynchronizowana z Fluttera.
+- **Widget (iOS)** — podgląd projektu, stan (Idle / Running / Paused) i czasu; dane z **App Group**. Tap (`worktimer://…`) przełącza zakładki — zakres indeksów opisany w **[TECHNICAL.md](TECHNICAL.md)** § 6.6.
 - **Offline** — kolejka wpisów i **ponawiany zapis workspace’ów** do Firestore po powrocie sieci (`syncPending`).
-- **Motyw i język** — jasny / ciemny / system; polski / angielski / locale systemu (`SettingsCubit`, ARB w `lib/l10n/`).
+- **Motyw i język** — jasny / ciemny / system; polski / angielski / locale systemu (`SettingsCubit`, ARB w `lib/l10n/`); po starcie aplikacji ładowane są dane **`intl`** dla locale kalendarza (`en_US`, `pl_PL`).
 
 ---
 
@@ -49,7 +50,7 @@ Brak wbudowanych grafik w repozytorium. Aby dodać zrzuty: utwórz folder **`doc
 
 ## Pitch (CV / opis projektu)
 
-> Aplikacja **Work Timer** (Flutter) rejestruje czas pracy w wielu workspace’ach z synchronizacją **Firebase** i obsługą **offline**. Zawiera integrację **widgetu Android** z warstwą Dart (współdzielony stan, foreground service, kanał natywny), spójność przy powrocie do aplikacji oraz ekran startowy przed wejściem w główny interfejs. Szczegóły implementacji: **[TECHNICAL.md](TECHNICAL.md)**.
+> Aplikacja **Work Timer** (Flutter) rejestruje czas pracy w wielu **projektach** (model `Workspace`) z synchronizacją **Firebase** i obsługą **offline**. Zawiera integrację **widgetu Android** z warstwą Dart (współdzielony stan, foreground service, kanał natywny), spójność przy powrocie do aplikacji oraz ekran startowy przed wejściem w główny interfejs. Szczegóły implementacji: **[TECHNICAL.md](TECHNICAL.md)**.
 
 ---
 

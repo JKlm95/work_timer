@@ -11,6 +11,7 @@ import '../models/workspace.dart';
 import '../services/stats_service.dart';
 import '../utils/calendar_utils.dart';
 import '../utils/format_duration.dart';
+import '../utils/workspace_color.dart';
 
 class StatsTab extends StatefulWidget {
   const StatsTab({super.key});
@@ -249,10 +250,17 @@ class _StatsTabState extends State<StatsTab> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.folder_outlined,
-                                size: 20,
-                                color: scheme.primary,
+                              CircleAvatar(
+                                radius: 9,
+                                backgroundColor: workspaceAccentColor(
+                                  state.workspaces
+                                      .firstWhere(
+                                        (w) => w.id == share.workspaceId,
+                                        orElse: () => state.activeWorkspace,
+                                      )
+                                      .colorHex,
+                                  scheme.primary,
+                                ).withValues(alpha: 0.45),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -272,6 +280,91 @@ class _StatsTabState extends State<StatsTab> {
                           ),
                         );
                       }).toList(),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.statsBillingTitle,
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Builder(
+                  builder: (context) {
+                    final range = DateTimeRange(
+                      start: DateTime(now.year, now.month, 1),
+                      end: now,
+                    );
+                    final wsMap = {for (final w in state.workspaces) w.id: w};
+                    final est = _statsService.buildBillingEstimate(
+                      entries: state.statsEntries,
+                      from: range.start,
+                      to: range.end,
+                      workspaceIds: _selectedWorkspaceIds,
+                      workspaces: wsMap,
+                    );
+                    final fmt = NumberFormat('#,##0.00', lc);
+                    final currencyLines =
+                        est.earningsByCurrency.entries.toList()
+                          ..sort((a, b) => a.key.compareTo(b.key));
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _MetricTile(
+                                title: l10n.statsBillableHours,
+                                value: formatDurationHm(est.billableWorked),
+                                icon: Icons.paid_outlined,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _MetricTile(
+                                title: l10n.statsNonBillableHours,
+                                value: formatDurationHm(est.nonBillableWorked),
+                                icon: Icons.money_off_outlined,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.statsEstimatedEarnings,
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (currencyLines.isEmpty)
+                          Text(
+                            l10n.statsEstimatedEarningsEmpty,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          )
+                        else
+                          ...currencyLines.map(
+                            (e) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Text(
+                                l10n.statsEstimatedEarningsLine(
+                                  e.key,
+                                  fmt.format(e.value),
+                                ),
+                                style: textTheme.bodyLarge,
+                              ),
+                            ),
+                          ),
+                      ],
                     );
                   },
                 ),
@@ -299,6 +392,7 @@ class _WorkspaceFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -310,6 +404,14 @@ class _WorkspaceFilter extends StatelessWidget {
         ),
         ...workspaces.map(
           (workspace) => FilterChip(
+            avatar: CircleAvatar(
+              radius: 10,
+              backgroundColor: workspaceAccentColor(
+                workspace.colorHex,
+                scheme.primary,
+              ).withValues(alpha: 0.45),
+              child: const SizedBox.shrink(),
+            ),
             label: Text(workspace.name),
             selected: selectedIds.contains(workspace.id),
             onSelected: (value) {

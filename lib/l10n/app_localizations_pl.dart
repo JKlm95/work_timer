@@ -24,7 +24,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get navStats => 'Statystyki';
 
   @override
-  String get navWorkspaces => 'Workspace';
+  String get navWorkspaces => 'Projekty';
+
+  @override
+  String get navCalendar => 'Kalendarz';
 
   @override
   String get navSettings => 'Ustawienia';
@@ -89,10 +92,14 @@ class AppLocalizationsPl extends AppLocalizations {
   String get timerWorkMode => 'Tryb pracy';
 
   @override
-  String get timerWorkspace => 'Workspace';
+  String get timerWorkspace => 'Projekt';
 
   @override
-  String get timerWorkspaceLoading => 'Ładowanie workspace…';
+  String get timerWorkspaceLoading => 'Ładowanie projektów…';
+
+  @override
+  String get timerArchivedProjectSnack =>
+      'Ten projekt jest zarchiwizowany — wybierz aktywny, żeby wystartować timer.';
 
   @override
   String get timerLockedMode => 'Tryb zablokowany na czas sesji.';
@@ -223,7 +230,28 @@ class AppLocalizationsPl extends AppLocalizations {
   String get statsDailyChart => 'Wykres dzienny';
 
   @override
-  String get statsWorkspaceShare => 'Udział workspace';
+  String get statsWorkspaceShare => 'Czas wg projektu';
+
+  @override
+  String get statsBillingTitle => 'Rozliczenia (szacunek)';
+
+  @override
+  String get statsBillableHours => 'Czas rozliczalny';
+
+  @override
+  String get statsNonBillableHours => 'Czas nierozliczalny';
+
+  @override
+  String get statsEstimatedEarnings => 'Szacowany przychód wg waluty';
+
+  @override
+  String get statsEstimatedEarningsEmpty =>
+      'Ustaw stawkę przy projekcie, żeby zobaczyć szacunki.';
+
+  @override
+  String statsEstimatedEarningsLine(String code, String amount) {
+    return '$code: $amount';
+  }
 
   @override
   String get statsNoData => 'Brak danych';
@@ -242,7 +270,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String historyWorkspaceLabel(String name) {
-    return 'Workspace: $name';
+    return 'Projekt: $name';
   }
 
   @override
@@ -283,7 +311,25 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get historyExportCsvTooltip =>
-      'Udostępnij przefiltrowane wpisy jako plik CSV (otwórz w Excelu)';
+      'Eksport przefiltrowanych wpisów jako CSV';
+
+  @override
+  String get historyExportShare => 'Udostępnij…';
+
+  @override
+  String get historyExportSaveLocal => 'Zapisz na urządzeniu';
+
+  @override
+  String get historyExportSaveDialogTitle => 'Zapisz plik CSV';
+
+  @override
+  String historyExportSaved(String fileName) {
+    return 'Zapisano: $fileName';
+  }
+
+  @override
+  String get historyExportSaveWebHint =>
+      'W przeglądarce użyj „Udostępnij” — lokalnego zapisu tu nie ma.';
 
   @override
   String get historyExportEmpty =>
@@ -295,6 +341,36 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get historyExportShareSubject => 'Eksport Work Timer';
+
+  @override
+  String get historyEntryTypeLabel => 'Typ wpisu';
+
+  @override
+  String get historyBillableLabel => 'Rozliczalny';
+
+  @override
+  String get historyTaskLabel => 'Zadanie / tytuł';
+
+  @override
+  String get historyNoteLabel => 'Notatka';
+
+  @override
+  String get historyAllEntryTypes => 'Wszystkie typy';
+
+  @override
+  String get entryTypeWork => 'Praca';
+
+  @override
+  String get entryTypeVacation => 'Urlop';
+
+  @override
+  String get entryTypeSickLeave => 'L4 / chorobowe';
+
+  @override
+  String get entryTypeBusinessTrip => 'Delegacja';
+
+  @override
+  String get entryTypeOther => 'Inne';
 
   @override
   String get workspacesNewTitle => 'Nowy workspace';
@@ -313,6 +389,95 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get workspacesFab => 'Dodaj workspace';
+
+  @override
+  String get projectsFab => 'Dodaj projekt';
+
+  @override
+  String get projectsArchivedSection => 'Zarchiwizowane';
+
+  @override
+  String get projectsNewTitle => 'Nowy projekt';
+
+  @override
+  String get projectsEditTitle => 'Edycja projektu';
+
+  @override
+  String get projectsNameLabel => 'Nazwa projektu';
+
+  @override
+  String get projectsArchived => 'Zarchiwizowany';
+
+  @override
+  String get projectsArchivedSubtitle =>
+      'Ukrywa z listy; blokuje start timera.';
+
+  @override
+  String get projectsHourlyRate => 'Stawka godzinowa (opcjonalnie)';
+
+  @override
+  String get projectsCurrency => 'Waluta';
+
+  @override
+  String get projectsCompanyName => 'Nazwa firmy';
+
+  @override
+  String get projectsCompanySlugHint => 'Slug firmy (opcjonalnie)';
+
+  @override
+  String get projectsEmployeeFirstName => 'Imię';
+
+  @override
+  String get projectsEmployeeLastName => 'Nazwisko';
+
+  @override
+  String get projectsEmployeeWorkEmail => 'Służbowy e-mail';
+
+  @override
+  String get projectsEmployerEmailsHint =>
+      'E-maile pracodawcy (rozdziel przecinkiem)';
+
+  @override
+  String get projectsShareEmployer => 'Pola pod udostępnianie pracodawcy';
+
+  @override
+  String get projectsArchiveAction => 'Archiwizuj';
+
+  @override
+  String get projectsRestoreAction => 'Przywróć';
+
+  @override
+  String get projectsColorSection => 'Kolor';
+
+  @override
+  String get projectsColorHexOptional => 'Własny kolor (hex, opcjonalnie)';
+
+  @override
+  String get projectsValidationName => 'Podaj nazwę projektu.';
+
+  @override
+  String get calendarTitle => 'Kalendarz';
+
+  @override
+  String get debriefTitle => 'Podsumowanie sesji';
+
+  @override
+  String get debriefTaskLabel => 'Zadanie / tytuł';
+
+  @override
+  String get debriefNoteLabel => 'Notatka';
+
+  @override
+  String get debriefBillableLabel => 'Rozliczalne';
+
+  @override
+  String get debriefDontShowAgain => 'Nie pokazuj ponownie';
+
+  @override
+  String get settingsDebriefSection => 'Po zatrzymaniu timera';
+
+  @override
+  String get settingsDebriefToggle => 'Pokaż dialog podsumowania';
 
   @override
   String get settingsTitle => 'Ustawienia';

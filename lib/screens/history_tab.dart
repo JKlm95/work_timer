@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -12,9 +14,25 @@ import '../l10n/app_localizations.dart';
 
 import '../bloc/timer_cubit.dart';
 import '../l10n/work_mode_strings.dart';
+import '../models/entry_type.dart';
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
 import '../utils/format_duration.dart';
+
+String _localizedEntryType(EntryType t, AppLocalizations l10n) {
+  switch (t) {
+    case EntryType.work:
+      return l10n.entryTypeWork;
+    case EntryType.vacation:
+      return l10n.entryTypeVacation;
+    case EntryType.sickLeave:
+      return l10n.entryTypeSickLeave;
+    case EntryType.businessTrip:
+      return l10n.entryTypeBusinessTrip;
+    case EntryType.other:
+      return l10n.entryTypeOther;
+  }
+}
 
 class HistoryTab extends StatefulWidget {
   const HistoryTab({super.key});
@@ -26,6 +44,7 @@ class HistoryTab extends StatefulWidget {
 class _HistoryTabState extends State<HistoryTab> {
   late DateTimeRange _range;
   WorkMode? _modeFilter;
+  EntryType? _entryTypeFilter;
 
   @override
   void initState() {
@@ -62,6 +81,9 @@ class _HistoryTabState extends State<HistoryTab> {
   bool _entryMatchesMode(WorkEntry e) =>
       _modeFilter == null || e.mode == _modeFilter;
 
+  bool _entryMatchesEntryType(WorkEntry e) =>
+      _entryTypeFilter == null || e.entryType == _entryTypeFilter;
+
   static String _workspaceName(TimerState state, WorkEntry e) {
     return state.workspaces
         .firstWhere(
@@ -71,44 +93,100 @@ class _HistoryTabState extends State<HistoryTab> {
         .name;
   }
 
-  Iterable<WorkEntry> _filtered(List<WorkEntry> entries) =>
-      entries.where(_entryInRange).where(_entryMatchesMode);
+  Iterable<WorkEntry> _filtered(List<WorkEntry> entries) => entries
+      .where(_entryInRange)
+      .where(_entryMatchesMode)
+      .where(_entryMatchesEntryType);
 
   Duration _sum(Iterable<WorkEntry> items) =>
       items.fold(Duration.zero, (a, e) => a + e.duration);
 
-  Future<void> _shareFilteredCsv() async {
-    final l10n = AppLocalizations.of(context)!;
+  /// Zwraca treść CSV i proponowaną nazwę pliku, albo `null` gdy nie ma wpisów.
+  ({String csv, String fileName})? _buildCsvExport() {
     final cubit = context.read<TimerCubit>();
     final filtered = _filtered(cubit.state.entries).toList();
-    if (filtered.isEmpty) {
+    if (filtered.isEmpty) return null;
+    final names = {for (final w in cubit.state.workspaces) w.id: w.name};
+    final sep = Localizations.localeOf(context).languageCode == 'pl'
+        ? ';'
+        : ',';
+    final csv = workEntriesToCsv(
+      filtered,
+      workspaceNames: names,
+      fieldDelimiter: sep,
+      utf8Bom: true,
+    );
+    final stamp = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
+    return (csv: csv, fileName: 'work_timer_$stamp.csv');
+  }
+
+  Future<void> _shareFilteredCsv() async {
+    final l10n = AppLocalizations.of(context)!;
+    final payload = _buildCsvExport();
+    if (payload == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.historyExportEmpty)));
       return;
     }
-    final names = {for (final w in cubit.state.workspaces) w.id: w.name};
-    final sep = Localizations.localeOf(context).languageCode == 'pl'
-        ? ';'
-        : ',';
     try {
-      final csv = workEntriesToCsv(
-        filtered,
-        workspaceNames: names,
-        fieldDelimiter: sep,
-        utf8Bom: true,
-      );
       final dir = await getTemporaryDirectory();
-      final stamp = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
-      final file = File('${dir.path}/work_timer_$stamp.csv');
-      await file.writeAsString(csv, encoding: utf8);
+      final file = File('${dir.path}/${payload.fileName}');
+      await file.writeAsString(payload.csv, encoding: utf8);
       if (!mounted) return;
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'text/csv')],
           subject: l10n.historyExportShareSubject,
         ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportError)));
+    }
+  }
+
+  Future<void> _saveFilteredCsvLocally() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (kIsWeb) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportSaveWebHint)));
+      return;
+    }
+    final payload = _buildCsvExport();
+    if (payload == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.historyExportEmpty)));
+      return;
+    }
+    try {
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: l10n.historyExportSaveDialogTitle,
+        fileName: payload.fileName,
+        type: FileType.custom,
+        allowedExtensions: const ['csv'],
+      );
+      if (path == null || !mounted) return;
+      var outPath = path;
+      if (!outPath.toLowerCase().endsWith('.csv')) {
+        outPath = '$outPath.csv';
+      }
+      await File(outPath).writeAsString(payload.csv, encoding: utf8);
+      if (!mounted) return;
+      final shortName = outPath
+          .replaceAll(r'\', '/')
+          .split('/')
+          .where((s) => s.isNotEmpty)
+          .last;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.historyExportSaved(shortName))),
       );
     } catch (_) {
       if (!mounted) return;
@@ -155,166 +233,241 @@ class _HistoryTabState extends State<HistoryTab> {
   }) async {
     final outerContext = context;
     final l10n = AppLocalizations.of(outerContext)!;
-    var date = DateTime(
-      startInitial.year,
-      startInitial.month,
-      startInitial.day,
-    );
-    var start = TimeOfDay.fromDateTime(startInitial);
-    var end = TimeOfDay.fromDateTime(endInitial);
-    var mode = existing?.mode ?? WorkMode.office;
+    final taskCtrl = TextEditingController(text: existing?.taskTitle ?? '');
+    final noteCtrl = TextEditingController(text: existing?.note ?? '');
+    try {
+      var date = DateTime(
+        startInitial.year,
+        startInitial.month,
+        startInitial.day,
+      );
+      var start = TimeOfDay.fromDateTime(startInitial);
+      var end = TimeOfDay.fromDateTime(endInitial);
+      var mode = existing?.mode ?? WorkMode.office;
+      var entryType = existing?.entryType ?? EntryType.work;
+      var billable = existing?.isBillable ?? true;
 
-    await showDialog<void>(
-      context: outerContext,
-      builder: (context) {
-        String? error;
-        return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: Text(
-              existing == null ? l10n.historyAddEntry : l10n.historyEditEntry,
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final selected = await showDatePicker(
-                        context: context,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        initialDate: date,
-                        locale: Localizations.localeOf(context),
-                      );
-                      if (selected != null) {
-                        setDialogState(() => date = selected);
-                      }
-                    },
-                    icon: const Icon(Icons.calendar_today_outlined),
-                    label: Text(
-                      DateFormat.yMMMd(
-                        Localizations.localeOf(context).languageCode,
-                      ).format(date),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            final selected = await showTimePicker(
-                              context: context,
-                              initialTime: start,
-                            );
-                            if (selected != null) {
-                              setDialogState(() => start = selected);
-                            }
-                          },
-                          child: Text(l10n.historyStart(start.format(context))),
-                        ),
+      await showDialog<void>(
+        context: outerContext,
+        builder: (context) {
+          String? error;
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: Text(
+                existing == null ? l10n.historyAddEntry : l10n.historyEditEntry,
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final selected = await showDatePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
+                          initialDate: date,
+                          locale: Localizations.localeOf(context),
+                        );
+                        if (selected != null) {
+                          setDialogState(() => date = selected);
+                        }
+                      },
+                      icon: const Icon(Icons.calendar_today_outlined),
+                      label: Text(
+                        DateFormat.yMMMd(
+                          Localizations.localeOf(context).languageCode,
+                        ).format(date),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            final selected = await showTimePicker(
-                              context: context,
-                              initialTime: end,
-                            );
-                            if (selected != null) {
-                              setDialogState(() => end = selected);
-                            }
-                          },
-                          child: Text(l10n.historyEnd(end.format(context))),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final selected = await showTimePicker(
+                                context: context,
+                                initialTime: start,
+                              );
+                              if (selected != null) {
+                                setDialogState(() => start = selected);
+                              }
+                            },
+                            child: Text(
+                              l10n.historyStart(start.format(context)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final selected = await showTimePicker(
+                                context: context,
+                                initialTime: end,
+                              );
+                              if (selected != null) {
+                                setDialogState(() => end = selected);
+                              }
+                            },
+                            child: Text(l10n.historyEnd(end.format(context))),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<WorkMode>(
+                      initialValue: mode,
+                      decoration: InputDecoration(
+                        labelText: l10n.historyWorkMode,
+                        border: const OutlineInputBorder(),
+                      ),
+                      items: WorkMode.values
+                          .map(
+                            (m) => DropdownMenuItem(
+                              value: m,
+                              child: Text(m.localized(l10n)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) setDialogState(() => mode = value);
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<EntryType>(
+                      initialValue: entryType,
+                      decoration: InputDecoration(
+                        labelText: l10n.historyEntryTypeLabel,
+                        border: const OutlineInputBorder(),
+                      ),
+                      items: EntryType.values
+                          .map(
+                            (t) => DropdownMenuItem(
+                              value: t,
+                              child: Text(_localizedEntryType(t, l10n)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setDialogState(() {
+                          entryType = value;
+                          if (value != EntryType.work) {
+                            billable = false;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: taskCtrl,
+                      decoration: InputDecoration(
+                        labelText: l10n.historyTaskLabel,
+                        border: const OutlineInputBorder(),
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: noteCtrl,
+                      decoration: InputDecoration(
+                        labelText: l10n.historyNoteLabel,
+                        border: const OutlineInputBorder(),
+                      ),
+                      minLines: 2,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                    ),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: billable,
+                      onChanged: (v) =>
+                          setDialogState(() => billable = v ?? false),
+                      title: Text(l10n.historyBillableLabel),
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        error!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<WorkMode>(
-                    initialValue: mode,
-                    decoration: InputDecoration(
-                      labelText: l10n.historyWorkMode,
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: WorkMode.values
-                        .map(
-                          (m) => DropdownMenuItem(
-                            value: m,
-                            child: Text(m.localized(l10n)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) setDialogState(() => mode = value);
-                    },
-                  ),
-                  if (error != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      error!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
                   ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(l10n.commonCancel),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  final cubit = outerContext.read<TimerCubit>();
-                  final startDate = DateTime(
-                    date.year,
-                    date.month,
-                    date.day,
-                    start.hour,
-                    start.minute,
-                  );
-                  final endDate = DateTime(
-                    date.year,
-                    date.month,
-                    date.day,
-                    end.hour,
-                    end.minute,
-                  );
-                  if (!endDate.isAfter(startDate)) {
-                    setDialogState(() => error = l10n.historyValEndAfterStart);
-                    return;
-                  }
-                  if (existing == null) {
-                    await cubit.addManualEntry(
-                      start: startDate,
-                      end: endDate,
-                      mode: mode,
-                    );
-                  } else {
-                    await cubit.updateEntry(
-                      original: existing,
-                      start: startDate,
-                      end: endDate,
-                      mode: mode,
-                    );
-                  }
-                  if (!outerContext.mounted) return;
-                  Navigator.of(context).pop();
-                  await cubit.loadHistory(_range);
-                },
-                child: Text(
-                  existing == null ? l10n.commonAdd : l10n.commonSave,
                 ),
               ),
-            ],
-          ),
-        );
-      },
-    );
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(l10n.commonCancel),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final cubit = outerContext.read<TimerCubit>();
+                    final startDate = DateTime(
+                      date.year,
+                      date.month,
+                      date.day,
+                      start.hour,
+                      start.minute,
+                    );
+                    final endDate = DateTime(
+                      date.year,
+                      date.month,
+                      date.day,
+                      end.hour,
+                      end.minute,
+                    );
+                    if (!endDate.isAfter(startDate)) {
+                      setDialogState(
+                        () => error = l10n.historyValEndAfterStart,
+                      );
+                      return;
+                    }
+                    if (existing == null) {
+                      await cubit.addManualEntry(
+                        start: startDate,
+                        end: endDate,
+                        mode: mode,
+                        taskTitleRaw: taskCtrl.text,
+                        noteRaw: noteCtrl.text,
+                        isBillable: billable,
+                        entryType: entryType,
+                      );
+                    } else {
+                      await cubit.updateEntry(
+                        original: existing,
+                        start: startDate,
+                        end: endDate,
+                        mode: mode,
+                        taskTitleRaw: taskCtrl.text,
+                        noteRaw: noteCtrl.text,
+                        isBillable: billable,
+                        entryType: entryType,
+                      );
+                    }
+                    if (!outerContext.mounted) return;
+                    Navigator.of(context).pop();
+                    await cubit.loadHistory(_range);
+                  },
+                  child: Text(
+                    existing == null ? l10n.commonAdd : l10n.commonSave,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } finally {
+      taskCtrl.dispose();
+      noteCtrl.dispose();
+    }
   }
 
   @override
@@ -353,10 +506,26 @@ class _HistoryTabState extends State<HistoryTab> {
                         ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: _shareFilteredCsv,
+                    PopupMenuButton<String>(
                       tooltip: l10n.historyExportCsvTooltip,
                       icon: const Icon(Icons.table_chart_outlined),
+                      onSelected: (value) async {
+                        if (value == 'share') {
+                          await _shareFilteredCsv();
+                        } else if (value == 'save') {
+                          await _saveFilteredCsvLocally();
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'share',
+                          child: Text(l10n.historyExportShare),
+                        ),
+                        PopupMenuItem(
+                          value: 'save',
+                          child: Text(l10n.historyExportSaveLocal),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -452,6 +621,33 @@ class _HistoryTabState extends State<HistoryTab> {
                   ),
                 ),
                 const SizedBox(height: 8),
+                InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: l10n.historyEntryTypeLabel,
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<EntryType?>(
+                      isExpanded: true,
+                      value: _entryTypeFilter,
+                      items: [
+                        DropdownMenuItem<EntryType?>(
+                          value: null,
+                          child: Text(l10n.historyAllEntryTypes),
+                        ),
+                        ...EntryType.values.map(
+                          (t) => DropdownMenuItem(
+                            value: t,
+                            child: Text(_localizedEntryType(t, l10n)),
+                          ),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => _entryTypeFilter = v),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -531,7 +727,8 @@ class _HistoryTabState extends State<HistoryTab> {
                       entry: e,
                       dateFmt: dateFmt,
                       timeFmt: timeFmt,
-                      modeLabel: e.mode.localized(l10n),
+                      modeLabel:
+                          '${e.mode.localized(l10n)} · ${_localizedEntryType(e.entryType, l10n)}',
                       workspaceLabel: _workspaceName(state, e),
                       onEdit: () => _editEntryDialog(e),
                       onDelete: () async {
@@ -624,6 +821,26 @@ class _HistorySessionCard extends StatelessWidget {
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
+                  if ((entry.taskTitle ?? '').trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      entry.taskTitle!.trim(),
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                  if ((entry.note ?? '').trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      entry.note!.trim(),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -635,12 +852,24 @@ class _HistorySessionCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '· $modeLabel',
-                        style: textTheme.labelLarge?.copyWith(
-                          color: scheme.outline,
+                      Expanded(
+                        child: Text(
+                          '· $modeLabel',
+                          style: textTheme.labelLarge?.copyWith(
+                            color: scheme.outline,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (!entry.isBillable)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Icon(
+                            Icons.money_off_outlined,
+                            size: 18,
+                            color: scheme.outline,
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 4),

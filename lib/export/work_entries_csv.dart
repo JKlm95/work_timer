@@ -1,8 +1,7 @@
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
 
-/// CSV pod Excel: opcjonalny **UTF-8 BOM**, separator `,` lub `;` (PL),
-/// kolumny z nazwą workspace i czasem trwania w sekundach.
+/// CSV pod Excel: opcjonalny **UTF-8 BOM**, separator `,` lub `;` (PL).
 ///
 /// Pomija [WorkEntry.isDeleted].
 String workEntriesToCsv(
@@ -24,6 +23,10 @@ String workEntriesToCsv(
     'end',
     'durationSeconds',
     'mode',
+    'entryType',
+    'isBillable',
+    'taskTitle',
+    'note',
   ];
   b.writeln(headers.join(sep));
   for (final e in entries) {
@@ -37,6 +40,10 @@ String workEntriesToCsv(
       _csvCell(e.end.toIso8601String(), sep),
       _csvCell('${e.duration.inSeconds}', sep),
       _csvCell(e.mode.storageValue, sep),
+      _csvCell(e.entryType.name, sep),
+      _csvCell('${e.isBillable}', sep),
+      _csvCell(e.taskTitle ?? '', sep),
+      _csvCell(e.note ?? '', sep),
     ];
     b.writeln(row.join(sep));
   }

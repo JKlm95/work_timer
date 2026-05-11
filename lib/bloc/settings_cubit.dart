@@ -8,18 +8,24 @@ class SettingsState {
   const SettingsState({
     this.localePreference = AppLocalePreference.system,
     this.themeMode = ThemeMode.system,
+    this.showDebriefAfterStop = true,
   });
 
   final AppLocalePreference localePreference;
   final ThemeMode themeMode;
 
+  /// Dialog po zatrzymaniu timera (zadanie / notatka / billable).
+  final bool showDebriefAfterStop;
+
   SettingsState copyWith({
     AppLocalePreference? localePreference,
     ThemeMode? themeMode,
+    bool? showDebriefAfterStop,
   }) {
     return SettingsState(
       localePreference: localePreference ?? this.localePreference,
       themeMode: themeMode ?? this.themeMode,
+      showDebriefAfterStop: showDebriefAfterStop ?? this.showDebriefAfterStop,
     );
   }
 }
@@ -33,15 +39,18 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   static const _kLang = 'app_locale_pref';
   static const _kTheme = 'app_theme_mode';
+  static const _kDebrief = 'app_show_debrief_after_stop';
 
   void _load() {
     final lang = _prefs.getString(_kLang);
     final theme = _prefs.getString(_kTheme);
+    final debrief = _prefs.getBool(_kDebrief);
 
     emit(
       SettingsState(
         localePreference: _parseLocale(lang),
         themeMode: _parseTheme(theme),
+        showDebriefAfterStop: debrief ?? true,
       ),
     );
   }
@@ -72,6 +81,11 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> setThemeMode(ThemeMode mode) async {
     await _prefs.setString(_kTheme, mode.name);
     emit(state.copyWith(themeMode: mode));
+  }
+
+  Future<void> setShowDebriefAfterStop(bool value) async {
+    await _prefs.setBool(_kDebrief, value);
+    emit(state.copyWith(showDebriefAfterStop: value));
   }
 }
 

@@ -7,6 +7,7 @@ import 'package:work_timer/bloc/settings_cubit.dart';
 /// Klucze muszą być zgodne z [SettingsCubit] (prywatne stałe w cubicie).
 const _kLang = 'app_locale_pref';
 const _kTheme = 'app_theme_mode';
+const _kDebrief = 'app_show_debrief_after_stop';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,7 @@ void main() {
 
     expect(cubit.state.localePreference, AppLocalePreference.system);
     expect(cubit.state.themeMode, ThemeMode.system);
+    expect(cubit.state.showDebriefAfterStop, isTrue);
 
     await cubit.close();
   });
@@ -53,6 +55,18 @@ void main() {
 
     expect(cubit.state.localePreference, AppLocalePreference.en);
     expect(cubit.state.themeMode, ThemeMode.light);
+
+    await cubit.close();
+  });
+
+  test('SettingsCubit: show debrief persists false', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final cubit = SettingsCubit(prefs);
+
+    await cubit.setShowDebriefAfterStop(false);
+    expect(cubit.state.showDebriefAfterStop, isFalse);
+    expect(prefs.getBool(_kDebrief), isFalse);
 
     await cubit.close();
   });

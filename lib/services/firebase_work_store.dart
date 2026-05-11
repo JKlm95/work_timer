@@ -81,9 +81,7 @@ class FirebaseWorkStore implements WorkRemoteStore {
           'createdAt': toIso(data['createdAt']),
           'updatedAt': toIso(data['updatedAt']),
         });
-        if (!w.isArchived) {
-          out.add(w);
-        }
+        out.add(w);
       } catch (e, st) {
         debugPrint(
           'fetchWorkspaces: pomijam uszkodzony dokument ${doc.id}: $e $st',

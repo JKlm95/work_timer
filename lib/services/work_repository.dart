@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/billing_currency.dart';
 import '../models/work_entry.dart';
 import '../models/workspace.dart';
 import 'local_cache_store.dart';
@@ -38,6 +39,8 @@ class WorkRepository {
   }
 
   List<Workspace> get workspaces => _workspaces;
+
+  /// Aktualnie wybrany projekt (workspace) — po [selectWorkspace] / [saveWorkspace].
   String get activeWorkspaceId => _activeWorkspaceId;
   LocalCacheStore get localCache => _localCache;
 
@@ -70,6 +73,29 @@ class WorkRepository {
       _activeWorkspaceId = _workspaces.first.id;
       await _localCache.saveActiveWorkspaceId(_activeWorkspaceId);
     }
+    await _ensureActiveNotArchivedPreferably();
+  }
+
+  /// Jeśli aktywny jest zarchiwizowany, ustaw pierwszy niezarchiwizowany (best effort).
+  Future<void> _ensureActiveNotArchivedPreferably() async {
+    final candidates = [
+      ..._workspaces.where((w) => w.id == _activeWorkspaceId),
+      ..._workspaces.where((w) => w.id != _activeWorkspaceId),
+    ];
+    Workspace? pick;
+    for (final w in candidates) {
+      if (!w.isArchived) {
+        pick = w;
+        break;
+      }
+    }
+    pick ??= candidates.isEmpty
+        ? Workspace.defaultWorkspace()
+        : candidates.first;
+    if (pick.id != _activeWorkspaceId) {
+      _activeWorkspaceId = pick.id;
+      await _localCache.saveActiveWorkspaceId(_activeWorkspaceId);
+    }
   }
 
   Future<void> selectWorkspace(String workspaceId) async {
@@ -85,6 +111,7 @@ class WorkRepository {
       name: name.trim().isEmpty ? 'Workspace' : name.trim(),
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
+      currencyCode: BillingCurrency.defaultCode,
     );
     _workspaces = _sortWorkspaces(_mergeWorkspaces(_workspaces, [workspace]));
     await _localCache.saveWorkspaces(_workspaces);
@@ -98,16 +125,34 @@ class WorkRepository {
     required String workspaceId,
     required String name,
   }) async {
-    _workspaces = _workspaces
-        .map(
-          (w) => w.id == workspaceId
-              ? w.copyWith(name: name.trim(), updatedAt: DateTime.now())
-              : w,
-        )
-        .toList();
+    await saveWorkspace(
+      _workspaces
+          .firstWhere((w) => w.id == workspaceId)
+          .copyWith(name: name.trim(), updatedAt: DateTime.now()),
+    );
+  }
+
+  Future<void> saveWorkspace(Workspace workspace) async {
+    final idx = _workspaces.indexWhere((w) => w.id == workspace.id);
+    if (idx >= 0) {
+      final next = [..._workspaces];
+      next[idx] = workspace;
+      _workspaces = _sortWorkspaces(next);
+    } else {
+      _workspaces = _sortWorkspaces(_mergeWorkspaces(_workspaces, [workspace]));
+      _activeWorkspaceId = workspace.id;
+      await _localCache.saveActiveWorkspaceId(_activeWorkspaceId);
+    }
     await _localCache.saveWorkspaces(_workspaces);
-    final target = _workspaces.firstWhere((w) => w.id == workspaceId);
-    await _scheduleWorkspaceRemoteUpsert(target);
+    await _scheduleWorkspaceRemoteUpsert(workspace);
+    await _ensureActiveNotArchivedPreferably();
+  }
+
+  Future<void> setArchived(String workspaceId, bool archived) async {
+    final w = _workspaces.firstWhere((x) => x.id == workspaceId);
+    await saveWorkspace(
+      w.copyWith(isArchived: archived, updatedAt: DateTime.now()),
+    );
   }
 
   Future<void> addEntry(WorkEntry entry) async {
@@ -129,17 +174,7 @@ class WorkRepository {
   }
 
   Future<void> deleteEntry(WorkEntry entry) async {
-    await addEntry(
-      WorkEntry(
-        id: entry.id,
-        workspaceId: entry.workspaceId,
-        start: entry.start,
-        end: entry.end,
-        mode: entry.mode,
-        updatedAt: DateTime.now(),
-        isDeleted: true,
-      ),
-    );
+    await addEntry(entry.copyWith(isDeleted: true, updatedAt: DateTime.now()));
   }
 
   Future<EntriesResult> loadEntriesForRange(DateTimeRange range) async {
