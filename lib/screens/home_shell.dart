@@ -72,6 +72,17 @@ class _HomeShellState extends State<HomeShell> {
         ),
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
+          // Domyślny passthrough + scrollowalne taby = czasem wysokość body 0 (pusty ekran).
+          layoutBuilder: (currentChild, previousChildren) {
+            return Stack(
+              fit: StackFit.expand,
+              alignment: Alignment.center,
+              children: <Widget>[
+                for (final w in previousChildren) Positioned.fill(child: w),
+                if (currentChild != null) Positioned.fill(child: currentChild),
+              ],
+            );
+          },
           child: switch (_index) {
             0 => const TimerTab(key: ValueKey('timer')),
             1 => const HistoryTab(key: ValueKey('history')),
@@ -82,41 +93,45 @@ class _HomeShellState extends State<HomeShell> {
             _ => const TimerTab(key: ValueKey('timer')),
           },
         ),
-        bottomNavigationBar: HomeRingNavBar(
-          selectedIndex: _index,
-          onDestinationSelected: (i) => setState(() => _index = i),
-          destinations: [
-            HomeRingNavDestination(
-              icon: Icons.timer_outlined,
-              selectedIcon: Icons.timer,
-              label: l10n.navTimer,
-            ),
-            HomeRingNavDestination(
-              icon: Icons.history_outlined,
-              selectedIcon: Icons.history,
-              label: l10n.navHistory,
-            ),
-            HomeRingNavDestination(
-              icon: Icons.bar_chart_outlined,
-              selectedIcon: Icons.bar_chart,
-              label: l10n.navStats,
-            ),
-            HomeRingNavDestination(
-              icon: Icons.calendar_month_outlined,
-              selectedIcon: Icons.calendar_month,
-              label: l10n.navCalendar,
-            ),
-            HomeRingNavDestination(
-              icon: Icons.folder_outlined,
-              selectedIcon: Icons.folder,
-              label: l10n.navWorkspaces,
-            ),
-            HomeRingNavDestination(
-              icon: Icons.settings_outlined,
-              selectedIcon: Icons.settings,
-              label: l10n.navSettings,
-            ),
-          ],
+        bottomNavigationBar: SizedBox(
+          height: 100,
+          width: double.infinity,
+          child: HomeRingNavBar(
+            selectedIndex: _index,
+            onDestinationSelected: (i) => setState(() => _index = i),
+            destinations: [
+              HomeRingNavDestination(
+                icon: Icons.timer_outlined,
+                selectedIcon: Icons.timer,
+                label: l10n.navTimer,
+              ),
+              HomeRingNavDestination(
+                icon: Icons.history_outlined,
+                selectedIcon: Icons.history,
+                label: l10n.navHistory,
+              ),
+              HomeRingNavDestination(
+                icon: Icons.bar_chart_outlined,
+                selectedIcon: Icons.bar_chart,
+                label: l10n.navStats,
+              ),
+              HomeRingNavDestination(
+                icon: Icons.calendar_month_outlined,
+                selectedIcon: Icons.calendar_month,
+                label: l10n.navCalendar,
+              ),
+              HomeRingNavDestination(
+                icon: Icons.folder_outlined,
+                selectedIcon: Icons.folder,
+                label: l10n.navWorkspaces,
+              ),
+              HomeRingNavDestination(
+                icon: Icons.settings_outlined,
+                selectedIcon: Icons.settings,
+                label: l10n.navSettings,
+              ),
+            ],
+          ),
         ),
       ),
     );
