@@ -26,39 +26,29 @@ class SettingsTab extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Card(
-              child: Column(
-                children: [
-                  RadioListTile<AppLocalePreference>(
-                    title: Text(l10n.settingsLanguageSystem),
-                    value: AppLocalePreference.system,
-                    groupValue: settings.localePreference,
-                    onChanged: (v) {
-                      if (v != null) {
-                        context.read<SettingsCubit>().setLocalePreference(v);
-                      }
-                    },
-                  ),
-                  RadioListTile<AppLocalePreference>(
-                    title: Text(l10n.settingsLanguagePl),
-                    value: AppLocalePreference.pl,
-                    groupValue: settings.localePreference,
-                    onChanged: (v) {
-                      if (v != null) {
-                        context.read<SettingsCubit>().setLocalePreference(v);
-                      }
-                    },
-                  ),
-                  RadioListTile<AppLocalePreference>(
-                    title: Text(l10n.settingsLanguageEn),
-                    value: AppLocalePreference.en,
-                    groupValue: settings.localePreference,
-                    onChanged: (v) {
-                      if (v != null) {
-                        context.read<SettingsCubit>().setLocalePreference(v);
-                      }
-                    },
-                  ),
-                ],
+              child: RadioGroup<AppLocalePreference>(
+                groupValue: settings.localePreference,
+                onChanged: (v) {
+                  if (v != null) {
+                    context.read<SettingsCubit>().setLocalePreference(v);
+                  }
+                },
+                child: Column(
+                  children: [
+                    RadioListTile<AppLocalePreference>(
+                      title: Text(l10n.settingsLanguageSystem),
+                      value: AppLocalePreference.system,
+                    ),
+                    RadioListTile<AppLocalePreference>(
+                      title: Text(l10n.settingsLanguagePl),
+                      value: AppLocalePreference.pl,
+                    ),
+                    RadioListTile<AppLocalePreference>(
+                      title: Text(l10n.settingsLanguageEn),
+                      value: AppLocalePreference.en,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -68,39 +58,29 @@ class SettingsTab extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Card(
-              child: Column(
-                children: [
-                  RadioListTile<ThemeMode>(
-                    title: Text(l10n.settingsThemeLight),
-                    value: ThemeMode.light,
-                    groupValue: settings.themeMode,
-                    onChanged: (v) {
-                      if (v != null) {
-                        context.read<SettingsCubit>().setThemeMode(v);
-                      }
-                    },
-                  ),
-                  RadioListTile<ThemeMode>(
-                    title: Text(l10n.settingsThemeDark),
-                    value: ThemeMode.dark,
-                    groupValue: settings.themeMode,
-                    onChanged: (v) {
-                      if (v != null) {
-                        context.read<SettingsCubit>().setThemeMode(v);
-                      }
-                    },
-                  ),
-                  RadioListTile<ThemeMode>(
-                    title: Text(l10n.settingsThemeSystem),
-                    value: ThemeMode.system,
-                    groupValue: settings.themeMode,
-                    onChanged: (v) {
-                      if (v != null) {
-                        context.read<SettingsCubit>().setThemeMode(v);
-                      }
-                    },
-                  ),
-                ],
+              child: RadioGroup<ThemeMode>(
+                groupValue: settings.themeMode,
+                onChanged: (v) {
+                  if (v != null) {
+                    context.read<SettingsCubit>().setThemeMode(v);
+                  }
+                },
+                child: Column(
+                  children: [
+                    RadioListTile<ThemeMode>(
+                      title: Text(l10n.settingsThemeLight),
+                      value: ThemeMode.light,
+                    ),
+                    RadioListTile<ThemeMode>(
+                      title: Text(l10n.settingsThemeDark),
+                      value: ThemeMode.dark,
+                    ),
+                    RadioListTile<ThemeMode>(
+                      title: Text(l10n.settingsThemeSystem),
+                      value: ThemeMode.system,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),

@@ -52,9 +52,12 @@ class TimerTab extends StatelessWidget {
 
   static String _pickerWorkspaceId(TimerState s) {
     final list = _pickerProjects(s);
-    if (list.any((w) => w.id == s.activeWorkspaceId))
+    if (list.any((w) => w.id == s.activeWorkspaceId)) {
       return s.activeWorkspaceId;
-    if (list.isNotEmpty) return list.first.id;
+    }
+    if (list.isNotEmpty) {
+      return list.first.id;
+    }
     return s.activeWorkspaceId;
   }
 

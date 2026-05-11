@@ -293,7 +293,7 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _currencyCode,
+                    initialValue: _currencyCode,
                     decoration: InputDecoration(
                       labelText: l10n.projectsCurrency,
                       border: const OutlineInputBorder(),
