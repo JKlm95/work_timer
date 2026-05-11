@@ -91,13 +91,20 @@ class _HistoryTabState extends State<HistoryTab> {
       .where(_entryMatchesMode)
       .where(_entryMatchesEntryType);
 
+  /// Jak [_filtered], posortowane po `start` malejąco (najpierw najnowsze).
+  List<WorkEntry> _filteredNewestFirst(List<WorkEntry> entries) {
+    final list = _filtered(entries).toList()
+      ..sort((a, b) => b.start.compareTo(a.start));
+    return list;
+  }
+
   Duration _sum(Iterable<WorkEntry> items) =>
       items.fold(Duration.zero, (a, e) => a + e.duration);
 
   /// Zwraca treść CSV i proponowaną nazwę pliku, albo `null` gdy nie ma wpisów.
   ({String csv, String fileName})? _buildCsvExport() {
     final cubit = context.read<TimerCubit>();
-    final filtered = _filtered(cubit.state.entries).toList();
+    final filtered = _filteredNewestFirst(cubit.state.entries);
     if (filtered.isEmpty) return null;
     final names = {for (final w in cubit.state.workspaces) w.id: w.name};
     final sep = Localizations.localeOf(context).languageCode == 'pl'
@@ -183,7 +190,7 @@ class _HistoryTabState extends State<HistoryTab> {
 
   List<List<String>>? _buildExportTable(AppLocalizations l10n) {
     final cubit = context.read<TimerCubit>();
-    final filtered = _filtered(cubit.state.entries).toList();
+    final filtered = _filteredNewestFirst(cubit.state.entries);
     final names = {for (final w in cubit.state.workspaces) w.id: w.name};
     return buildLocalizedExportTable(
       l10n: l10n,
@@ -566,7 +573,7 @@ class _HistoryTabState extends State<HistoryTab> {
       children: [
         BlocBuilder<TimerCubit, TimerState>(
           builder: (context, state) {
-            final filtered = _filtered(state.entries).toList();
+            final filtered = _filteredNewestFirst(state.entries);
             final scheme = Theme.of(context).colorScheme;
             final textTheme = Theme.of(context).textTheme;
 

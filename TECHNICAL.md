@@ -31,7 +31,7 @@ lib/
 ├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart
 ├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, calendar_tab, workspaces_tab, settings_tab
 ├── models/                   # work_entry, workspace, work_mode, entry_type, billing_currency
-├── utils/                    # m.in. workspace_color, project_field_utils (slug / domena e-mail)
+├── utils/                    # m.in. workspace_color, project_field_utils, export_save.dart (CSV/PDF zapis mobilny SAF)
 ├── export/                   # work_entries_csv.dart (CSV / Excel), work_entries_pdf.dart (PDF A4 poziom, Noto Sans z assets)
 ├── services/
 │   ├── auth_service.dart
@@ -58,7 +58,7 @@ lib/
 2. **`AuthGate`** (stanful):
    - `BlocListener` na `AuthCubit`: przy rozstrzygnięciu sesji Firebase i przy zmianie użytkownika wywołuje **`_onAuthChanged`**.
    - Dla **zalogowanego** użytkownika: tworzy **`TimerCubit`**, **`await init()`** (timeout 15 s), minimalny czas wyświetlania splash (~520 ms), potem **`BlocProvider.value`** + `HomeShell`.
-3. **`TimerCubit.init()`** — `initForUser`, załadowanie wpisów miesiąca, hydratacja stanu timera, statystyki, sync do widgetu (Android).
+3. **`TimerCubit.init()`** — `reload()` prefs (Android po zapisie z Kotlina), `initForUser`, pierwszy `emit` z **workspaces**, **`await _hydrateTimerFromPersistedStores()`** (Android: lustro JVM + **`_alignRepositoryWithWorkspaceIfPossible`**; iOS/web: prefs/`home_widget` jak w tej metodzie — **zanim** pierwszy **`loadEntriesForRange`**), **`emit`** z wpisami z **`loadEntriesForRange`**, **`_applyAndroidWorkspaceSelectionIfIdle`**, **`refreshStatsEntries`**, **`_writeWidgetSnapshot`**.
 
 ---
 
@@ -107,7 +107,7 @@ lib/
 ### 6.3 Spójność Flutter ↔ native
 
 - Przy **`handleSync`** w Kotlinie, po zastosowaniu `elapsedSeconds` w stanie **running**, resetowana jest kotwica czasu (`resumeAtMs`), aby uniknąć rozjazdu z tickiem po wcześniejszym sterowaniu z widgetu.
-- Przy wznowieniu aktywności Flutter wywołuje **`syncFromNativeStoresOnResume`**: `reload()` SharedPreferences, hydratacja z **lustra JVM** (priorytet), potem fallback prefs / home_widget.
+- Przy wznowieniu aktywności Flutter wywołuje **`syncFromNativeStoresOnResume`**: `reload()` SharedPreferences, hydratacja z **lustra JVM** (priorytet), wyrównanie **`WorkRepository.activeWorkspaceId`** przy ID z lustra (żeby cache miesiąca/kolejki czytać ten sam **`workspaceId`**, który przy **STOP** zapisuje Kotlin), **`loadEntries` dla bieżącego zakresu** gdy przełączenie z widgetu już zsynchronizowane, potem refresh statów — patrz **`TimerCubit.syncFromNativeStoresOnResume`**; fallback prefs / home_widget w ścieżce bez lustra.
 - **Auth widget:** `auth_native_sync.dart` zapisuje `flutter.auth_signed_in_for_native_v1` (`1`/`0`); `AuthPrefs` w Kotlinie steruje intencjami widgetu (otwarcie aplikacji vs start serwisu).
 
 ### 6.4 Widget UI
@@ -173,13 +173,14 @@ lib/
 
 ---
 
-## 7e. Eksport CSV / PDF (`HistoryTab`)
+## 7e. Eksport CSV / PDF (`HistoryTab`, `ProjectReportScreen`)
 
+- **Sortowanie w UI eksportu / listy Historii:** po filtrach zakres i trybu — kolejność **malejąca po polu `start`** (najpierw najnowsza sesja), spójna dla widoku listy oraz CSV/PDF.
 - **CSV:** **`workEntriesToCsv`** (`lib/export/work_entries_csv.dart`) — BOM UTF-8, separator `;` dla locale `pl`, `,` w pozostałych; kolumny m.in. `entryType`, `isBillable`, `taskTitle`, `note`.
-- **PDF:** **`buildWorkEntriesPdfDocument`** (`lib/export/work_entries_pdf.dart`) — pakiet **`pdf`**, format A4 poziom, tabela z nagłówkami; **osadzona czcionka** **`assets/fonts/NotoSans-Regular.ttf`** (Google Noto Sans OFL) dla poprawnego **UTF-8 / polskich znaków** (standardowe fonty PDF Helvetica tego nie pokrywają).
-- **Udostępnianie:** zapis tymczasowy w `getTemporaryDirectory`, potem **`SharePlus`** (CSV: `text/csv`, PDF: `application/pdf`).
-- **Zapis lokalny:** **`FilePicker.platform.saveFile`** (tylko platformy nie-web); na **web** komunikat zachęcający do użycia udostępniania (brak natywnego zapisu ścieżki).
-- **UI:** jedno menu (**`PopupMenuButton`**) — cztery pozycje: udostępnij / zapisz dla CSV i PDF.
+- **PDF:** **`buildWorkEntriesPdfDocument`** (`lib/export/work_entries_pdf.dart`) — pakiet **`pdf`**, format A4 poziom, tabela z nagłówkami; **osadzona czcionka** **`assets/fonts/NotoSans-Regular.ttf`** (Google Noto Sans OFL) dla poprawnego **UTF-8 / polskich znaków**.
+- **Udostępnianie (`share`):** zapis tymczasowy w **`getTemporaryDirectory`**, **`SharePlus`** (CSV: `text/csv`, PDF: `application/pdf`).
+- **Zapis lokalny:** **`saveExportWithPicker`** w **`lib/utils/export_save.dart`** — na **Androidzie / iOS** przekazywane są **bajty** do **`FilePicker.platform.saveFile`** (wymóg `file_picker`; zapis przez SAF / document picker na URI), na **desktop** dialog ścieżki potem **`dart:io` `File.writeAs…`**; na **web** komunikat zachęcający do udostępniania.
+- **UI:** menu (**`PopupMenuButton`**) w Historii; raport projektu — analogicznie.
 
 ---
 
@@ -240,9 +241,9 @@ Włącz **Actions** w ustawieniach repozytorium (domyślnie w publicznych repach
 - **Android:** widget + ForegroundService jak w § 6. **iOS:** timestampy + **WidgetKit** + App Group (§ 6.6) — zachowanie w tle **nie** jest jak pełny serwis pierwszoplanowy na Androidzie.
 - **macOS / desktop:** `TimerServiceBridge` nie wywołuje natywnego widgetu iOS/Android; opcjonalnie **`home_widget`** w ścieżce „innej niż Android/iOS” w **`TimerCubit`** (zgodnie z kodem).
 - Czasy wyświetlane w sekundach mogą różnić się o pojedyncze sekundy w logach Kotlina vs intenty Fluttera (zaokrąglenie sekund w sync).
-- **Timer:** po **`stop`** wywoływane jest **`refreshStatsEntries`**, żeby **`statsEntries`** odświeżyły się razem z historią.
+- **Timer:** po **`stop`** w **`TimerCubit`** odświeżenie **`statsEntries`** jest **wysyłane w tle** (`unawaited(refreshStatsEntries …))`, żeby UI nie blokowało na syncu Firestore; wpis nadal dopisywany lokalnie od razu.
 - **Modele Firestore:** wpisy i projekty mogą zawierać **dodatkowe opcjonalne pola** (task, notatka, typ wpisu, billable, stawka, waluta itd.) — reguły w **`firestore.rules`** weryfikują minimalny zestaw wymaganych kluczy; merge zapisu używa **`SetOptions(merge: true)`** tam, gdzie implementacja na to pozwala.
 
 ---
 
-*Ostatnia aktualizacja dokumentu: projekty (model Workspace), typy wpisów, rozliczenia w statystykach, kalendarz, eksport CSV i PDF (share + zapis lokalny), debrief po stopie, synchronizacja listy workspace’ów z archiwum (§ 5, § 7c–7e).*
+*Ostatnia aktualizacja dokumentu: sortowanie Historii malejąco po `start`, `export_save` / SAF dla zapisu plików, `TimerCubit.init`/resume — hydratacja i wyrównanie aktywnego workspace z lustrem/widgetem przed pierwszym odczytem cache (§ 3, § 6.3, § 7e, § 11).*
