@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,6 +21,7 @@ import '../services/stats_service.dart';
 import '../utils/billing_entry_amount.dart';
 import '../utils/calendar_utils.dart';
 import '../utils/entry_type_localized.dart';
+import '../utils/export_save.dart';
 import '../utils/format_duration.dart';
 import '../utils/workspace_color.dart';
 
@@ -270,18 +270,17 @@ class _ProjectReportScreenState extends State<ProjectReportScreen> {
     );
     try {
       final stamp = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
-      final path = await FilePicker.platform.saveFile(
+      final suggested = 'work_timer_report_$stamp.csv';
+      final bytes = Uint8List.fromList(utf8.encode(csv));
+      final path = await saveExportWithPicker(
         dialogTitle: l10n.historyExportSaveCsvDialogTitle,
-        fileName: 'work_timer_report_$stamp.csv',
-        type: FileType.custom,
+        fileName: suggested,
+        bytes: bytes,
         allowedExtensions: const ['csv'],
+        extensionWithoutDot: 'csv',
       );
       if (path == null || !mounted) return;
-      var outPath = path;
-      if (!outPath.toLowerCase().endsWith('.csv')) outPath = '$outPath.csv';
-      await File(outPath).writeAsString(csv, encoding: utf8);
-      if (!mounted) return;
-      final shortName = outPath.replaceAll(r'\', '/').split('/').last;
+      final shortName = exportSavedDisplayName(path, suggested);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.historyExportSaved(shortName))),
       );
@@ -309,18 +308,16 @@ class _ProjectReportScreenState extends State<ProjectReportScreen> {
     try {
       final bytes = await _pdfBytes(l10n, state);
       final stamp = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
-      final path = await FilePicker.platform.saveFile(
+      final suggested = 'work_timer_report_$stamp.pdf';
+      final path = await saveExportWithPicker(
         dialogTitle: l10n.historyExportSavePdfDialogTitle,
-        fileName: 'work_timer_report_$stamp.pdf',
-        type: FileType.custom,
+        fileName: suggested,
+        bytes: bytes,
         allowedExtensions: const ['pdf'],
+        extensionWithoutDot: 'pdf',
       );
       if (path == null || !mounted) return;
-      var outPath = path;
-      if (!outPath.toLowerCase().endsWith('.pdf')) outPath = '$outPath.pdf';
-      await File(outPath).writeAsBytes(bytes);
-      if (!mounted) return;
-      final shortName = outPath.replaceAll(r'\', '/').split('/').last;
+      final shortName = exportSavedDisplayName(path, suggested);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.historyExportSaved(shortName))),
       );

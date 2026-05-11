@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../l10n/app_localizations.dart';
+
+void _popDebrief(
+  BuildContext dialogContext,
+  StopSessionDebriefResult result,
+) {
+  FocusManager.instance.primaryFocus?.unfocus();
+  SchedulerBinding.instance.addPostFrameCallback((_) {
+    if (dialogContext.mounted) {
+      Navigator.of(dialogContext).pop(result);
+    }
+  });
+}
 
 /// Pola po zatrzymaniu timera. [skipped] — pomiń bez tytułu/notatki; [neverShowAgain] wyłącza dialog.
 class StopSessionDebriefResult {
@@ -33,7 +46,7 @@ Future<StopSessionDebriefResult?> showStopSessionDebriefDialog(
   final result = await showDialog<StopSessionDebriefResult>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => StatefulBuilder(
+    builder: (dialogContext) => StatefulBuilder(
       builder: (context, setS) => AlertDialog(
         title: Text(l10n.debriefTitle),
         content: SingleChildScrollView(
@@ -78,7 +91,8 @@ Future<StopSessionDebriefResult?> showStopSessionDebriefDialog(
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(
+            onPressed: () => _popDebrief(
+              dialogContext,
               StopSessionDebriefResult(
                 isBillable: billable,
                 neverShowAgain: hideNext,
@@ -93,7 +107,8 @@ Future<StopSessionDebriefResult?> showStopSessionDebriefDialog(
               if (tt.isEmpty) tt = null;
               String? nt = noteCtrl.text.trim();
               if (nt.isEmpty) nt = null;
-              Navigator.of(context).pop(
+              _popDebrief(
+                dialogContext,
                 StopSessionDebriefResult(
                   taskTitle: tt,
                   note: nt,

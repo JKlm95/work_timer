@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/billing_currency.dart';
@@ -155,7 +157,10 @@ class WorkRepository {
     );
   }
 
-  Future<void> addEntry(WorkEntry entry) async {
+  Future<void> addEntry(
+    WorkEntry entry, {
+    bool awaitRemoteSync = true,
+  }) async {
     final queue = await _localCache.loadPendingQueue(entry.workspaceId);
     final updatedQueue = _upsertById(queue, entry);
     await _localCache.savePendingQueue(entry.workspaceId, updatedQueue);
@@ -166,7 +171,11 @@ class WorkRepository {
       await _localCache.saveCurrentMonthCache(entry.workspaceId, updatedCached);
     }
 
-    await syncPending();
+    if (awaitRemoteSync) {
+      await syncPending();
+    } else {
+      unawaited(syncPending());
+    }
   }
 
   Future<void> updateEntry(WorkEntry entry) async {

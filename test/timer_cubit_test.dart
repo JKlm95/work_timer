@@ -51,7 +51,10 @@ void main() {
       expect(cubit.state.runState, TimerRunState.idle);
       expect(cubit.state.elapsed, Duration.zero);
 
+      await repo.syncPending();
       expect(remote.upsertedEntries, isNotEmpty);
+
+      await cubit.refreshStatsEntries();
       expect(cubit.state.statsEntries, isNotEmpty);
 
       await cubit.close();

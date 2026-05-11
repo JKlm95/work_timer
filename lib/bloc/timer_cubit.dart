@@ -133,6 +133,9 @@ class TimerCubit extends Cubit<TimerState> {
   DateTime? _lastIosWidgetThrottle;
 
   Future<void> init() async {
+    if (Platform.isAndroid) {
+      await _repository.localCache.reloadPreferencesFromDisk();
+    }
     await _repository.initForUser(state.uid);
     final workspaces = _repository.workspaces;
     final activeWorkspaceId = _repository.activeWorkspaceId;
@@ -160,8 +163,29 @@ class TimerCubit extends Cubit<TimerState> {
   /// Po powrocie do apki: serwis Kotlin i widget zapisują do prefs, Flutter trzyma
   /// przestarzały cache dopóki [LocalCacheStore.reloadPreferencesFromDisk].
   Future<void> syncFromNativeStoresOnResume() async {
+    if (Platform.isAndroid) {
+      await _repository.localCache.reloadPreferencesFromDisk();
+    }
     await _hydrateTimerFromPersistedStores();
-    await _applyAndroidWorkspaceSelectionIfIdle();
+    final switchedWs = await _applyAndroidWorkspaceSelectionIfIdle();
+    if (!switchedWs && !isClosed) {
+      final now = DateTime.now();
+      final result = await _repository.loadEntriesForRange(
+        DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
+      );
+      emit(
+        state.copyWith(
+          entries: result.entries,
+          currentMonthEntries: result.entries,
+          historyOfflineFallback: result.offlineFallback,
+        ),
+      );
+    }
+    unawaited(
+      refreshStatsEntries().catchError((Object e, StackTrace _) {
+        debugPrint('refreshStatsEntries after resume sync: $e');
+      }),
+    );
     await _writeWidgetSnapshot();
   }
 
@@ -311,7 +335,7 @@ class TimerCubit extends Cubit<TimerState> {
       entries = [entry, ...entries]..sort((a, b) => b.start.compareTo(a.start));
       currentMonthEntries = [entry, ...currentMonthEntries]
         ..sort((a, b) => b.start.compareTo(a.start));
-      await _repository.addEntry(entry);
+      await _repository.addEntry(entry, awaitRemoteSync: false);
     }
 
     emit(
@@ -329,8 +353,12 @@ class TimerCubit extends Cubit<TimerState> {
     _lastWidgetElapsedSecond = -1;
     await _repository.localCache.clearTimerSession();
     await TimerServiceBridge.stop();
-    await refreshStatsEntries();
     await _writeWidgetSnapshot();
+    unawaited(
+      refreshStatsEntries().catchError((Object e, StackTrace _) {
+        debugPrint('refreshStatsEntries after stop: $e');
+      }),
+    );
   }
 
   Future<void> addManualEntry({
@@ -516,16 +544,18 @@ class TimerCubit extends Cubit<TimerState> {
   }
 
   /// Gdy użytkownik zmienił workspace na widgetcie, a timer jest w spoczynku — zsynchronizuj z repozytorium.
-  Future<void> _applyAndroidWorkspaceSelectionIfIdle() async {
-    if (!Platform.isAndroid) return;
-    if (state.runState != TimerRunState.idle) return;
+  /// Zwraca true, gdy wywołano [setActiveWorkspace] (historia już odświeżona).
+  Future<bool> _applyAndroidWorkspaceSelectionIfIdle() async {
+    if (!Platform.isAndroid) return false;
+    if (state.runState != TimerRunState.idle) return false;
     final sel = await TimerServiceBridge.getWidgetWorkspaceSelection();
-    if (sel == null) return;
+    if (sel == null) return false;
     final id = sel['activeWorkspaceId'] as String?;
-    if (id == null || id.isEmpty) return;
-    if (id == state.activeWorkspaceId) return;
-    if (!state.workspaces.any((w) => w.id == id)) return;
+    if (id == null || id.isEmpty) return false;
+    if (id == state.activeWorkspaceId) return false;
+    if (!state.workspaces.any((w) => w.id == id)) return false;
     await setActiveWorkspace(id);
+    return true;
   }
 
   Future<void> _writeWidgetSnapshot() async {
