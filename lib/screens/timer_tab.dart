@@ -345,6 +345,49 @@ class TimerTab extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (state.workspaces.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 8,
+                              backgroundColor: workspaceAccentColor(
+                                state.activeWorkspace.colorHex,
+                                scheme.primary,
+                              ).withValues(alpha: 0.45),
+                              child: Icon(
+                                Icons.folder_outlined,
+                                size: 14,
+                                color: scheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                state.activeWorkspace.name,
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (state.activeWorkspace.hourlyRate != null &&
+                            state.activeWorkspace.hourlyRate! > 0) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            '${state.activeWorkspace.hourlyRate} '
+                            '${state.activeWorkspace.currencyCode ?? ''}/h',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: scheme.outline,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ],
                     ],
                   ),
                 ),
@@ -388,9 +431,10 @@ class TimerTab extends StatelessWidget {
                             if (r?.neverShowAgain == true) {
                               await settings.setShowDebriefAfterStop(false);
                             }
+                            final skipFields = r == null || r.skipped;
                             await cubit.stop(
-                              taskTitle: r?.taskTitle,
-                              note: r?.note,
+                              taskTitle: skipFields ? null : r.taskTitle,
+                              note: skipFields ? null : r.note,
                               isBillable: r?.isBillable ?? true,
                             );
                           },

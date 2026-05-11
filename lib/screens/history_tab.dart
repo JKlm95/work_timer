@@ -12,29 +12,18 @@ import 'package:share_plus/share_plus.dart';
 
 import '../export/work_entries_csv.dart';
 import '../export/work_entries_pdf.dart';
+import '../export/work_entry_export_table.dart';
 import '../l10n/app_localizations.dart';
 
 import '../bloc/timer_cubit.dart';
 import '../l10n/work_mode_strings.dart';
 import '../models/entry_type.dart';
 import '../models/work_entry.dart';
+import '../models/workspace.dart';
 import '../models/work_mode.dart';
+import '../utils/entry_type_localized.dart';
 import '../utils/format_duration.dart';
-
-String _localizedEntryType(EntryType t, AppLocalizations l10n) {
-  switch (t) {
-    case EntryType.work:
-      return l10n.entryTypeWork;
-    case EntryType.vacation:
-      return l10n.entryTypeVacation;
-    case EntryType.sickLeave:
-      return l10n.entryTypeSickLeave;
-    case EntryType.businessTrip:
-      return l10n.entryTypeBusinessTrip;
-    case EntryType.other:
-      return l10n.entryTypeOther;
-  }
-}
+import '../utils/workspace_color.dart';
 
 class HistoryTab extends StatefulWidget {
   const HistoryTab({super.key});
@@ -200,52 +189,16 @@ class _HistoryTabState extends State<HistoryTab> {
     }
   }
 
-  /// Wiersze [nagłówek, ...dane] dla raportu PDF (lokalizowane etykiety i daty).
   List<List<String>>? _buildExportTable(AppLocalizations l10n) {
     final cubit = context.read<TimerCubit>();
     final filtered = _filtered(cubit.state.entries).toList();
-    if (filtered.isEmpty) return null;
     final names = {for (final w in cubit.state.workspaces) w.id: w.name};
-    final lc = Localizations.localeOf(context).languageCode;
-    final dFmt = DateFormat.yMMMd(lc);
-    final tFmt = DateFormat.Hm(lc);
-    String when(DateTime d) => '${dFmt.format(d)} ${tFmt.format(d)}';
-
-    final header = [
-      l10n.exportHdrId,
-      l10n.exportHdrWorkspaceId,
-      l10n.exportHdrProject,
-      l10n.exportHdrStart,
-      l10n.exportHdrEnd,
-      l10n.exportHdrDurationHm,
-      l10n.exportHdrMode,
-      l10n.exportHdrEntryType,
-      l10n.exportHdrBillable,
-      l10n.exportHdrTask,
-      l10n.exportHdrNote,
-    ];
-
-    final dataRows = filtered
-        .map(
-          (e) => [
-            e.id,
-            e.workspaceId,
-            names[e.workspaceId] ?? '',
-            when(e.start),
-            when(e.end),
-            formatDurationHm(e.duration),
-            e.mode == WorkMode.remote
-                ? l10n.workModeRemote
-                : l10n.workModeOffice,
-            _localizedEntryType(e.entryType, l10n),
-            e.isBillable ? l10n.exportBillableYes : l10n.exportBillableNo,
-            e.taskTitle ?? '',
-            e.note ?? '',
-          ],
-        )
-        .toList();
-
-    return [header, ...dataRows];
+    return buildLocalizedExportTable(
+      l10n: l10n,
+      localeCode: Localizations.localeOf(context).languageCode,
+      entries: filtered,
+      workspaceNames: names,
+    );
   }
 
   Future<Uint8List> _buildPdfBytes(AppLocalizations l10n) async {
@@ -497,7 +450,7 @@ class _HistoryTabState extends State<HistoryTab> {
                           .map(
                             (t) => DropdownMenuItem(
                               value: t,
-                              child: Text(_localizedEntryType(t, l10n)),
+                              child: Text(entryTypeLocalized(t, l10n)),
                             ),
                           )
                           .toList(),
@@ -800,7 +753,7 @@ class _HistoryTabState extends State<HistoryTab> {
                         ...EntryType.values.map(
                           (t) => DropdownMenuItem(
                             value: t,
-                            child: Text(_localizedEntryType(t, l10n)),
+                            child: Text(entryTypeLocalized(t, l10n)),
                           ),
                         ),
                       ],
@@ -883,14 +836,26 @@ class _HistoryTabState extends State<HistoryTab> {
                     ),
                   )
                 else
-                  ...filtered.map(
-                    (e) => _HistorySessionCard(
+                  ...filtered.map((e) {
+                    Workspace w = state.activeWorkspace;
+                    for (final x in state.workspaces) {
+                      if (x.id == e.workspaceId) {
+                        w = x;
+                        break;
+                      }
+                    }
+                    final projectAccent = workspaceAccentColor(
+                      w.colorHex,
+                      scheme.primary,
+                    );
+                    return _HistorySessionCard(
                       entry: e,
                       dateFmt: dateFmt,
                       timeFmt: timeFmt,
                       modeLabel:
-                          '${e.mode.localized(l10n)} · ${_localizedEntryType(e.entryType, l10n)}',
+                          '${e.mode.localized(l10n)} · ${entryTypeLocalized(e.entryType, l10n)}',
                       workspaceLabel: _workspaceName(state, e),
+                      projectAccent: projectAccent,
                       onEdit: () => _editEntryDialog(e),
                       onDelete: () async {
                         await context.read<TimerCubit>().deleteEntry(e);
@@ -900,8 +865,8 @@ class _HistoryTabState extends State<HistoryTab> {
                         }
                       },
                       l10n: l10n,
-                    ),
-                  ),
+                    );
+                  }),
               ],
             );
           },
@@ -927,6 +892,7 @@ class _HistorySessionCard extends StatelessWidget {
     required this.timeFmt,
     required this.modeLabel,
     required this.workspaceLabel,
+    required this.projectAccent,
     required this.onEdit,
     required this.onDelete,
     required this.l10n,
@@ -937,6 +903,7 @@ class _HistorySessionCard extends StatelessWidget {
   final DateFormat timeFmt;
   final String modeLabel;
   final String workspaceLabel;
+  final Color projectAccent;
   final VoidCallback onEdit;
   final Future<void> Function() onDelete;
   final AppLocalizations l10n;
@@ -955,8 +922,8 @@ class _HistorySessionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              backgroundColor: scheme.primaryContainer,
-              foregroundColor: scheme.onPrimaryContainer,
+              backgroundColor: projectAccent.withValues(alpha: 0.35),
+              foregroundColor: scheme.onSurface,
               child: Icon(
                 entry.mode == WorkMode.remote
                     ? Icons.home_outlined
@@ -1022,15 +989,13 @@ class _HistorySessionCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (!entry.isBillable)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4),
-                          child: Icon(
-                            Icons.money_off_outlined,
-                            size: 18,
-                            color: scheme.outline,
-                          ),
-                        ),
+                      Icon(
+                        entry.isBillable
+                            ? Icons.paid_outlined
+                            : Icons.money_off_outlined,
+                        size: 18,
+                        color: scheme.outline,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -1038,6 +1003,7 @@ class _HistorySessionCard extends StatelessWidget {
                     l10n.historyWorkspaceLabel(workspaceLabel),
                     style: textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],

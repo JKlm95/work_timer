@@ -1207,6 +1207,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not complete the request. Try again.'**
   String get errorAuthGeneric;
+
+  /// No description provided for @debriefSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get debriefSkip;
+
+  /// No description provided for @reportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Project report'**
+  String get reportTitle;
+
+  /// No description provided for @reportPdfTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Work Timer — {project}'**
+  String reportPdfTitle(String project);
+
+  /// No description provided for @reportPdfMeta.
+  ///
+  /// In en, this message translates to:
+  /// **'Project: {project} · Period: {from} — {to} · Generated: {at}'**
+  String reportPdfMeta(String project, String from, String to, String at);
+
+  /// No description provided for @reportRangeToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get reportRangeToday;
+
+  /// No description provided for @reportRangeThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get reportRangeThisWeek;
+
+  /// No description provided for @reportRangeThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get reportRangeThisMonth;
+
+  /// No description provided for @reportRangePreviousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get reportRangePreviousMonth;
+
+  /// No description provided for @reportRangeCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom…'**
+  String get reportRangeCustom;
+
+  /// No description provided for @reportDateRangeSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get reportDateRangeSection;
+
+  /// No description provided for @reportSummarySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary'**
+  String get reportSummarySection;
+
+  /// No description provided for @reportEntriesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Entries'**
+  String get reportEntriesSection;
+
+  /// No description provided for @reportTotalTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Total time'**
+  String get reportTotalTime;
+
+  /// No description provided for @reportEstimatedEarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated earnings'**
+  String get reportEstimatedEarnings;
+
+  /// No description provided for @reportEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No report data for this date range.'**
+  String get reportEmptyTitle;
+
+  /// No description provided for @reportEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Try another range or log time.'**
+  String get reportEmptyBody;
+
+  /// No description provided for @reportExportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to export for this range.'**
+  String get reportExportEmpty;
+
+  /// No description provided for @projectDetailMonthSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'This month (estimate)'**
+  String get projectDetailMonthSummary;
+
+  /// No description provided for @projectDetailUseForTimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to timer with this project'**
+  String get projectDetailUseForTimer;
+
+  /// No description provided for @projectDetailOpenReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Open project report'**
+  String get projectDetailOpenReport;
+
+  /// No description provided for @statsOpenProjectReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Project report'**
+  String get statsOpenProjectReport;
+
+  /// No description provided for @workspacesActiveDetailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Active for timer — tap for details'**
+  String get workspacesActiveDetailHint;
+
+  /// No description provided for @workspacesInactiveDetailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap for details · menu for quick actions'**
+  String get workspacesInactiveDetailHint;
+
+  /// No description provided for @workspacesEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No projects yet'**
+  String get workspacesEmptyTitle;
+
+  /// No description provided for @workspacesEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first project to start tracking time.'**
+  String get workspacesEmptyBody;
+
+  /// No description provided for @calendarDaySummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Day summary'**
+  String get calendarDaySummaryTitle;
+
+  /// No description provided for @calendarDayEstimatedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated earnings'**
+  String get calendarDayEstimatedHint;
+
+  /// No description provided for @calendarDayNoEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'No entries on this day.'**
+  String get calendarDayNoEntries;
 }
 
 class _AppLocalizationsDelegate

@@ -2,19 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 
-/// Opcjonalne pola po zatrzymaniu timera; [neverShowAgain] zapisuje preferencję wyłączenia dialogu.
+/// Pola po zatrzymaniu timera. [skipped] — pomiń bez tytułu/notatki; [neverShowAgain] wyłącza dialog.
 class StopSessionDebriefResult {
   StopSessionDebriefResult({
     this.taskTitle,
     this.note,
     required this.isBillable,
     required this.neverShowAgain,
+    this.skipped = false,
   });
 
   final String? taskTitle;
   final String? note;
   final bool isBillable;
   final bool neverShowAgain;
+
+  /// Użytkownik wybrał „Pomiń” zamiast „Zapisz”.
+  final bool skipped;
 }
 
 Future<StopSessionDebriefResult?> showStopSessionDebriefDialog(
@@ -28,6 +32,7 @@ Future<StopSessionDebriefResult?> showStopSessionDebriefDialog(
 
   final result = await showDialog<StopSessionDebriefResult>(
     context: context,
+    barrierDismissible: false,
     builder: (context) => StatefulBuilder(
       builder: (context, setS) => AlertDialog(
         title: Text(l10n.debriefTitle),
@@ -73,8 +78,14 @@ Future<StopSessionDebriefResult?> showStopSessionDebriefDialog(
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.commonCancel),
+            onPressed: () => Navigator.of(context).pop(
+              StopSessionDebriefResult(
+                isBillable: billable,
+                neverShowAgain: hideNext,
+                skipped: true,
+              ),
+            ),
+            child: Text(l10n.debriefSkip),
           ),
           FilledButton(
             onPressed: () {

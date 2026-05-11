@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -18,6 +19,7 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await Future.wait([
     initializeDateFormatting('en_US'),
     initializeDateFormatting('pl_PL'),
@@ -54,6 +56,7 @@ class WorkTimerApp extends StatelessWidget {
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, settings) {
           return MaterialApp(
+            debugShowCheckedModeBanner: false,
             onGenerateTitle: (context) =>
                 AppLocalizations.of(context)!.appTitle,
             theme: buildWorkTimerTheme(Brightness.light),

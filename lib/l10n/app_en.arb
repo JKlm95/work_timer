@@ -237,5 +237,48 @@
   "errorAuthUserDisabled": "This account has been disabled.",
   "errorAuthInvalidCredential": "Incorrect e-mail or password.",
   "errorAuthOperationNotAllowed": "This sign-in method is not enabled.",
-  "errorAuthGeneric": "Could not complete the request. Try again."
+  "errorAuthGeneric": "Could not complete the request. Try again.",
+  "debriefSkip": "Skip",
+  "reportTitle": "Project report",
+  "reportPdfTitle": "Work Timer — {project}",
+  "@reportPdfTitle": {
+    "placeholders": {
+      "project": {
+        "type": "String"
+      }
+    }
+  },
+  "reportPdfMeta": "Project: {project} · Period: {from} — {to} · Generated: {at}",
+  "@reportPdfMeta": {
+    "placeholders": {
+      "project": {"type": "String"},
+      "from": {"type": "String"},
+      "to": {"type": "String"},
+      "at": {"type": "String"}
+    }
+  },
+  "reportRangeToday": "Today",
+  "reportRangeThisWeek": "This week",
+  "reportRangeThisMonth": "This month",
+  "reportRangePreviousMonth": "Previous month",
+  "reportRangeCustom": "Custom…",
+  "reportDateRangeSection": "Date range",
+  "reportSummarySection": "Summary",
+  "reportEntriesSection": "Entries",
+  "reportTotalTime": "Total time",
+  "reportEstimatedEarnings": "Estimated earnings",
+  "reportEmptyTitle": "No report data for this date range.",
+  "reportEmptyBody": "Try another range or log time.",
+  "reportExportEmpty": "Nothing to export for this range.",
+  "projectDetailMonthSummary": "This month (estimate)",
+  "projectDetailUseForTimer": "Go to timer with this project",
+  "projectDetailOpenReport": "Open project report",
+  "statsOpenProjectReport": "Project report",
+  "workspacesActiveDetailHint": "Active for timer — tap for details",
+  "workspacesInactiveDetailHint": "Tap for details · menu for quick actions",
+  "workspacesEmptyTitle": "No projects yet",
+  "workspacesEmptyBody": "Create your first project to start tracking time.",
+  "calendarDaySummaryTitle": "Day summary",
+  "calendarDayEstimatedHint": "Estimated earnings",
+  "calendarDayNoEntries": "No entries on this day."
 }

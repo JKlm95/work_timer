@@ -237,5 +237,48 @@
   "errorAuthUserDisabled": "To konto zostało wyłączone.",
   "errorAuthInvalidCredential": "Nieprawidłowy e-mail lub hasło.",
   "errorAuthOperationNotAllowed": "Ta metoda logowania nie jest włączona.",
-  "errorAuthGeneric": "Nie udało się wykonać operacji. Spróbuj ponownie."
+  "errorAuthGeneric": "Nie udało się wykonać operacji. Spróbuj ponownie.",
+  "debriefSkip": "Pomiń",
+  "reportTitle": "Raport projektu",
+  "reportPdfTitle": "Work Timer — {project}",
+  "@reportPdfTitle": {
+    "placeholders": {
+      "project": {
+        "type": "String"
+      }
+    }
+  },
+  "reportPdfMeta": "Projekt: {project} · Okres: {from} — {to} · Wygenerowano: {at}",
+  "@reportPdfMeta": {
+    "placeholders": {
+      "project": {"type": "String"},
+      "from": {"type": "String"},
+      "to": {"type": "String"},
+      "at": {"type": "String"}
+    }
+  },
+  "reportRangeToday": "Dziś",
+  "reportRangeThisWeek": "Ten tydzień",
+  "reportRangeThisMonth": "Ten miesiąc",
+  "reportRangePreviousMonth": "Poprzedni miesiąc",
+  "reportRangeCustom": "Zakres…",
+  "reportDateRangeSection": "Zakres dat",
+  "reportSummarySection": "Podsumowanie",
+  "reportEntriesSection": "Wpisy",
+  "reportTotalTime": "Łączny czas",
+  "reportEstimatedEarnings": "Szacowane przychody",
+  "reportEmptyTitle": "Brak danych dla tego zakresu.",
+  "reportEmptyBody": "Zmień zakres lub dodaj wpisy czasu.",
+  "reportExportEmpty": "Brak wpisów do eksportu dla tego zakresu.",
+  "projectDetailMonthSummary": "Ten miesiąc (szacunek)",
+  "projectDetailUseForTimer": "Przejdź do timera z tym projektem",
+  "projectDetailOpenReport": "Otwórz raport projektu",
+  "statsOpenProjectReport": "Raport projektu",
+  "workspacesActiveDetailHint": "Aktywny na timerze — dotknij, by zobaczyć szczegóły",
+  "workspacesInactiveDetailHint": "Dotknij, by szczegóły · menu — szybkie akcje",
+  "workspacesEmptyTitle": "Brak projektów",
+  "workspacesEmptyBody": "Utwórz pierwszy projekt, żeby zacząć śledzić czas.",
+  "calendarDaySummaryTitle": "Podsumowanie dnia",
+  "calendarDayEstimatedHint": "Szacowane przychody",
+  "calendarDayNoEntries": "Brak wpisów w tym dniu."
 }

@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../bloc/timer_cubit.dart';
 import '../models/workspace.dart';
 import '../utils/workspace_color.dart';
+import '../widgets/project_detail_sheet.dart';
 import '../widgets/project_editor_sheet.dart';
 
 class WorkspacesTab extends StatelessWidget {
@@ -49,10 +50,12 @@ class WorkspacesTab extends StatelessWidget {
               ),
               title: Text(workspace.name),
               subtitle: Text(
-                selected ? l10n.workspacesActive : l10n.workspacesInactive,
+                selected
+                    ? l10n.workspacesActiveDetailHint
+                    : l10n.workspacesInactiveDetailHint,
               ),
               onTap: () =>
-                  context.read<TimerCubit>().setActiveWorkspace(workspace.id),
+                  showProjectDetailSheet(context, workspace: workspace),
               trailing: PopupMenuButton<String>(
                 onSelected: (value) async {
                   if (!context.mounted) return;
@@ -106,17 +109,54 @@ class WorkspacesTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              ...open.map(tile),
-              if (archived.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  l10n.projectsArchivedSection,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+              if (open.isEmpty && archived.isEmpty)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.folder_off_outlined,
+                          size: 52,
+                          color: scheme.outline,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.workspacesEmptyTitle,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.workspacesEmptyBody,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed: () => _openEditor(context),
+                          icon: const Icon(Icons.add),
+                          label: Text(l10n.projectsFab),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                ...archived.map(tile),
+                )
+              else ...[
+                ...open.map(tile),
+                if (archived.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.projectsArchivedSection,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...archived.map(tile),
+                ],
               ],
             ],
           ),

@@ -448,6 +448,17 @@ class TimerCubit extends Cubit<TimerState> {
     emit(state.copyWith(statsEntries: entries));
   }
 
+  /// Wpisy jednego projektu w zakresie (Firestore + cache jak w repo).
+  Future<List<WorkEntry>> loadReportEntries({
+    required String workspaceId,
+    required DateTimeRange range,
+  }) {
+    return _repository.loadEntriesForWorkspaces(
+      range: range,
+      workspaceIds: {workspaceId},
+    );
+  }
+
   void _emitElapsed() {
     final elapsed = _computeElapsed();
     emit(state.copyWith(elapsed: elapsed));

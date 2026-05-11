@@ -594,4 +594,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorAuthGeneric => 'Could not complete the request. Try again.';
+
+  @override
+  String get debriefSkip => 'Skip';
+
+  @override
+  String get reportTitle => 'Project report';
+
+  @override
+  String reportPdfTitle(String project) {
+    return 'Work Timer — $project';
+  }
+
+  @override
+  String reportPdfMeta(String project, String from, String to, String at) {
+    return 'Project: $project · Period: $from — $to · Generated: $at';
+  }
+
+  @override
+  String get reportRangeToday => 'Today';
+
+  @override
+  String get reportRangeThisWeek => 'This week';
+
+  @override
+  String get reportRangeThisMonth => 'This month';
+
+  @override
+  String get reportRangePreviousMonth => 'Previous month';
+
+  @override
+  String get reportRangeCustom => 'Custom…';
+
+  @override
+  String get reportDateRangeSection => 'Date range';
+
+  @override
+  String get reportSummarySection => 'Summary';
+
+  @override
+  String get reportEntriesSection => 'Entries';
+
+  @override
+  String get reportTotalTime => 'Total time';
+
+  @override
+  String get reportEstimatedEarnings => 'Estimated earnings';
+
+  @override
+  String get reportEmptyTitle => 'No report data for this date range.';
+
+  @override
+  String get reportEmptyBody => 'Try another range or log time.';
+
+  @override
+  String get reportExportEmpty => 'Nothing to export for this range.';
+
+  @override
+  String get projectDetailMonthSummary => 'This month (estimate)';
+
+  @override
+  String get projectDetailUseForTimer => 'Go to timer with this project';
+
+  @override
+  String get projectDetailOpenReport => 'Open project report';
+
+  @override
+  String get statsOpenProjectReport => 'Project report';
+
+  @override
+  String get workspacesActiveDetailHint => 'Active for timer — tap for details';
+
+  @override
+  String get workspacesInactiveDetailHint =>
+      'Tap for details · menu for quick actions';
+
+  @override
+  String get workspacesEmptyTitle => 'No projects yet';
+
+  @override
+  String get workspacesEmptyBody =>
+      'Create your first project to start tracking time.';
+
+  @override
+  String get calendarDaySummaryTitle => 'Day summary';
+
+  @override
+  String get calendarDayEstimatedHint => 'Estimated earnings';
+
+  @override
+  String get calendarDayNoEntries => 'No entries on this day.';
 }

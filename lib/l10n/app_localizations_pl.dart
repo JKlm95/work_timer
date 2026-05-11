@@ -599,4 +599,95 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get errorAuthGeneric =>
       'Nie udało się wykonać operacji. Spróbuj ponownie.';
+
+  @override
+  String get debriefSkip => 'Pomiń';
+
+  @override
+  String get reportTitle => 'Raport projektu';
+
+  @override
+  String reportPdfTitle(String project) {
+    return 'Work Timer — $project';
+  }
+
+  @override
+  String reportPdfMeta(String project, String from, String to, String at) {
+    return 'Projekt: $project · Okres: $from — $to · Wygenerowano: $at';
+  }
+
+  @override
+  String get reportRangeToday => 'Dziś';
+
+  @override
+  String get reportRangeThisWeek => 'Ten tydzień';
+
+  @override
+  String get reportRangeThisMonth => 'Ten miesiąc';
+
+  @override
+  String get reportRangePreviousMonth => 'Poprzedni miesiąc';
+
+  @override
+  String get reportRangeCustom => 'Zakres…';
+
+  @override
+  String get reportDateRangeSection => 'Zakres dat';
+
+  @override
+  String get reportSummarySection => 'Podsumowanie';
+
+  @override
+  String get reportEntriesSection => 'Wpisy';
+
+  @override
+  String get reportTotalTime => 'Łączny czas';
+
+  @override
+  String get reportEstimatedEarnings => 'Szacowane przychody';
+
+  @override
+  String get reportEmptyTitle => 'Brak danych dla tego zakresu.';
+
+  @override
+  String get reportEmptyBody => 'Zmień zakres lub dodaj wpisy czasu.';
+
+  @override
+  String get reportExportEmpty => 'Brak wpisów do eksportu dla tego zakresu.';
+
+  @override
+  String get projectDetailMonthSummary => 'Ten miesiąc (szacunek)';
+
+  @override
+  String get projectDetailUseForTimer => 'Przejdź do timera z tym projektem';
+
+  @override
+  String get projectDetailOpenReport => 'Otwórz raport projektu';
+
+  @override
+  String get statsOpenProjectReport => 'Raport projektu';
+
+  @override
+  String get workspacesActiveDetailHint =>
+      'Aktywny na timerze — dotknij, by zobaczyć szczegóły';
+
+  @override
+  String get workspacesInactiveDetailHint =>
+      'Dotknij, by szczegóły · menu — szybkie akcje';
+
+  @override
+  String get workspacesEmptyTitle => 'Brak projektów';
+
+  @override
+  String get workspacesEmptyBody =>
+      'Utwórz pierwszy projekt, żeby zacząć śledzić czas.';
+
+  @override
+  String get calendarDaySummaryTitle => 'Podsumowanie dnia';
+
+  @override
+  String get calendarDayEstimatedHint => 'Szacowane przychody';
+
+  @override
+  String get calendarDayNoEntries => 'Brak wpisów w tym dniu.';
 }

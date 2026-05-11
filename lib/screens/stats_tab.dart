@@ -8,6 +8,7 @@ import '../bloc/timer_cubit.dart';
 import '../l10n/app_localizations.dart';
 import '../models/work_entry.dart';
 import '../models/workspace.dart';
+import 'project_report_screen.dart';
 import '../services/stats_service.dart';
 import '../utils/calendar_utils.dart';
 import '../utils/format_duration.dart';
@@ -248,32 +249,59 @@ class _StatsTabState extends State<StatsTab> {
                             .name;
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CircleAvatar(
-                                radius: 9,
-                                backgroundColor: workspaceAccentColor(
-                                  state.workspaces
-                                      .firstWhere(
-                                        (w) => w.id == share.workspaceId,
-                                        orElse: () => state.activeWorkspace,
-                                      )
-                                      .colorHex,
-                                  scheme.primary,
-                                ).withValues(alpha: 0.45),
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 9,
+                                    backgroundColor: workspaceAccentColor(
+                                      state.workspaces
+                                          .firstWhere(
+                                            (w) => w.id == share.workspaceId,
+                                            orElse: () => state.activeWorkspace,
+                                          )
+                                          .colorHex,
+                                      scheme.primary,
+                                    ).withValues(alpha: 0.45),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      workspaceName,
+                                      style: textTheme.bodyLarge,
+                                    ),
+                                  ),
+                                  Text(
+                                    formatDurationHm(share.duration),
+                                    style: textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: scheme.primary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  workspaceName,
-                                  style: textTheme.bodyLarge,
-                                ),
-                              ),
-                              Text(
-                                formatDurationHm(share.duration),
-                                style: textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: scheme.primary,
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => BlocProvider.value(
+                                          value: context.read<TimerCubit>(),
+                                          child: ProjectReportScreen(
+                                            workspaceId: share.workspaceId,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.assignment_outlined,
+                                    size: 18,
+                                  ),
+                                  label: Text(l10n.statsOpenProjectReport),
                                 ),
                               ),
                             ],
