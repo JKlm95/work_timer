@@ -3,10 +3,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../l10n/app_localizations.dart';
 
-void _popDebrief(
-  BuildContext dialogContext,
-  StopSessionDebriefResult result,
-) {
+void _popDebrief(BuildContext dialogContext, StopSessionDebriefResult result) {
   FocusManager.instance.primaryFocus?.unfocus();
   SchedulerBinding.instance.addPostFrameCallback((_) {
     if (dialogContext.mounted) {

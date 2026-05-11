@@ -157,10 +157,7 @@ class WorkRepository {
     );
   }
 
-  Future<void> addEntry(
-    WorkEntry entry, {
-    bool awaitRemoteSync = true,
-  }) async {
+  Future<void> addEntry(WorkEntry entry, {bool awaitRemoteSync = true}) async {
     final queue = await _localCache.loadPendingQueue(entry.workspaceId);
     final updatedQueue = _upsertById(queue, entry);
     await _localCache.savePendingQueue(entry.workspaceId, updatedQueue);
