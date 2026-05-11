@@ -137,8 +137,17 @@ class TimerCubit extends Cubit<TimerState> {
       await _repository.localCache.reloadPreferencesFromDisk();
     }
     await _repository.initForUser(state.uid);
-    final workspaces = _repository.workspaces;
-    final activeWorkspaceId = _repository.activeWorkspaceId;
+
+    emit(
+      state.copyWith(
+        workspaces: _repository.workspaces,
+        activeWorkspaceId: _repository.activeWorkspaceId,
+      ),
+    );
+
+    // Hydrate przed loadEntries: repo.activeWorkspaceId musi zgadzać się z lustrem Kotlinu.
+    await _hydrateTimerFromPersistedStores();
+
     final now = DateTime.now();
     final currentRange = DateTimeRange(
       start: DateTime(now.year, now.month, 1),
@@ -150,11 +159,8 @@ class TimerCubit extends Cubit<TimerState> {
         entries: result.entries,
         currentMonthEntries: result.entries,
         historyOfflineFallback: result.offlineFallback,
-        workspaces: workspaces,
-        activeWorkspaceId: activeWorkspaceId,
       ),
     );
-    await _hydrateTimerFromPersistedStores();
     await _applyAndroidWorkspaceSelectionIfIdle();
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
@@ -628,6 +634,9 @@ class TimerCubit extends Cubit<TimerState> {
           '${mirror['runState']} elapsed=${mirror['elapsedSeconds']}s '
           'ws=${mirror['workspaceId']}',
         );
+        await _alignRepositoryWithWorkspaceIfPossible(
+          mirror['workspaceId'] as String?,
+        );
         _applyAndroidExternalSnapshot(mirror);
         _persistSession();
         return;
@@ -637,6 +646,7 @@ class TimerCubit extends Cubit<TimerState> {
 
     final saved = await _repository.localCache.loadTimerSession();
     if (saved != null && saved.runState != TimerRunState.idle.name) {
+      await _alignRepositoryWithWorkspaceIfPossible(saved.workspaceId);
       _applyStoredTimerSession(saved);
       return;
     }
@@ -709,6 +719,8 @@ class TimerCubit extends Cubit<TimerState> {
       defaultValue: state.nextSessionMode.name,
     );
 
+    await _alignRepositoryWithWorkspaceIfPossible(workspaceId);
+
     _applyAndroidExternalSnapshot({
       'runState': runStateRaw,
       'elapsedSeconds': elapsedSeconds,
@@ -716,6 +728,24 @@ class TimerCubit extends Cubit<TimerState> {
       'sessionMode': nextSessionMode,
     });
     _persistSession();
+  }
+
+  Future<void> _alignRepositoryWithWorkspaceIfPossible(
+    String? candidateWorkspaceId,
+  ) async {
+    if (candidateWorkspaceId == null || candidateWorkspaceId.isEmpty) {
+      return;
+    }
+    if (!_repository.workspaces.any((w) => w.id == candidateWorkspaceId)) {
+      return;
+    }
+    if (_repository.activeWorkspaceId == candidateWorkspaceId) {
+      return;
+    }
+    await _repository.selectWorkspace(candidateWorkspaceId);
+    if (!isClosed) {
+      emit(state.copyWith(activeWorkspaceId: candidateWorkspaceId));
+    }
   }
 
   void _applyAndroidExternalSnapshot(Map<String, Object?> data) {
