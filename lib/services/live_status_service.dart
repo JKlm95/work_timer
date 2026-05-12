@@ -41,7 +41,10 @@ class LiveStatusService {
     final rate = w.hourlyRate;
     final code = BillingCurrency.normalizeOrNull(w.currencyCode);
     return {
-      if (rate != null && rate > 0) 'hourlyRate': rate else 'hourlyRate': FieldValue.delete(),
+      if (rate != null && rate > 0)
+        'hourlyRate': rate
+      else
+        'hourlyRate': FieldValue.delete(),
       if (code != null) 'currency': code else 'currency': FieldValue.delete(),
     };
   }
@@ -105,25 +108,22 @@ class LiveStatusService {
   /// Krótko po zalogowaniu (zanim TimerCubit ustawi workspace).
   Future<void> markSignedIn(String uid) async {
     try {
-      await _ref(uid).set(
-        {
-          'uid': uid,
-          'isOnline': true,
-          'timerState': LiveTimerState.idle,
-          'activeWorkspaceId': '',
-          'activeCompanySlug': '',
-          'activeWorkspaceName': '',
-          'accumulatedSecondsBeforePause': 0,
-          'billingRatePercent': 100,
-          'hourlyRate': FieldValue.delete(),
-          'currency': FieldValue.delete(),
-          'sessionStartedAt': FieldValue.delete(),
-          'sessionPausedAt': FieldValue.delete(),
-          'lastSeenAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await _ref(uid).set({
+        'uid': uid,
+        'isOnline': true,
+        'timerState': LiveTimerState.idle,
+        'activeWorkspaceId': '',
+        'activeCompanySlug': '',
+        'activeWorkspaceName': '',
+        'accumulatedSecondsBeforePause': 0,
+        'billingRatePercent': 100,
+        'hourlyRate': FieldValue.delete(),
+        'currency': FieldValue.delete(),
+        'sessionStartedAt': FieldValue.delete(),
+        'sessionPausedAt': FieldValue.delete(),
+        'lastSeenAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } catch (e, st) {
       debugPrint('LiveStatusService.markSignedIn: $e\n$st');
     }
@@ -132,25 +132,22 @@ class LiveStatusService {
   /// Przed wylogowaniem — `await` z AuthCubit.
   Future<void> markSignedOut(String uid) async {
     try {
-      await _ref(uid).set(
-        {
-          'uid': uid,
-          'isOnline': false,
-          'timerState': LiveTimerState.idle,
-          'activeWorkspaceId': '',
-          'activeCompanySlug': '',
-          'activeWorkspaceName': '',
-          'accumulatedSecondsBeforePause': 0,
-          'billingRatePercent': 100,
-          'hourlyRate': FieldValue.delete(),
-          'currency': FieldValue.delete(),
-          'sessionStartedAt': FieldValue.delete(),
-          'sessionPausedAt': FieldValue.delete(),
-          'lastSeenAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await _ref(uid).set({
+        'uid': uid,
+        'isOnline': false,
+        'timerState': LiveTimerState.idle,
+        'activeWorkspaceId': '',
+        'activeCompanySlug': '',
+        'activeWorkspaceName': '',
+        'accumulatedSecondsBeforePause': 0,
+        'billingRatePercent': 100,
+        'hourlyRate': FieldValue.delete(),
+        'currency': FieldValue.delete(),
+        'sessionStartedAt': FieldValue.delete(),
+        'sessionPausedAt': FieldValue.delete(),
+        'lastSeenAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } catch (e, st) {
       debugPrint('LiveStatusService.markSignedOut: $e\n$st');
     }
