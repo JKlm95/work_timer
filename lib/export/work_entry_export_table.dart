@@ -30,6 +30,7 @@ List<List<String>>? buildLocalizedExportTable({
     l10n.exportHdrMode,
     l10n.exportHdrEntryType,
     l10n.exportHdrBillable,
+    l10n.exportHdrBillingPercent,
     l10n.exportHdrTask,
     l10n.exportHdrNote,
   ];
@@ -46,6 +47,7 @@ List<List<String>>? buildLocalizedExportTable({
           e.mode == WorkMode.remote ? l10n.workModeRemote : l10n.workModeOffice,
           entryTypeLocalized(e.entryType, l10n),
           e.isBillable ? l10n.exportBillableYes : l10n.exportBillableNo,
+          '${e.billingRatePercent}',
           e.taskTitle ?? '',
           e.note ?? '',
         ],

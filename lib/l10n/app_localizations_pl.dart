@@ -364,6 +364,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get exportHdrBillable => 'Rozliczalny';
 
   @override
+  String get exportHdrBillingPercent => 'Rozliczenie %';
+
+  @override
   String get exportHdrTask => 'Zadanie / tytuł';
 
   @override
@@ -400,6 +403,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get historyBillableLabel => 'Rozliczalny';
+
+  @override
+  String get historyBillingRateLabel => 'Stawka rozliczenia (%)';
 
   @override
   String get historyTaskLabel => 'Zadanie / tytuł';

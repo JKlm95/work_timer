@@ -8,7 +8,7 @@ double? billableAmountForEntry(WorkEntry entry, Workspace workspace) {
   final rate = workspace.hourlyRate;
   if (rate == null || rate <= 0) return null;
   final hours = entry.duration.inMicroseconds / Duration.microsecondsPerHour;
-  return hours * rate;
+  return hours * rate * (entry.billingRatePercent / 100.0);
 }
 
 String formatMoneyLine(

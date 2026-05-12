@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'billing_rate_percent.dart';
 import 'entry_type.dart';
 import 'work_mode.dart';
 import 'workspace.dart';
@@ -17,7 +18,8 @@ class WorkEntry {
     this.note,
     this.isBillable = true,
     this.entryType = EntryType.work,
-  });
+    int? billingRatePercent,
+  }) : billingRatePercent = normalizeBillingRatePercent(billingRatePercent);
 
   final String id;
   final String workspaceId;
@@ -33,6 +35,9 @@ class WorkEntry {
   /// Dla rozliczeń; domyślnie true (sesja timera).
   final bool isBillable;
   final EntryType entryType;
+
+  /// Procent stawki godzinowej (50–200), domyślnie 100. Używane tylko przy rozliczalnej pracy.
+  final int billingRatePercent;
 
   Duration get duration => end.difference(start);
 
@@ -54,6 +59,7 @@ class WorkEntry {
     String? note,
     bool? isBillable,
     EntryType? entryType,
+    int? billingRatePercent,
   }) {
     return WorkEntry(
       id: id,
@@ -67,6 +73,7 @@ class WorkEntry {
       note: note ?? this.note,
       isBillable: isBillable ?? this.isBillable,
       entryType: entryType ?? this.entryType,
+      billingRatePercent: billingRatePercent ?? this.billingRatePercent,
     );
   }
 
@@ -82,6 +89,7 @@ class WorkEntry {
     'note': note,
     'isBillable': isBillable,
     'entryType': entryTypeStorage(entryType),
+    'billingRatePercent': billingRatePercent,
   };
 
   Map<String, dynamic> toFirestore() => {
@@ -93,6 +101,7 @@ class WorkEntry {
     'isDeleted': isDeleted,
     'isBillable': isBillable,
     'entryType': entryTypeStorage(entryType),
+    'billingRatePercent': billingRatePercent,
     if (taskTitle != null && taskTitle!.trim().isNotEmpty)
       'taskTitle': taskTitle!.trim(),
     if (note != null && note!.trim().isNotEmpty) 'note': note!.trim(),
@@ -120,6 +129,7 @@ class WorkEntry {
       note: json['note'] as String?,
       isBillable: billable(json['isBillable'], type),
       entryType: type,
+      billingRatePercent: parseBillingRatePercent(json['billingRatePercent']),
     );
   }
 
@@ -151,6 +161,7 @@ class WorkEntry {
       note: json['note'] as String?,
       isBillable: billable(json['isBillable'], type),
       entryType: type,
+      billingRatePercent: parseBillingRatePercent(json['billingRatePercent']),
     );
   }
 }

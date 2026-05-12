@@ -144,7 +144,8 @@ class StatsService {
           BillingCurrency.normalizeOrNull(w.currencyCode) ??
           BillingCurrency.defaultCode;
       final hours = d.inMicroseconds / Duration.microsecondsPerHour;
-      earnings[code] = (earnings[code] ?? 0) + hours * rate;
+      earnings[code] =
+          (earnings[code] ?? 0) + hours * rate * (e.billingRatePercent / 100.0);
     }
 
     return BillingEstimate(

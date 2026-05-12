@@ -423,6 +423,7 @@ class WorkTimerForegroundService : Service() {
             .put("mode", sessionMode)
             .put("updatedAt", isoNow())
             .put("isDeleted", false)
+            .put("billingRatePercent", 100)
 
         val prefs = getSharedPreferences(FLUTTER_PREFS, MODE_PRIVATE)
         val pendingKey = "flutter.work_entries_pending_v2_$workspaceId"

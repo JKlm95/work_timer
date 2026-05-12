@@ -337,6 +337,7 @@ class TimerCubit extends Cubit<TimerState> {
         note: nn == null || nn.isEmpty ? null : nn,
         isBillable: isBillable,
         entryType: EntryType.work,
+        billingRatePercent: 100,
       );
       entries = [entry, ...entries]..sort((a, b) => b.start.compareTo(a.start));
       currentMonthEntries = [entry, ...currentMonthEntries]
@@ -375,6 +376,7 @@ class TimerCubit extends Cubit<TimerState> {
     String noteRaw = '',
     bool isBillable = true,
     EntryType entryType = EntryType.work,
+    int? billingRatePercent,
   }) async {
     if (!end.isAfter(start)) return;
     final tt = taskTitleRaw.trim();
@@ -390,6 +392,7 @@ class TimerCubit extends Cubit<TimerState> {
       note: nn.isEmpty ? null : nn,
       isBillable: isBillable,
       entryType: entryType,
+      billingRatePercent: billingRatePercent,
     );
     await _repository.addEntry(entry);
     await loadHistory(DateTimeRange(start: start, end: end));
@@ -405,6 +408,7 @@ class TimerCubit extends Cubit<TimerState> {
     required String noteRaw,
     required bool isBillable,
     required EntryType entryType,
+    int? billingRatePercent,
   }) async {
     if (!end.isAfter(start)) return;
     final tt = taskTitleRaw.trim();
@@ -421,6 +425,7 @@ class TimerCubit extends Cubit<TimerState> {
       note: nn.isEmpty ? null : nn,
       isBillable: isBillable,
       entryType: entryType,
+      billingRatePercent: billingRatePercent ?? original.billingRatePercent,
     );
     await _repository.updateEntry(updated);
     await loadHistory(DateTimeRange(start: start, end: end));

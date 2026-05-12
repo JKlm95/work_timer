@@ -25,6 +25,7 @@ String workEntriesToCsv(
     'mode',
     'entryType',
     'isBillable',
+    'billingRatePercent',
     'taskTitle',
     'note',
   ];
@@ -42,6 +43,7 @@ String workEntriesToCsv(
       _csvCell(e.mode.storageValue, sep),
       _csvCell(e.entryType.name, sep),
       _csvCell('${e.isBillable}', sep),
+      _csvCell('${e.billingRatePercent}', sep),
       _csvCell(e.taskTitle ?? '', sep),
       _csvCell(e.note ?? '', sep),
     ];

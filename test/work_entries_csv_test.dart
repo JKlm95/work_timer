@@ -24,7 +24,7 @@ void main() {
     expect(
       csv.startsWith(
         'id,workspaceId,workspaceName,start,end,durationSeconds,mode,'
-        'entryType,isBillable,taskTitle,note\n',
+        'entryType,isBillable,billingRatePercent,taskTitle,note\n',
       ),
       isTrue,
     );

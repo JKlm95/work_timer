@@ -9,8 +9,19 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    function billingRatePercentOk(data) {
+      return !data.keys().hasAny(['billingRatePercent']) ||
+          (data.billingRatePercent is int &&
+              (data.billingRatePercent == 50 ||
+                  data.billingRatePercent == 80 ||
+                  data.billingRatePercent == 100 ||
+                  data.billingRatePercent == 150 ||
+                  data.billingRatePercent == 200));
+    }
+
     function hasValidEntryShape(data) {
       return data.keys().hasAll(['workspaceId', 'start', 'end', 'mode', 'updatedAt', 'isDeleted']) &&
+          billingRatePercentOk(data) &&
           data.workspaceId is string &&
           data.start is timestamp &&
           data.end is timestamp &&

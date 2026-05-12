@@ -140,4 +140,43 @@ void main() {
     expect(bill.nonBillableWorked.inHours, 2);
     expect(bill.earningsByCurrency['PLN'], closeTo(100, 0.001));
   });
+
+  test('buildBillingEstimate stosuje billingRatePercent do kwoty', () {
+    final service = StatsService();
+    final from = DateTime(2026, 5, 1);
+    final to = DateTime(2026, 5, 31, 23, 59, 59, 999);
+    final workspaces = {
+      'a': Workspace(
+        id: 'a',
+        name: 'Klient',
+        createdAt: from,
+        updatedAt: from,
+        hourlyRate: 100,
+        currencyCode: 'PLN',
+      ),
+    };
+    final entries = [
+      WorkEntry(
+        id: '1',
+        workspaceId: 'a',
+        start: DateTime(2026, 5, 2, 8),
+        end: DateTime(2026, 5, 2, 10),
+        mode: WorkMode.office,
+        updatedAt: DateTime(2026, 5, 2, 10),
+        isBillable: true,
+        entryType: EntryType.work,
+        billingRatePercent: 150,
+      ),
+    ];
+
+    final bill = service.buildBillingEstimate(
+      entries: entries,
+      from: from,
+      to: to,
+      workspaceIds: const {},
+      workspaces: workspaces,
+    );
+
+    expect(bill.earningsByCurrency['PLN'], closeTo(300, 0.001));
+  });
 }

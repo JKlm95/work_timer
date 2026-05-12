@@ -16,6 +16,7 @@ import '../l10n/app_localizations.dart';
 
 import '../bloc/timer_cubit.dart';
 import '../l10n/work_mode_strings.dart';
+import '../models/billing_rate_percent.dart';
 import '../models/entry_type.dart';
 import '../models/work_entry.dart';
 import '../models/workspace.dart';
@@ -325,6 +326,16 @@ class _HistoryTabState extends State<HistoryTab> {
   }) async {
     final outerContext = context;
     final l10n = AppLocalizations.of(outerContext)!;
+    final cubit0 = outerContext.read<TimerCubit>();
+    final wsId0 = existing?.workspaceId ?? cubit0.state.activeWorkspaceId;
+    Workspace? ws0;
+    for (final w in cubit0.state.workspaces) {
+      if (w.id == wsId0) {
+        ws0 = w;
+        break;
+      }
+    }
+    final projectHasHourlyRate = (ws0?.hourlyRate ?? 0) > 0;
     final taskCtrl = TextEditingController(text: existing?.taskTitle ?? '');
     final noteCtrl = TextEditingController(text: existing?.note ?? '');
     try {
@@ -338,221 +349,262 @@ class _HistoryTabState extends State<HistoryTab> {
       var mode = existing?.mode ?? WorkMode.office;
       var entryType = existing?.entryType ?? EntryType.work;
       var billable = existing?.isBillable ?? true;
+      var billingRatePercent = existing?.billingRatePercent ?? 100;
 
       await showDialog<void>(
         context: outerContext,
         builder: (context) {
           String? error;
           return StatefulBuilder(
-            builder: (context, setDialogState) => AlertDialog(
-              title: Text(
-                existing == null ? l10n.historyAddEntry : l10n.historyEditEntry,
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final selected = await showDatePicker(
-                          context: context,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 365),
-                          ),
-                          initialDate: date,
-                          locale: Localizations.localeOf(context),
-                        );
-                        if (selected != null) {
-                          setDialogState(() => date = selected);
-                        }
-                      },
-                      icon: const Icon(Icons.calendar_today_outlined),
-                      label: Text(
-                        DateFormat.yMMMd(
-                          Localizations.localeOf(context).languageCode,
-                        ).format(date),
+            builder: (context, setDialogState) {
+              final showBillingPercent =
+                  projectHasHourlyRate &&
+                  entryType == EntryType.work &&
+                  billable;
+              return AlertDialog(
+                title: Text(
+                  existing == null
+                      ? l10n.historyAddEntry
+                      : l10n.historyEditEntry,
+                ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final selected = await showDatePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
+                            initialDate: date,
+                            locale: Localizations.localeOf(context),
+                          );
+                          if (selected != null) {
+                            setDialogState(() => date = selected);
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_today_outlined),
+                        label: Text(
+                          DateFormat.yMMMd(
+                            Localizations.localeOf(context).languageCode,
+                          ).format(date),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () async {
-                              final selected = await showTimePicker(
-                                context: context,
-                                initialTime: start,
-                              );
-                              if (selected != null) {
-                                setDialogState(() => start = selected);
-                              }
-                            },
-                            child: Text(
-                              l10n.historyStart(start.format(context)),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                final selected = await showTimePicker(
+                                  context: context,
+                                  initialTime: start,
+                                );
+                                if (selected != null) {
+                                  setDialogState(() => start = selected);
+                                }
+                              },
+                              child: Text(
+                                l10n.historyStart(start.format(context)),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () async {
-                              final selected = await showTimePicker(
-                                context: context,
-                                initialTime: end,
-                              );
-                              if (selected != null) {
-                                setDialogState(() => end = selected);
-                              }
-                            },
-                            child: Text(l10n.historyEnd(end.format(context))),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                final selected = await showTimePicker(
+                                  context: context,
+                                  initialTime: end,
+                                );
+                                if (selected != null) {
+                                  setDialogState(() => end = selected);
+                                }
+                              },
+                              child: Text(l10n.historyEnd(end.format(context))),
+                            ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<WorkMode>(
+                        initialValue: mode,
+                        decoration: InputDecoration(
+                          labelText: l10n.historyWorkMode,
+                          border: const OutlineInputBorder(),
+                        ),
+                        items: WorkMode.values
+                            .map(
+                              (m) => DropdownMenuItem(
+                                value: m,
+                                child: Text(m.localized(l10n)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) setDialogState(() => mode = value);
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<EntryType>(
+                        initialValue: entryType,
+                        decoration: InputDecoration(
+                          labelText: l10n.historyEntryTypeLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        items: EntryType.values
+                            .map(
+                              (t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(entryTypeLocalized(t, l10n)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setDialogState(() {
+                            entryType = value;
+                            if (value != EntryType.work) {
+                              billable = false;
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: taskCtrl,
+                        decoration: InputDecoration(
+                          labelText: l10n.historyTaskLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: noteCtrl,
+                        decoration: InputDecoration(
+                          labelText: l10n.historyNoteLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        minLines: 2,
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: billable,
+                        onChanged: (v) =>
+                            setDialogState(() => billable = v ?? false),
+                        title: Text(l10n.historyBillableLabel),
+                      ),
+                      if (showBillingPercent) ...[
+                        const SizedBox(height: 8),
+                      DropdownButtonFormField<int>(
+                        key: ValueKey(billingRatePercent),
+                        initialValue: billingRatePercent,
+                        decoration: InputDecoration(
+                            labelText: l10n.historyBillingRateLabel,
+                            border: const OutlineInputBorder(),
+                          ),
+                          items: kBillingRatePercentOptions
+                              .map(
+                                (p) => DropdownMenuItem<int>(
+                                  value: p,
+                                  child: Text('$p%'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setDialogState(() => billingRatePercent = value);
+                          },
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<WorkMode>(
-                      initialValue: mode,
-                      decoration: InputDecoration(
-                        labelText: l10n.historyWorkMode,
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: WorkMode.values
-                          .map(
-                            (m) => DropdownMenuItem(
-                              value: m,
-                              child: Text(m.localized(l10n)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) setDialogState(() => mode = value);
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<EntryType>(
-                      initialValue: entryType,
-                      decoration: InputDecoration(
-                        labelText: l10n.historyEntryTypeLabel,
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: EntryType.values
-                          .map(
-                            (t) => DropdownMenuItem(
-                              value: t,
-                              child: Text(entryTypeLocalized(t, l10n)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setDialogState(() {
-                          entryType = value;
-                          if (value != EntryType.work) {
-                            billable = false;
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: taskCtrl,
-                      decoration: InputDecoration(
-                        labelText: l10n.historyTaskLabel,
-                        border: const OutlineInputBorder(),
-                      ),
-                      textCapitalization: TextCapitalization.sentences,
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: noteCtrl,
-                      decoration: InputDecoration(
-                        labelText: l10n.historyNoteLabel,
-                        border: const OutlineInputBorder(),
-                      ),
-                      minLines: 2,
-                      maxLines: 4,
-                      textCapitalization: TextCapitalization.sentences,
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: billable,
-                      onChanged: (v) =>
-                          setDialogState(() => billable = v ?? false),
-                      title: Text(l10n.historyBillableLabel),
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        error!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.error,
+                      if (error != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          error!,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(l10n.commonCancel),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    final cubit = outerContext.read<TimerCubit>();
-                    final startDate = DateTime(
-                      date.year,
-                      date.month,
-                      date.day,
-                      start.hour,
-                      start.minute,
-                    );
-                    final endDate = DateTime(
-                      date.year,
-                      date.month,
-                      date.day,
-                      end.hour,
-                      end.minute,
-                    );
-                    if (!endDate.isAfter(startDate)) {
-                      setDialogState(
-                        () => error = l10n.historyValEndAfterStart,
-                      );
-                      return;
-                    }
-                    if (existing == null) {
-                      await cubit.addManualEntry(
-                        start: startDate,
-                        end: endDate,
-                        mode: mode,
-                        taskTitleRaw: taskCtrl.text,
-                        noteRaw: noteCtrl.text,
-                        isBillable: billable,
-                        entryType: entryType,
-                      );
-                    } else {
-                      await cubit.updateEntry(
-                        original: existing,
-                        start: startDate,
-                        end: endDate,
-                        mode: mode,
-                        taskTitleRaw: taskCtrl.text,
-                        noteRaw: noteCtrl.text,
-                        isBillable: billable,
-                        entryType: entryType,
-                      );
-                    }
-                    if (!outerContext.mounted) return;
-                    Navigator.of(context).pop();
-                    await cubit.loadHistory(_range);
-                  },
-                  child: Text(
-                    existing == null ? l10n.commonAdd : l10n.commonSave,
                   ),
                 ),
-              ],
-            ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      final cubit = outerContext.read<TimerCubit>();
+                      final startDate = DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        start.hour,
+                        start.minute,
+                      );
+                      final endDate = DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        end.hour,
+                        end.minute,
+                      );
+                      if (!endDate.isAfter(startDate)) {
+                        setDialogState(
+                          () => error = l10n.historyValEndAfterStart,
+                        );
+                        return;
+                      }
+                      final resolvedBillingPercent =
+                          projectHasHourlyRate &&
+                              entryType == EntryType.work &&
+                              billable
+                          ? billingRatePercent
+                          : 100;
+                      if (existing == null) {
+                        await cubit.addManualEntry(
+                          start: startDate,
+                          end: endDate,
+                          mode: mode,
+                          taskTitleRaw: taskCtrl.text,
+                          noteRaw: noteCtrl.text,
+                          isBillable: billable,
+                          entryType: entryType,
+                          billingRatePercent: resolvedBillingPercent,
+                        );
+                      } else {
+                        await cubit.updateEntry(
+                          original: existing,
+                          start: startDate,
+                          end: endDate,
+                          mode: mode,
+                          taskTitleRaw: taskCtrl.text,
+                          noteRaw: noteCtrl.text,
+                          isBillable: billable,
+                          entryType: entryType,
+                          billingRatePercent: resolvedBillingPercent,
+                        );
+                      }
+                      if (!outerContext.mounted) return;
+                      Navigator.of(context).pop();
+                      await cubit.loadHistory(_range);
+                    },
+                    child: Text(
+                      existing == null ? l10n.commonAdd : l10n.commonSave,
+                    ),
+                  ),
+                ],
+              );
+            },
           );
         },
       );

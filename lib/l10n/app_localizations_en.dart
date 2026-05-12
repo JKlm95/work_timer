@@ -363,6 +363,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportHdrBillable => 'Billable';
 
   @override
+  String get exportHdrBillingPercent => 'Billing %';
+
+  @override
   String get exportHdrTask => 'Task / title';
 
   @override
@@ -398,6 +401,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyBillableLabel => 'Billable';
+
+  @override
+  String get historyBillingRateLabel => 'Billing rate (%)';
 
   @override
   String get historyTaskLabel => 'Task / title';

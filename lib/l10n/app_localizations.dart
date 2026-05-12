@@ -752,6 +752,12 @@ abstract class AppLocalizations {
   /// **'Billable'**
   String get exportHdrBillable;
 
+  /// No description provided for @exportHdrBillingPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing %'**
+  String get exportHdrBillingPercent;
+
   /// No description provided for @exportHdrTask.
   ///
   /// In en, this message translates to:
@@ -817,6 +823,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Billable'**
   String get historyBillableLabel;
+
+  /// No description provided for @historyBillingRateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing rate (%)'**
+  String get historyBillingRateLabel;
 
   /// No description provided for @historyTaskLabel.
   ///
