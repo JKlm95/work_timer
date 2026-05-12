@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../services/auth_native_sync.dart';
 import '../services/auth_service.dart';
+import '../services/user_email_index_service.dart';
 
 class AuthState {
   const AuthState({required this.loading, required this.user});
@@ -20,14 +21,20 @@ class AuthState {
 }
 
 class AuthCubit extends Cubit<AuthState> {
-  AuthCubit(this._authService) : super(AuthState.initial()) {
+  AuthCubit(this._authService, {UserEmailIndexService? userEmailIndex})
+    : _userEmailIndex = userEmailIndex ?? UserEmailIndexService(),
+      super(AuthState.initial()) {
     _sub = _authService.authStateChanges.listen((user) async {
       emit(AuthState(loading: false, user: user));
       await syncAuthSignedInToNativePrefs(user != null);
+      if (user != null) {
+        unawaited(_userEmailIndex.upsertForUser(user));
+      }
     });
   }
 
   final AuthService _authService;
+  final UserEmailIndexService _userEmailIndex;
   StreamSubscription<User?>? _sub;
 
   Future<void> signIn({required String email, required String password}) {

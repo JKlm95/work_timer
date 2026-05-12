@@ -38,6 +38,29 @@ service cloud.firestore {
           data.isArchived is bool;
     }
 
+    // MVP: indeks email → uid dla panelu pracodawcy (Flutter Web czyta z klienta).
+    // Odczyt: dowolny zalogowany użytkownik — świadomy kompromis prywatności na MVP.
+    // Zapis: tylko własny uid + email zgodny z tokenem + emailLower == id dokumentu
+    // (żeby nie nadpisać cudzego wpisu pod fałszywym adresem przy tym samym koncie).
+    function hasValidUserEmailIndexShape(data, emailLower) {
+      return data.keys().hasAll(['uid', 'email', 'emailLower', 'updatedAt']) &&
+          data.uid is string &&
+          data.email is string &&
+          data.emailLower is string &&
+          data.updatedAt is timestamp &&
+          data.uid == request.auth.uid &&
+          data.emailLower == emailLower &&
+          data.email == request.auth.token.email &&
+          (!data.keys().hasAny(['displayName']) || data.displayName is string) &&
+          (!data.keys().hasAny(['providerIds']) || data.providerIds is list);
+    }
+
+    match /userEmailIndex/{emailLower} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && hasValidUserEmailIndexShape(request.resource.data, emailLower);
+      allow delete: if false;
+    }
+
     match /users/{uid}/entries/{entryId} {
       allow read: if isOwner(uid);
       allow create, update: if isOwner(uid) && hasValidEntryShape(request.resource.data);
