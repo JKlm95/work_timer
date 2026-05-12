@@ -48,6 +48,8 @@ dependencies:
   file_picker: ^8.3.7
   table_calendar: ^3.2.0
   pdf: ^3.11.3
+  firebase_crashlytics: ^5.2.1
+  firebase_analytics: ^12.4.0
 
 dev_dependencies:
   flutter_test:

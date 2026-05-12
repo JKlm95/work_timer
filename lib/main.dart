@@ -1,9 +1,14 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
 
@@ -17,6 +22,8 @@ import 'services/local_cache_store.dart';
 import 'services/work_repository.dart';
 import 'theme/app_theme.dart';
 
+final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -25,6 +32,16 @@ Future<void> main() async {
     initializeDateFormatting('pl_PL'),
   ]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Crashlytics: iOS / Android (web nie jest wspierany przez plugin).
+  if (!kIsWeb) {
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final authService = AuthService();
   final repository = WorkRepository(
@@ -57,6 +74,9 @@ class WorkTimerApp extends StatelessWidget {
         builder: (context, settings) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+            navigatorObservers: [
+              FirebaseAnalyticsObserver(analytics: _analytics),
+            ],
             onGenerateTitle: (context) =>
                 AppLocalizations.of(context)!.appTitle,
             theme: buildWorkTimerTheme(Brightness.light),
