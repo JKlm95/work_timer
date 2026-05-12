@@ -538,6 +538,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
+  String get settingsProfileSection => 'Your profile';
+
+  @override
+  String get settingsProfileFirstName => 'First name';
+
+  @override
+  String get settingsProfileLastName => 'Last name';
+
+  @override
+  String get settingsProfileEmail => 'E-mail';
+
+  @override
+  String get settingsProfileSave => 'Save profile';
+
+  @override
+  String get settingsProfileNameRequired =>
+      'Enter your first name and/or last name.';
+
+  @override
+  String get settingsProfileSaved => 'Profile saved.';
+
+  @override
+  String get settingsProfileIndexSyncFailed =>
+      'Profile saved, but syncing the e-mail directory failed. Try again later.';
+
+  @override
   String get settingsAppearance => 'Appearance';
 
   @override

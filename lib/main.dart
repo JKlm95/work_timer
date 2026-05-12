@@ -19,6 +19,8 @@ import 'screens/auth_gate.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_work_store.dart';
 import 'services/local_cache_store.dart';
+import 'services/user_email_index_service.dart';
+import 'services/user_profile_repository.dart';
 import 'services/work_repository.dart';
 import 'theme/app_theme.dart';
 
@@ -48,10 +50,17 @@ Future<void> main() async {
     localCache: LocalCacheStore(),
     remoteStore: FirebaseWorkStore(),
   );
+  final userProfileRepository = UserProfileRepository();
+  final userEmailIndex = UserEmailIndexService();
   runApp(
     BlocProvider(
       create: (_) => SettingsCubit(prefs),
-      child: WorkTimerApp(authService: authService, repository: repository),
+      child: WorkTimerApp(
+        authService: authService,
+        repository: repository,
+        userProfileRepository: userProfileRepository,
+        userEmailIndex: userEmailIndex,
+      ),
     ),
   );
 }
@@ -61,15 +70,23 @@ class WorkTimerApp extends StatelessWidget {
     super.key,
     required this.authService,
     required this.repository,
+    required this.userProfileRepository,
+    required this.userEmailIndex,
   });
 
   final AuthService authService;
   final WorkRepository repository;
+  final UserProfileRepository userProfileRepository;
+  final UserEmailIndexService userEmailIndex;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AuthCubit(authService),
+      create: (_) => AuthCubit(
+        authService,
+        userEmailIndex: userEmailIndex,
+        userProfileRepository: userProfileRepository,
+      ),
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, settings) {
           return MaterialApp(
@@ -101,7 +118,11 @@ class WorkTimerApp extends StatelessWidget {
               }
               return supportedLocales.first;
             },
-            home: AuthGate(repository: repository),
+            home: AuthGate(
+              repository: repository,
+              userProfileRepository: userProfileRepository,
+              userEmailIndex: userEmailIndex,
+            ),
           );
         },
       ),

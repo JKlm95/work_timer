@@ -43,16 +43,38 @@ service cloud.firestore {
     // Zapis: tylko własny uid + email zgodny z tokenem + emailLower == id dokumentu
     // (żeby nie nadpisać cudzego wpisu pod fałszywym adresem przy tym samym koncie).
     function hasValidUserEmailIndexShape(data, emailLower) {
-      return data.keys().hasAll(['uid', 'email', 'emailLower', 'updatedAt']) &&
+      return data.keys().hasAll(['uid', 'email', 'emailLower', 'updatedAt', 'firstName', 'lastName']) &&
           data.uid is string &&
           data.email is string &&
           data.emailLower is string &&
+          data.firstName is string &&
+          data.lastName is string &&
           data.updatedAt is timestamp &&
           data.uid == request.auth.uid &&
           data.emailLower == emailLower &&
           data.email == request.auth.token.email &&
           (!data.keys().hasAny(['displayName']) || data.displayName is string) &&
           (!data.keys().hasAny(['providerIds']) || data.providerIds is list);
+    }
+
+    // Profil pracownika (imię / nazwisko) — tylko właściciel; dokument `main`.
+    function hasValidUserProfileMainShape(data) {
+      return data.keys().hasAll(['firstName', 'lastName', 'displayName', 'email', 'updatedAt']) &&
+          data.firstName is string &&
+          data.lastName is string &&
+          data.displayName is string &&
+          data.email is string &&
+          data.updatedAt is timestamp &&
+          data.email == request.auth.token.email &&
+          (data.firstName.size() > 0 || data.lastName.size() > 0);
+    }
+
+    match /users/{uid}/profile/{docId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) &&
+          docId == 'main' &&
+          hasValidUserProfileMainShape(request.resource.data);
+      allow delete: if false;
     }
 
     match /userEmailIndex/{emailLower} {

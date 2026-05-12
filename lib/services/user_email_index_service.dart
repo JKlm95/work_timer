@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import '../models/user_profile.dart';
+
 /// Zapis pod MVP: `userEmailIndex/{emailLower}` dla panelu pracodawcy (lookup UID po emailu).
-/// Nie blokuje apki przy błędzie — tylko log.
+/// Nie blokuje apki przy błędzie — tylko log. Zwraca `true` przy sukcesie.
 class UserEmailIndexService {
   UserEmailIndexService({FirebaseFirestore? firestore})
     : _db = firestore ?? FirebaseFirestore.instance;
@@ -22,9 +24,28 @@ class UserEmailIndexService {
     return raw.toLowerCase();
   }
 
-  Future<void> upsertForUser(User user) async {
+  /// Wyświetlana nazwa w indeksie: imię+nazwisko z profilu → displayName z Auth → email.
+  static String resolveIndexDisplayName({
+    required User user,
+    UserProfile? profile,
+  }) {
+    if (profile != null &&
+        UserProfile.hasAnyName(profile.firstName, profile.lastName)) {
+      return UserProfile.composeDisplayName(
+        profile.firstName,
+        profile.lastName,
+      );
+    }
+    final authName = user.displayName?.trim();
+    if (authName != null && authName.isNotEmpty) return authName;
     final email = user.email?.trim();
-    if (email == null || email.isEmpty) return;
+    if (email != null && email.isNotEmpty) return email;
+    return '';
+  }
+
+  Future<bool> upsertForUser(User user, {UserProfile? profile}) async {
+    final email = user.email?.trim();
+    if (email == null || email.isEmpty) return false;
 
     final emailLower = email.toLowerCase();
 
@@ -35,9 +56,20 @@ class UserEmailIndexService {
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    final name = user.displayName?.trim();
-    if (name != null && name.isNotEmpty) {
-      data['displayName'] = name;
+    final resolvedDisplay = resolveIndexDisplayName(
+      user: user,
+      profile: profile,
+    );
+    if (resolvedDisplay.isNotEmpty) {
+      data['displayName'] = resolvedDisplay;
+    }
+
+    if (profile != null) {
+      data['firstName'] = profile.firstName.trim();
+      data['lastName'] = profile.lastName.trim();
+    } else {
+      data['firstName'] = '';
+      data['lastName'] = '';
     }
 
     final ids = user.providerData.map((p) => p.providerId).toSet().toList()
@@ -51,8 +83,10 @@ class UserEmailIndexService {
           .collection(collectionName)
           .doc(emailLower)
           .set(data, SetOptions(merge: true));
+      return true;
     } catch (e, st) {
       debugPrint('UserEmailIndexService.upsertForUser: $e\n$st');
+      return false;
     }
   }
 }

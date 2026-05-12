@@ -1094,6 +1094,54 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// No description provided for @settingsProfileSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile'**
+  String get settingsProfileSection;
+
+  /// No description provided for @settingsProfileFirstName.
+  ///
+  /// In en, this message translates to:
+  /// **'First name'**
+  String get settingsProfileFirstName;
+
+  /// No description provided for @settingsProfileLastName.
+  ///
+  /// In en, this message translates to:
+  /// **'Last name'**
+  String get settingsProfileLastName;
+
+  /// No description provided for @settingsProfileEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'E-mail'**
+  String get settingsProfileEmail;
+
+  /// No description provided for @settingsProfileSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save profile'**
+  String get settingsProfileSave;
+
+  /// No description provided for @settingsProfileNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your first name and/or last name.'**
+  String get settingsProfileNameRequired;
+
+  /// No description provided for @settingsProfileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile saved.'**
+  String get settingsProfileSaved;
+
+  /// No description provided for @settingsProfileIndexSyncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile saved, but syncing the e-mail directory failed. Try again later.'**
+  String get settingsProfileIndexSyncFailed;
+
   /// No description provided for @settingsAppearance.
   ///
   /// In en, this message translates to:

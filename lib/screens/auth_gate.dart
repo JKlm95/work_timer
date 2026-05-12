@@ -5,16 +5,26 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../l10n/app_localizations.dart';
 
 import '../bloc/auth_cubit.dart';
-import '../utils/auth_error_localizer.dart';
 import '../bloc/timer_cubit.dart';
+import '../bloc/user_profile_cubit.dart';
+import '../utils/auth_error_localizer.dart';
+import '../services/user_email_index_service.dart';
+import '../services/user_profile_repository.dart';
 import '../services/work_repository.dart';
 import '../widgets/splash_loading_view.dart';
 import 'home_shell.dart';
 
 class AuthGate extends StatefulWidget {
-  const AuthGate({super.key, required this.repository});
+  const AuthGate({
+    super.key,
+    required this.repository,
+    required this.userProfileRepository,
+    required this.userEmailIndex,
+  });
 
   final WorkRepository repository;
+  final UserProfileRepository userProfileRepository;
+  final UserEmailIndexService userEmailIndex;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -22,12 +32,18 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   TimerCubit? _timerCubit;
+  UserProfileCubit? _profileCubit;
   String? _loadedUid;
 
   Future<void> _disposeTimer() async {
     final c = _timerCubit;
+    final p = _profileCubit;
     _timerCubit = null;
+    _profileCubit = null;
     _loadedUid = null;
+    if (p != null) {
+      await p.close();
+    }
     if (c != null) {
       await c.close();
     }
@@ -47,6 +63,11 @@ class _AuthGateState extends State<AuthGate> {
 
     final sw = Stopwatch()..start();
     final cubit = TimerCubit(uid: uid, repository: widget.repository);
+    final profileCubit = UserProfileCubit(
+      uid: uid,
+      profileRepository: widget.userProfileRepository,
+      emailIndex: widget.userEmailIndex,
+    );
     try {
       await cubit.init().timeout(const Duration(seconds: 15));
     } catch (_) {}
@@ -59,11 +80,13 @@ class _AuthGateState extends State<AuthGate> {
 
     if (!mounted) {
       await cubit.close();
+      await profileCubit.close();
       return;
     }
 
     setState(() {
       _timerCubit = cubit;
+      _profileCubit = profileCubit;
       _loadedUid = uid;
     });
   }
@@ -94,11 +117,14 @@ class _AuthGateState extends State<AuthGate> {
           if (state.user == null) {
             return const _AuthScreen();
           }
-          if (_timerCubit == null) {
+          if (_timerCubit == null || _profileCubit == null) {
             return const SplashLoadingView();
           }
-          return BlocProvider.value(
-            value: _timerCubit!,
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider.value(value: _timerCubit!),
+              BlocProvider.value(value: _profileCubit!),
+            ],
             child: _TimerResumeSyncScope(
               child: HomeShell(onSignOut: context.read<AuthCubit>().signOut),
             ),

@@ -542,6 +542,31 @@ class AppLocalizationsPl extends AppLocalizations {
   String get settingsTitle => 'Ustawienia';
 
   @override
+  String get settingsProfileSection => 'Twój profil';
+
+  @override
+  String get settingsProfileFirstName => 'Imię';
+
+  @override
+  String get settingsProfileLastName => 'Nazwisko';
+
+  @override
+  String get settingsProfileEmail => 'E-mail';
+
+  @override
+  String get settingsProfileSave => 'Zapisz profil';
+
+  @override
+  String get settingsProfileNameRequired => 'Podaj imię i/lub nazwisko.';
+
+  @override
+  String get settingsProfileSaved => 'Profil zapisany.';
+
+  @override
+  String get settingsProfileIndexSyncFailed =>
+      'Profil zapisany, ale synchronizacja katalogu e-mail nie powiodła się. Spróbuj później.';
+
+  @override
   String get settingsAppearance => 'Wygląd';
 
   @override
