@@ -502,10 +502,10 @@ class _HistoryTabState extends State<HistoryTab> {
                       ),
                       if (showBillingPercent) ...[
                         const SizedBox(height: 8),
-                      DropdownButtonFormField<int>(
-                        key: ValueKey(billingRatePercent),
-                        initialValue: billingRatePercent,
-                        decoration: InputDecoration(
+                        DropdownButtonFormField<int>(
+                          key: ValueKey(billingRatePercent),
+                          initialValue: billingRatePercent,
+                          decoration: InputDecoration(
                             labelText: l10n.historyBillingRateLabel,
                             border: const OutlineInputBorder(),
                           ),
