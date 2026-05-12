@@ -42,8 +42,6 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
   late final TextEditingController _rateCtrl;
   late final TextEditingController _companyCtrl;
   late final TextEditingController _slugCtrl;
-  late final TextEditingController _firstCtrl;
-  late final TextEditingController _lastCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _employerEmailsCtrl;
   late final TextEditingController _customColorCtrl;
@@ -74,8 +72,6 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
     );
     _companyCtrl = TextEditingController(text: _base.companyName ?? '');
     _slugCtrl = TextEditingController(text: _base.companySlug ?? '');
-    _firstCtrl = TextEditingController(text: _base.employeeFirstName ?? '');
-    _lastCtrl = TextEditingController(text: _base.employeeLastName ?? '');
     _emailCtrl = TextEditingController(text: _base.employeeWorkEmail ?? '');
     _employerEmailsCtrl = TextEditingController(
       text: _base.linkedEmployerEmails.join(', '),
@@ -108,8 +104,6 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
     _rateCtrl.dispose();
     _companyCtrl.dispose();
     _slugCtrl.dispose();
-    _firstCtrl.dispose();
-    _lastCtrl.dispose();
     _emailCtrl.dispose();
     _employerEmailsCtrl.dispose();
     _customColorCtrl.dispose();
@@ -153,12 +147,6 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
           ? _companyCtrl.text.trim()
           : null,
       companySlug: slugOut,
-      employeeFirstName: _shareEmployer && _firstCtrl.text.trim().isNotEmpty
-          ? _firstCtrl.text.trim()
-          : null,
-      employeeLastName: _shareEmployer && _lastCtrl.text.trim().isNotEmpty
-          ? _lastCtrl.text.trim()
-          : null,
       employeeWorkEmail: _shareEmployer && workEmail.isNotEmpty
           ? workEmail
           : null,
@@ -332,19 +320,10 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _firstCtrl,
-                decoration: InputDecoration(
-                  labelText: l10n.projectsEmployeeFirstName,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _lastCtrl,
-                decoration: InputDecoration(
-                  labelText: l10n.projectsEmployeeLastName,
-                  border: const OutlineInputBorder(),
+              Text(
+                l10n.projectsShareEmployerProfileNamesHint,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 8),

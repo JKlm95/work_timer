@@ -980,17 +980,11 @@ abstract class AppLocalizations {
   /// **'Company slug (optional)'**
   String get projectsCompanySlugHint;
 
-  /// No description provided for @projectsEmployeeFirstName.
+  /// No description provided for @projectsShareEmployerProfileNamesHint.
   ///
   /// In en, this message translates to:
-  /// **'Your first name'**
-  String get projectsEmployeeFirstName;
-
-  /// No description provided for @projectsEmployeeLastName.
-  ///
-  /// In en, this message translates to:
-  /// **'Your last name'**
-  String get projectsEmployeeLastName;
+  /// **'Employee first and last name are taken from Settings → Your profile.'**
+  String get projectsShareEmployerProfileNamesHint;
 
   /// No description provided for @projectsEmployeeWorkEmail.
   ///

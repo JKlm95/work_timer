@@ -481,10 +481,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectsCompanySlugHint => 'Company slug (optional)';
 
   @override
-  String get projectsEmployeeFirstName => 'Your first name';
-
-  @override
-  String get projectsEmployeeLastName => 'Your last name';
+  String get projectsShareEmployerProfileNamesHint =>
+      'Employee first and last name are taken from Settings → Your profile.';
 
   @override
   String get projectsEmployeeWorkEmail => 'Work e-mail';

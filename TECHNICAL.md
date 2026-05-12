@@ -26,7 +26,7 @@ Dokument dla **deweloperów i rekrutera technicznego**: architektura, integracja
 ```
 lib/
 ├── main.dart                 # Firebase.init, SettingsCubit (prefs), AuthCubit, MaterialApp (theme / darkTheme / themeMode, l10n)
-├── bloc/                     # auth_cubit.dart, timer_cubit.dart, settings_cubit.dart
+├── bloc/                     # auth_cubit.dart, timer_cubit.dart, settings_cubit.dart, user_profile_cubit.dart
 ├── l10n/                     # app_*.arb, app_localizations*.dart (generowane), work_mode_strings.dart
 ├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart
 ├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, calendar_tab, workspaces_tab, settings_tab
@@ -68,6 +68,9 @@ lib/
 - **Firestore** (wysokopoziomowo):
   - `users/{uid}/entries/{entryId}`
   - `users/{uid}/workspaces/{workspaceId}`
+  - `users/{uid}/profile/main` — globalny profil pracownika (imię, nazwisko, e-mail; Ustawienia w aplikacji).
+  - `userEmailIndex/{emailLower}` — indeks pod panel pracodawcy (m.in. `uid`, `firstName`, `lastName`, `displayName`, `email`, `providerIds`); synchronizowany przy auth i przy zapisie profilu (`UserEmailIndexService`).
+- **Legacy (bez migracji):** w starszych dokumentach `workspaces` mogą występować pola `employeeFirstName` / `employeeLastName` — **aplikacja ich już nie czyta ani nie zapisuje**; imię i nazwisko są wyłącznie w profilu globalnym / `userEmailIndex`.
 - **Reguły:** plik **`firestore.rules`** w repozytorium — **wdroż całość** (konsola lub `firebase deploy --only firestore:rules`). Reguły muszą obejmować **obie** podkolekcje (`entries` **i** `workspaces`). Same reguły tylko dla `entries` skutkują **`permission-denied`** przy zapisie/odczycie workspace’ów i po reinstalacji „znikały” workspace’y w chmurze.
 
 ---

@@ -484,10 +484,8 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectsCompanySlugHint => 'Slug firmy (opcjonalnie)';
 
   @override
-  String get projectsEmployeeFirstName => 'Imię';
-
-  @override
-  String get projectsEmployeeLastName => 'Nazwisko';
+  String get projectsShareEmployerProfileNamesHint =>
+      'Imię i nazwisko pracownika są pobierane z Ustawienia → Twój profil.';
 
   @override
   String get projectsEmployeeWorkEmail => 'Służbowy e-mail';

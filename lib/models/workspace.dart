@@ -10,8 +10,6 @@ class Workspace {
     this.isArchived = false,
     this.companyName,
     this.companySlug,
-    this.employeeFirstName,
-    this.employeeLastName,
     this.employeeWorkEmail,
     this.employeeWorkEmailDomain,
     this.colorHex,
@@ -31,8 +29,6 @@ class Workspace {
 
   final String? companyName;
   final String? companySlug;
-  final String? employeeFirstName;
-  final String? employeeLastName;
   final String? employeeWorkEmail;
 
   /// Zapisane przy zapisie (z maila) — można też wyliczyć przez [effectiveEmailDomain].
@@ -67,8 +63,6 @@ class Workspace {
     bool? isArchived,
     String? companyName,
     String? companySlug,
-    String? employeeFirstName,
-    String? employeeLastName,
     String? employeeWorkEmail,
     String? employeeWorkEmailDomain,
     String? colorHex,
@@ -85,8 +79,6 @@ class Workspace {
       isArchived: isArchived ?? this.isArchived,
       companyName: companyName ?? this.companyName,
       companySlug: companySlug ?? this.companySlug,
-      employeeFirstName: employeeFirstName ?? this.employeeFirstName,
-      employeeLastName: employeeLastName ?? this.employeeLastName,
       employeeWorkEmail: employeeWorkEmail ?? this.employeeWorkEmail,
       employeeWorkEmailDomain:
           employeeWorkEmailDomain ?? this.employeeWorkEmailDomain,
@@ -106,8 +98,6 @@ class Workspace {
     'isArchived': isArchived,
     if (companyName != null) 'companyName': companyName,
     if (companySlug != null) 'companySlug': companySlug,
-    if (employeeFirstName != null) 'employeeFirstName': employeeFirstName,
-    if (employeeLastName != null) 'employeeLastName': employeeLastName,
     if (employeeWorkEmail != null) 'employeeWorkEmail': employeeWorkEmail,
     if (employeeWorkEmailDomain != null)
       'employeeWorkEmailDomain': employeeWorkEmailDomain,
@@ -128,8 +118,6 @@ class Workspace {
     };
     if (companyName != null) m['companyName'] = companyName;
     if (companySlug != null) m['companySlug'] = companySlug;
-    if (employeeFirstName != null) m['employeeFirstName'] = employeeFirstName;
-    if (employeeLastName != null) m['employeeLastName'] = employeeLastName;
     if (employeeWorkEmail != null) m['employeeWorkEmail'] = employeeWorkEmail;
     if (employeeWorkEmailDomain != null) {
       m['employeeWorkEmailDomain'] = employeeWorkEmailDomain;
@@ -169,8 +157,6 @@ class Workspace {
       isArchived: json['isArchived'] as bool? ?? false,
       companyName: json['companyName'] as String?,
       companySlug: normalizeCompanySlug(json['companySlug'] as String?),
-      employeeFirstName: json['employeeFirstName'] as String?,
-      employeeLastName: json['employeeLastName'] as String?,
       employeeWorkEmail: json['employeeWorkEmail'] as String?,
       employeeWorkEmailDomain:
           json['employeeWorkEmailDomain'] as String? ??
