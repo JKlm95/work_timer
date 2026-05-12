@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../services/auth_native_sync.dart';
 import '../services/auth_service.dart';
+import '../services/live_status_service.dart';
 import '../services/user_email_index_service.dart';
 import '../services/user_profile_repository.dart';
 
@@ -27,14 +28,17 @@ class AuthCubit extends Cubit<AuthState> {
     this._authService, {
     UserEmailIndexService? userEmailIndex,
     UserProfileRepository? userProfileRepository,
+    LiveStatusService? liveStatus,
   }) : _userEmailIndex = userEmailIndex ?? UserEmailIndexService(),
        _profileRepo = userProfileRepository ?? UserProfileRepository(),
+       _liveStatus = liveStatus ?? LiveStatusService(),
        super(AuthState.initial()) {
     _sub = _authService.authStateChanges.listen((user) async {
       emit(AuthState(loading: false, user: user));
       await syncAuthSignedInToNativePrefs(user != null);
       if (user != null) {
         unawaited(_syncUserEmailIndex(user));
+        unawaited(_liveStatus.markSignedIn(user.uid));
       }
     });
   }
@@ -42,6 +46,7 @@ class AuthCubit extends Cubit<AuthState> {
   final AuthService _authService;
   final UserEmailIndexService _userEmailIndex;
   final UserProfileRepository _profileRepo;
+  final LiveStatusService _liveStatus;
   StreamSubscription<User?>? _sub;
 
   Future<void> _syncUserEmailIndex(User user) async {
@@ -62,7 +67,13 @@ class AuthCubit extends Cubit<AuthState> {
     return _authService.signUp(email: email, password: password);
   }
 
-  Future<void> signOut() => _authService.signOut();
+  Future<void> signOut() async {
+    final uid = _authService.currentUser?.uid;
+    if (uid != null) {
+      await _liveStatus.markSignedOut(uid);
+    }
+    await _authService.signOut();
+  }
 
   Future<void> sendPasswordResetEmail({required String email}) {
     return _authService.sendPasswordResetEmail(email: email);

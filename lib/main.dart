@@ -18,6 +18,7 @@ import 'firebase_options.dart';
 import 'screens/auth_gate.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_work_store.dart';
+import 'services/live_status_service.dart';
 import 'services/local_cache_store.dart';
 import 'services/user_email_index_service.dart';
 import 'services/user_profile_repository.dart';
@@ -52,6 +53,7 @@ Future<void> main() async {
   );
   final userProfileRepository = UserProfileRepository();
   final userEmailIndex = UserEmailIndexService();
+  final liveStatusService = LiveStatusService();
   runApp(
     BlocProvider(
       create: (_) => SettingsCubit(prefs),
@@ -60,6 +62,7 @@ Future<void> main() async {
         repository: repository,
         userProfileRepository: userProfileRepository,
         userEmailIndex: userEmailIndex,
+        liveStatus: liveStatusService,
       ),
     ),
   );
@@ -72,12 +75,14 @@ class WorkTimerApp extends StatelessWidget {
     required this.repository,
     required this.userProfileRepository,
     required this.userEmailIndex,
+    required this.liveStatus,
   });
 
   final AuthService authService;
   final WorkRepository repository;
   final UserProfileRepository userProfileRepository;
   final UserEmailIndexService userEmailIndex;
+  final LiveStatusService liveStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +91,7 @@ class WorkTimerApp extends StatelessWidget {
         authService,
         userEmailIndex: userEmailIndex,
         userProfileRepository: userProfileRepository,
+        liveStatus: liveStatus,
       ),
       child: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, settings) {
@@ -122,6 +128,7 @@ class WorkTimerApp extends StatelessWidget {
               repository: repository,
               userProfileRepository: userProfileRepository,
               userEmailIndex: userEmailIndex,
+              liveStatus: liveStatus,
             ),
           );
         },

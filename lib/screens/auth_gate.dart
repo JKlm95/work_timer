@@ -8,6 +8,8 @@ import '../bloc/auth_cubit.dart';
 import '../bloc/timer_cubit.dart';
 import '../bloc/user_profile_cubit.dart';
 import '../utils/auth_error_localizer.dart';
+import '../services/live_status_app_binding.dart';
+import '../services/live_status_service.dart';
 import '../services/user_email_index_service.dart';
 import '../services/user_profile_repository.dart';
 import '../services/work_repository.dart';
@@ -20,11 +22,13 @@ class AuthGate extends StatefulWidget {
     required this.repository,
     required this.userProfileRepository,
     required this.userEmailIndex,
+    required this.liveStatus,
   });
 
   final WorkRepository repository;
   final UserProfileRepository userProfileRepository;
   final UserEmailIndexService userEmailIndex;
+  final LiveStatusService liveStatus;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -62,7 +66,11 @@ class _AuthGateState extends State<AuthGate> {
     await _disposeTimer();
 
     final sw = Stopwatch()..start();
-    final cubit = TimerCubit(uid: uid, repository: widget.repository);
+    final cubit = TimerCubit(
+      uid: uid,
+      repository: widget.repository,
+      liveStatus: widget.liveStatus,
+    );
     final profileCubit = UserProfileCubit(
       uid: uid,
       profileRepository: widget.userProfileRepository,
@@ -126,6 +134,7 @@ class _AuthGateState extends State<AuthGate> {
               BlocProvider.value(value: _profileCubit!),
             ],
             child: _TimerResumeSyncScope(
+              liveStatus: widget.liveStatus,
               child: HomeShell(onSignOut: context.read<AuthCubit>().signOut),
             ),
           );
@@ -136,8 +145,9 @@ class _AuthGateState extends State<AuthGate> {
 }
 
 class _TimerResumeSyncScope extends StatefulWidget {
-  const _TimerResumeSyncScope({required this.child});
+  const _TimerResumeSyncScope({required this.liveStatus, required this.child});
 
+  final LiveStatusService liveStatus;
   final Widget child;
 
   @override
@@ -146,24 +156,55 @@ class _TimerResumeSyncScope extends StatefulWidget {
 
 class _TimerResumeSyncScopeState extends State<_TimerResumeSyncScope>
     with WidgetsBindingObserver {
+  Timer? _heartbeat;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    LiveStatusAppBinding.lifecycle =
+        WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed;
+    _heartbeat = Timer.periodic(const Duration(seconds: 45), (_) {
+      _onHeartbeatTick();
+    });
   }
 
   @override
   void dispose() {
+    _heartbeat?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
+  void _onHeartbeatTick() {
+    if (!mounted) return;
+    final user = context.read<AuthCubit>().state.user;
+    if (user == null) return;
+    final foreground =
+        LiveStatusAppBinding.lifecycle == AppLifecycleState.resumed;
+    final runState = context.read<TimerCubit>().state.runState;
+    final timerNotIdle = runState != TimerRunState.idle;
+    if (!foreground && !timerNotIdle) return;
+    unawaited(widget.liveStatus.heartbeat(user.uid));
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) return;
+    if (state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      LiveStatusAppBinding.lifecycle = state;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      await context.read<TimerCubit>().syncFromNativeStoresOnResume();
+      final cubit = context.read<TimerCubit>();
+      if (state == AppLifecycleState.resumed) {
+        await cubit.syncFromNativeStoresOnResume();
+        await widget.liveStatus.syncFromTimerState(cubit.state);
+      } else if (state == AppLifecycleState.paused ||
+          state == AppLifecycleState.detached) {
+        await widget.liveStatus.syncFromTimerState(cubit.state);
+      }
     });
   }
 

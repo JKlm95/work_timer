@@ -69,6 +69,50 @@ service cloud.firestore {
           (data.firstName.size() > 0 || data.lastName.size() > 0);
     }
 
+    function liveTimerStateStringOk(s) {
+      return s == 'idle' || s == 'running' || s == 'paused';
+    }
+
+    function liveBillingPercentOk(data) {
+      return data.billingRatePercent is int &&
+          (data.billingRatePercent == 50 ||
+              data.billingRatePercent == 80 ||
+              data.billingRatePercent == 100 ||
+              data.billingRatePercent == 150 ||
+              data.billingRatePercent == 200);
+    }
+
+    function hasValidLiveStatusShape(data) {
+      return data.keys().hasAll([
+              'uid',
+              'isOnline',
+              'timerState',
+              'activeWorkspaceId',
+              'activeCompanySlug',
+              'activeWorkspaceName',
+              'accumulatedSecondsBeforePause',
+              'billingRatePercent',
+              'lastSeenAt',
+              'updatedAt']) &&
+          data.uid is string &&
+          data.uid == request.auth.uid &&
+          data.isOnline is bool &&
+          data.timerState is string &&
+          liveTimerStateStringOk(data.timerState) &&
+          data.activeWorkspaceId is string &&
+          data.activeCompanySlug is string &&
+          data.activeWorkspaceName is string &&
+          data.accumulatedSecondsBeforePause is int &&
+          data.accumulatedSecondsBeforePause >= 0 &&
+          liveBillingPercentOk(data) &&
+          data.lastSeenAt is timestamp &&
+          data.updatedAt is timestamp &&
+          (!data.keys().hasAny(['sessionStartedAt']) || data.sessionStartedAt is timestamp) &&
+          (!data.keys().hasAny(['sessionPausedAt']) || data.sessionPausedAt is timestamp) &&
+          (!data.keys().hasAny(['hourlyRate']) || data.hourlyRate is float) &&
+          (!data.keys().hasAny(['currency']) || data.currency is string);
+    }
+
     match /users/{uid}/profile/{docId} {
       allow read: if isOwner(uid);
       allow create, update: if isOwner(uid) &&
@@ -80,6 +124,14 @@ service cloud.firestore {
     match /userEmailIndex/{emailLower} {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn() && hasValidUserEmailIndexShape(request.resource.data, emailLower);
+      allow delete: if false;
+    }
+
+    match /users/{uid}/live/{docId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(uid) &&
+          docId == 'status' &&
+          hasValidLiveStatusShape(request.resource.data);
       allow delete: if false;
     }
 

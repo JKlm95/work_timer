@@ -11,6 +11,7 @@ import '../models/entry_type.dart';
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
 import '../models/workspace.dart';
+import '../services/live_status_service.dart';
 import '../services/local_cache_store.dart';
 import '../services/timer_service_bridge.dart';
 import '../services/work_repository.dart';
@@ -122,15 +123,25 @@ class TimerState {
 }
 
 class TimerCubit extends Cubit<TimerState> {
-  TimerCubit({required String uid, required WorkRepository repository})
-    : _repository = repository,
-      super(TimerState.initial(uid));
+  TimerCubit({
+    required String uid,
+    required WorkRepository repository,
+    LiveStatusService? liveStatus,
+  }) : _repository = repository,
+       _liveStatus = liveStatus,
+       super(TimerState.initial(uid));
 
   final WorkRepository _repository;
+  final LiveStatusService? _liveStatus;
   final Uuid _uuid = const Uuid();
   Timer? _tick;
   int _lastWidgetElapsedSecond = -1;
   DateTime? _lastIosWidgetThrottle;
+
+  void _notifyLive() {
+    if (isClosed || _liveStatus == null) return;
+    unawaited(_liveStatus.syncFromTimerState(state));
+  }
 
   Future<void> init() async {
     if (Platform.isAndroid) {
@@ -164,6 +175,7 @@ class TimerCubit extends Cubit<TimerState> {
     await _applyAndroidWorkspaceSelectionIfIdle();
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
+    _notifyLive();
   }
 
   /// Po powrocie do apki: serwis Kotlin i widget zapisują do prefs, Flutter trzyma
@@ -193,6 +205,7 @@ class TimerCubit extends Cubit<TimerState> {
       }),
     );
     await _writeWidgetSnapshot();
+    _notifyLive();
   }
 
   Future<void> setActiveWorkspace(String workspaceId) async {
@@ -204,6 +217,7 @@ class TimerCubit extends Cubit<TimerState> {
     );
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
+    _notifyLive();
   }
 
   Future<void> saveProject(Workspace workspace) async {
@@ -220,6 +234,7 @@ class TimerCubit extends Cubit<TimerState> {
     );
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
+    _notifyLive();
   }
 
   Future<void> createWorkspace(String name) async {
@@ -236,6 +251,7 @@ class TimerCubit extends Cubit<TimerState> {
     );
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
+    _notifyLive();
   }
 
   Future<void> renameWorkspace({
@@ -245,6 +261,7 @@ class TimerCubit extends Cubit<TimerState> {
     await _repository.renameWorkspace(workspaceId: workspaceId, name: name);
     emit(state.copyWith(workspaces: _repository.workspaces));
     await _writeWidgetSnapshot();
+    _notifyLive();
   }
 
   void setNextMode(WorkMode mode) {
@@ -302,6 +319,7 @@ class TimerCubit extends Cubit<TimerState> {
     _persistSession();
     TimerServiceBridge.pause();
     _writeWidgetSnapshot();
+    _notifyLive();
   }
 
   Future<void> stop({
@@ -366,6 +384,7 @@ class TimerCubit extends Cubit<TimerState> {
         debugPrint('refreshStatsEntries after stop: $e');
       }),
     );
+    _notifyLive();
   }
 
   Future<void> addManualEntry({
