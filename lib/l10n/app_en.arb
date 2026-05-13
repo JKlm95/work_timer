@@ -178,6 +178,7 @@
   "historyTaskLabel": "Task / title",
   "historyNoteLabel": "Note",
   "historyAllEntryTypes": "All types",
+  "historyBadgeDeleted": "Removed",
   "entryTypeWork": "Work",
   "entryTypeVacation": "Vacation",
   "entryTypeSickLeave": "Sick leave",

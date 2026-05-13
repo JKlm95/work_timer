@@ -178,6 +178,7 @@
   "historyTaskLabel": "Zadanie / tytuł",
   "historyNoteLabel": "Notatka",
   "historyAllEntryTypes": "Wszystkie typy",
+  "historyBadgeDeleted": "Usunięty",
   "entryTypeWork": "Praca",
   "entryTypeVacation": "Urlop",
   "entryTypeSickLeave": "L4 / chorobowe",

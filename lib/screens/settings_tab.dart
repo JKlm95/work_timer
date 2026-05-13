@@ -5,6 +5,7 @@ import '../bloc/settings_cubit.dart';
 import '../bloc/user_profile_cubit.dart';
 import '../l10n/app_localizations.dart';
 import '../models/user_profile.dart';
+import '../widgets/ui/app_section_header.dart';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -55,21 +56,16 @@ class _SettingsTabState extends State<SettingsTab> {
                 children: [
                   Text(
                     l10n.settingsTitle,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    l10n.settingsProfileSection,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.settingsProfileEmployerPanelHint,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 24),
+                  AppSectionHeader(
+                    title: l10n.settingsProfileSection,
+                    subtitle: l10n.settingsProfileEmployerPanelHint,
+                  ),
+                  const SizedBox(height: 10),
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -212,11 +208,8 @@ class _SettingsTabState extends State<SettingsTab> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.settingsLanguage,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  const SizedBox(height: 18),
+                  AppSectionHeader(title: l10n.settingsLanguage),
                   const SizedBox(height: 8),
                   Card(
                     child: RadioGroup<AppLocalePreference>(
@@ -244,11 +237,8 @@ class _SettingsTabState extends State<SettingsTab> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.settingsTheme,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  const SizedBox(height: 20),
+                  AppSectionHeader(title: l10n.settingsTheme),
                   const SizedBox(height: 8),
                   Card(
                     child: RadioGroup<ThemeMode>(
@@ -276,11 +266,8 @@ class _SettingsTabState extends State<SettingsTab> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.settingsDebriefSection,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  const SizedBox(height: 22),
+                  AppSectionHeader(title: l10n.settingsDebriefSection),
                   const SizedBox(height: 8),
                   Card(
                     child: SwitchListTile(
@@ -291,11 +278,8 @@ class _SettingsTabState extends State<SettingsTab> {
                           .setShowDebriefAfterStop(value),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.settingsWidgetTitle,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  const SizedBox(height: 22),
+                  AppSectionHeader(title: l10n.settingsWidgetTitle),
                   const SizedBox(height: 8),
                   Card(
                     child: Padding(

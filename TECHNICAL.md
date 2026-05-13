@@ -28,7 +28,7 @@ lib/
 ├── main.dart                 # Firebase.init, SettingsCubit (prefs), AuthCubit, MaterialApp (theme / darkTheme / themeMode, l10n)
 ├── bloc/                     # auth_cubit.dart, timer_cubit.dart, settings_cubit.dart, user_profile_cubit.dart
 ├── l10n/                     # app_*.arb, app_localizations*.dart (generowane), work_mode_strings.dart
-├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart
+├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart, app_layout.dart (radius, touch targets)
 ├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, calendar_tab, workspaces_tab, settings_tab
 ├── models/                   # work_entry, workspace, work_mode, entry_type, billing_currency
 ├── utils/                    # m.in. workspace_color, project_field_utils, export_save.dart (CSV/PDF zapis mobilny SAF)
@@ -50,7 +50,11 @@ lib/
 └── widgets/
     ├── splash_loading_view.dart
     ├── project_editor_sheet.dart    # formularz projektu (bottom sheet)
-    └── stop_session_debrief_dialog.dart
+    ├── stop_session_debrief_dialog.dart
+    └── ui/                          # wspólne komponenty UI (polish)
+        ├── app_empty_state.dart   # pusty stan: ikona + tytuł + opcjonalny opis + opcjonalna akcja
+        ├── app_section_header.dart # nagłówek sekcji (tytuł + opcjonalny podtytuł)
+        └── entry_meta_chips.dart    # chipy metadanych wpisu (typ, billable, %, usunięty)
 ```
 
 ---

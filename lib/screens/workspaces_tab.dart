@@ -7,6 +7,7 @@ import '../models/workspace.dart';
 import '../utils/workspace_color.dart';
 import '../widgets/project_detail_sheet.dart';
 import '../widgets/project_editor_sheet.dart';
+import '../widgets/ui/app_empty_state.dart';
 
 class WorkspacesTab extends StatelessWidget {
   const WorkspacesTab({super.key});
@@ -37,25 +38,72 @@ class WorkspacesTab extends StatelessWidget {
             workspace.colorHex,
             scheme.primary,
           );
+          final rateText =
+              workspace.hourlyRate != null &&
+                  workspace.hourlyRate! > 0 &&
+                  (workspace.currencyCode ?? '').isNotEmpty
+              ? '${workspace.hourlyRate} ${workspace.currencyCode}/h'
+              : null;
 
           return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            clipBehavior: Clip.antiAlias,
             child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
+              minVerticalPadding: 12,
               leading: CircleAvatar(
-                backgroundColor: accent.withValues(alpha: 0.4),
+                backgroundColor: accent.withValues(alpha: 0.42),
                 child: Icon(
                   selected ? Icons.check_circle : Icons.folder_outlined,
                   color: scheme.onSurface,
                   size: 22,
                 ),
               ),
-              title: Text(workspace.name),
-              subtitle: Text(
-                selected
-                    ? l10n.workspacesActiveDetailHint
-                    : l10n.workspacesInactiveDetailHint,
+              title: Text(
+                workspace.name,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              onTap: () =>
-                  showProjectDetailSheet(context, workspace: workspace),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    selected
+                        ? l10n.workspacesActiveDetailHint
+                        : l10n.workspacesInactiveDetailHint,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (workspace.isArchived) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      l10n.projectsArchived,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: scheme.tertiary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                  if (rateText != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      rateText,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: scheme.outline,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
               trailing: PopupMenuButton<String>(
                 onSelected: (value) async {
                   if (!context.mounted) return;
@@ -94,6 +142,8 @@ class WorkspacesTab extends StatelessWidget {
                     ),
                 ],
               ),
+              onTap: () =>
+                  showProjectDetailSheet(context, workspace: workspace),
             ),
           );
         }
@@ -110,38 +160,14 @@ class WorkspacesTab extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               if (open.isEmpty && archived.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(28),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.folder_off_outlined,
-                          size: 52,
-                          color: scheme.outline,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.workspacesEmptyTitle,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.workspacesEmptyBody,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 20),
-                        FilledButton.icon(
-                          onPressed: () => _openEditor(context),
-                          icon: const Icon(Icons.add),
-                          label: Text(l10n.projectsFab),
-                        ),
-                      ],
-                    ),
+                AppEmptyState(
+                  icon: Icons.folder_off_outlined,
+                  title: l10n.workspacesEmptyTitle,
+                  body: l10n.workspacesEmptyBody,
+                  action: FilledButton.icon(
+                    onPressed: () => _openEditor(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.projectsFab),
                   ),
                 )
               else ...[

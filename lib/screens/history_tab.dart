@@ -21,10 +21,13 @@ import '../models/entry_type.dart';
 import '../models/work_entry.dart';
 import '../models/workspace.dart';
 import '../models/work_mode.dart';
+import '../utils/billing_entry_amount.dart';
 import '../utils/entry_type_localized.dart';
 import '../utils/export_save.dart';
 import '../utils/format_duration.dart';
 import '../utils/workspace_color.dart';
+import '../widgets/ui/app_empty_state.dart';
+import '../widgets/ui/entry_meta_chips.dart';
 
 class HistoryTab extends StatefulWidget {
   const HistoryTab({super.key});
@@ -288,6 +291,81 @@ class _HistoryTabState extends State<HistoryTab> {
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.historyExportError)));
     }
+  }
+
+  List<Widget> _groupedHistoryEntries({
+    required List<WorkEntry> filtered,
+    required TimerState state,
+    required DateFormat dateFmt,
+    required DateFormat timeFmt,
+    required ColorScheme scheme,
+    required TextTheme textTheme,
+    required AppLocalizations l10n,
+  }) {
+    final widgets = <Widget>[];
+    DateTime? prevDay;
+    for (final e in filtered) {
+      final day = DateTime(e.start.year, e.start.month, e.start.day);
+      if (prevDay == null || day != prevDay) {
+        prevDay = day;
+        widgets.add(
+          Padding(
+            padding: EdgeInsets.only(top: widgets.isEmpty ? 0 : 8, bottom: 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: scheme.outlineVariant.withValues(alpha: 0.55),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    dateFmt.format(e.start),
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Divider(
+                    color: scheme.outlineVariant.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      Workspace w = state.activeWorkspace;
+      for (final x in state.workspaces) {
+        if (x.id == e.workspaceId) {
+          w = x;
+          break;
+        }
+      }
+      final projectAccent = workspaceAccentColor(w.colorHex, scheme.primary);
+      widgets.add(
+        _HistorySessionCard(
+          entry: e,
+          workspace: w,
+          timeFmt: timeFmt,
+          workspaceLabel: _workspaceName(state, e),
+          projectAccent: projectAccent,
+          onEdit: () => _editEntryDialog(e),
+          onDelete: () async {
+            await context.read<TimerCubit>().deleteEntry(e);
+            if (!context.mounted) return;
+            if (mounted) {
+              await context.read<TimerCubit>().loadHistory(_range);
+            }
+          },
+          l10n: l10n,
+        ),
+      );
+    }
+    return widgets;
   }
 
   Future<void> _pickRange() async {
@@ -827,89 +905,26 @@ class _HistoryTabState extends State<HistoryTab> {
                 ),
                 const SizedBox(height: 12),
                 if (hasNoLoadedData)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(28),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.history_toggle_off_outlined,
-                            size: 52,
-                            color: scheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.historyEmptyNoDataInRange,
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.dashboardNoSessionsBody,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
+                  AppEmptyState(
+                    icon: Icons.history_toggle_off_outlined,
+                    title: l10n.historyEmptyNoDataInRange,
+                    body: l10n.dashboardNoSessionsBody,
                   )
                 else if (filtersExcludeAll)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(28),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.filter_alt_off_outlined,
-                            size: 48,
-                            color: scheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.historyEmptyAdjustFilters,
-                            style: textTheme.titleMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
+                  AppEmptyState(
+                    icon: Icons.filter_alt_off_outlined,
+                    title: l10n.historyEmptyAdjustFilters,
                   )
                 else
-                  ...filtered.map((e) {
-                    Workspace w = state.activeWorkspace;
-                    for (final x in state.workspaces) {
-                      if (x.id == e.workspaceId) {
-                        w = x;
-                        break;
-                      }
-                    }
-                    final projectAccent = workspaceAccentColor(
-                      w.colorHex,
-                      scheme.primary,
-                    );
-                    return _HistorySessionCard(
-                      entry: e,
-                      dateFmt: dateFmt,
-                      timeFmt: timeFmt,
-                      modeLabel:
-                          '${e.mode.localized(l10n)} · ${entryTypeLocalized(e.entryType, l10n)}',
-                      workspaceLabel: _workspaceName(state, e),
-                      projectAccent: projectAccent,
-                      onEdit: () => _editEntryDialog(e),
-                      onDelete: () async {
-                        await context.read<TimerCubit>().deleteEntry(e);
-                        if (!context.mounted) return;
-                        if (mounted) {
-                          await context.read<TimerCubit>().loadHistory(_range);
-                        }
-                      },
-                      l10n: l10n,
-                    );
-                  }),
+                  ..._groupedHistoryEntries(
+                    filtered: filtered,
+                    state: state,
+                    dateFmt: dateFmt,
+                    timeFmt: timeFmt,
+                    scheme: scheme,
+                    textTheme: textTheme,
+                    l10n: l10n,
+                  ),
               ],
             );
           },
@@ -931,9 +946,8 @@ class _HistoryTabState extends State<HistoryTab> {
 class _HistorySessionCard extends StatelessWidget {
   const _HistorySessionCard({
     required this.entry,
-    required this.dateFmt,
+    required this.workspace,
     required this.timeFmt,
-    required this.modeLabel,
     required this.workspaceLabel,
     required this.projectAccent,
     required this.onEdit,
@@ -942,9 +956,8 @@ class _HistorySessionCard extends StatelessWidget {
   });
 
   final WorkEntry entry;
-  final DateFormat dateFmt;
+  final Workspace workspace;
   final DateFormat timeFmt;
-  final String modeLabel;
   final String workspaceLabel;
   final Color projectAccent;
   final VoidCallback onEdit;
@@ -956,120 +969,123 @@ class _HistorySessionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final lc = Localizations.localeOf(context).languageCode;
+    final moneyFmt = NumberFormat('#,##0.00', lc);
+    final amount = billableAmountForEntry(entry, workspace);
+    final amountLine = amount != null
+        ? formatMoneyLine(workspace, amount, moneyFmt.format(amount))
+        : null;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor: projectAccent.withValues(alpha: 0.35),
-              foregroundColor: scheme.onSurface,
-              child: Icon(
-                entry.mode == WorkMode.remote
-                    ? Icons.home_outlined
-                    : Icons.apartment_outlined,
-                size: 22,
+      margin: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onEdit,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 4, 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                backgroundColor: projectAccent.withValues(alpha: 0.38),
+                foregroundColor: scheme.onSurface,
+                child: Icon(
+                  entry.mode == WorkMode.remote
+                      ? Icons.home_outlined
+                      : Icons.apartment_outlined,
+                  size: 22,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    dateFmt.format(entry.start),
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${timeFmt.format(entry.start)} — ${timeFmt.format(entry.end)}',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  if ((entry.taskTitle ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: 6),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      entry.taskTitle!.trim(),
+                      '${timeFmt.format(entry.start)} — ${timeFmt.format(entry.end)}',
                       style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                  if ((entry.note ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      entry.note!.trim(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                      formatDurationHm(entry.duration),
+                      style: textTheme.labelLarge?.copyWith(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
+                    if (amountLine != null) ...[
+                      const SizedBox(height: 2),
                       Text(
-                        formatDurationHm(entry.duration),
-                        style: textTheme.labelLarge?.copyWith(
-                          color: scheme.primary,
-                          fontWeight: FontWeight.w700,
+                        amountLine,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '· $modeLabel',
-                          style: textTheme.labelLarge?.copyWith(
-                            color: scheme.outline,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Icon(
-                        entry.isBillable
-                            ? Icons.paid_outlined
-                            : Icons.money_off_outlined,
-                        size: 18,
-                        color: scheme.outline,
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.historyWorkspaceLabel(workspaceLabel),
-                    style: textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(height: 8),
+                    EntryMetaChips(entry: entry, l10n: l10n),
+                    if ((entry.taskTitle ?? '').trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        entry.taskTitle!.trim(),
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if ((entry.note ?? '').trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        entry.note!.trim(),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Text(
+                      l10n.historyWorkspaceLabel(workspaceLabel),
+                      style: textTheme.labelMedium?.copyWith(
+                        color: scheme.outline,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                tooltip: l10n.historyMenuEdit,
+                onSelected: (value) async {
+                  if (value == 'edit') {
+                    onEdit();
+                  } else {
+                    await onDelete();
+                  }
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Text(l10n.historyMenuEdit),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(l10n.historyMenuDelete),
                   ),
                 ],
+                icon: Icon(Icons.more_vert, color: scheme.onSurfaceVariant),
               ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) async {
-                if (value == 'edit') {
-                  onEdit();
-                } else {
-                  await onDelete();
-                }
-              },
-              itemBuilder: (_) => [
-                PopupMenuItem(value: 'edit', child: Text(l10n.historyMenuEdit)),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Text(l10n.historyMenuDelete),
-                ),
-              ],
-              icon: Icon(Icons.more_vert, color: scheme.onSurfaceVariant),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

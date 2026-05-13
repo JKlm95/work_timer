@@ -12,9 +12,9 @@ import '../models/work_entry.dart';
 import '../models/workspace.dart';
 import '../services/stats_service.dart';
 import '../utils/calendar_utils.dart' show dateOnly;
-import '../utils/entry_type_localized.dart';
 import '../utils/format_duration.dart';
 import '../utils/workspace_color.dart';
+import '../widgets/ui/entry_meta_chips.dart';
 
 class CalendarTab extends StatefulWidget {
   const CalendarTab({super.key});
@@ -116,72 +116,108 @@ class _CalendarTabState extends State<CalendarTab> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
-            TableCalendar<WorkEntry>(
-              firstDay: DateTime.utc(2020, 1, 1),
-              lastDay: DateTime.utc(DateTime.now().year + 2, 12, 31),
-              focusedDay: _focused,
-              calendarFormat: _format,
-              locale: _tableCalendarLocale(deviceLocale),
-              startingDayOfWeek: StartingDayOfWeek.monday,
-              selectedDayPredicate: (day) =>
-                  _selected != null && _dayKey(day) == _dayKey(_selected!),
-              eventLoader: (day) => byDay[_dayKey(day)] ?? [],
-              onDaySelected: (sel, foc) {
-                setState(() {
-                  _selected = sel;
-                  _focused = foc;
-                });
-              },
-              onPageChanged: (foc) {
-                setState(() => _focused = foc);
-                unawaited(_loadMonth(foc));
-              },
-              calendarStyle: CalendarStyle(
-                markersMaxCount: 4,
-                markerDecoration: BoxDecoration(
-                  color: scheme.primary,
-                  shape: BoxShape.circle,
+            const SizedBox(height: 12),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TableCalendar<WorkEntry>(
+                  firstDay: DateTime.utc(2020, 1, 1),
+                  lastDay: DateTime.utc(DateTime.now().year + 2, 12, 31),
+                  focusedDay: _focused,
+                  calendarFormat: _format,
+                  locale: _tableCalendarLocale(deviceLocale),
+                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  selectedDayPredicate: (day) =>
+                      _selected != null && _dayKey(day) == _dayKey(_selected!),
+                  eventLoader: (day) => byDay[_dayKey(day)] ?? [],
+                  onDaySelected: (sel, foc) {
+                    setState(() {
+                      _selected = sel;
+                      _focused = foc;
+                    });
+                  },
+                  onPageChanged: (foc) {
+                    setState(() => _focused = foc);
+                    unawaited(_loadMonth(foc));
+                  },
+                  calendarStyle: CalendarStyle(
+                    markersMaxCount: 4,
+                    markerDecoration: BoxDecoration(
+                      color: scheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    outsideDaysVisible: false,
+                    todayDecoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(
+                        alpha: theme.brightness == Brightness.dark
+                            ? 0.35
+                            : 0.55,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    todayTextStyle: TextStyle(
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    selectedDecoration: BoxDecoration(
+                      color: scheme.secondaryContainer.withValues(
+                        alpha: theme.brightness == Brightness.dark
+                            ? 0.55
+                            : 0.95,
+                      ),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: scheme.primary, width: 1.5),
+                    ),
+                    selectedTextStyle: TextStyle(
+                      color: scheme.onSecondaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    weekendTextStyle: TextStyle(color: scheme.onSurfaceVariant),
+                    defaultDecoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  calendarBuilders: CalendarBuilders<WorkEntry>(
+                    markerBuilder: (context, day, events) {
+                      if (events.isEmpty) return null;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: events.take(4).map((e) {
+                            final isWork = e.entryType == EntryType.work;
+                            final c = _markerColor(
+                              e: e,
+                              workspaces: state.workspaces,
+                              fallback: scheme.primary,
+                              scheme: scheme,
+                            );
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: isWork ? c : Colors.transparent,
+                                shape: BoxShape.circle,
+                                border: isWork
+                                    ? null
+                                    : Border.all(color: c, width: 1.5),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    },
+                  ),
+                  headerStyle: HeaderStyle(
+                    formatButtonVisible: true,
+                    titleCentered: true,
+                    formatButtonShowsNext: false,
+                  ),
+                  onFormatChanged: (f) => setState(() => _format = f),
                 ),
               ),
-              calendarBuilders: CalendarBuilders<WorkEntry>(
-                markerBuilder: (context, day, events) {
-                  if (events.isEmpty) return null;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: events.take(4).map((e) {
-                        final isWork = e.entryType == EntryType.work;
-                        final c = _markerColor(
-                          e: e,
-                          workspaces: state.workspaces,
-                          fallback: scheme.primary,
-                          scheme: scheme,
-                        );
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: isWork ? c : Colors.transparent,
-                            shape: BoxShape.circle,
-                            border: isWork
-                                ? null
-                                : Border.all(color: c, width: 1.5),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  );
-                },
-              ),
-              headerStyle: HeaderStyle(
-                formatButtonVisible: true,
-                titleCentered: true,
-                formatButtonShowsNext: false,
-              ),
-              onFormatChanged: (f) => setState(() => _format = f),
             ),
             if (_selected != null) ...[
               const SizedBox(height: 20),
@@ -332,6 +368,8 @@ class _CalendarTabState extends State<CalendarTab> {
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -340,11 +378,8 @@ class _CalendarTabState extends State<CalendarTab> {
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${entryTypeLocalized(e.entryType, l10n)} · ${e.isBillable ? l10n.exportBillableYes : l10n.exportBillableNo}',
-                        style: theme.textTheme.bodySmall,
-                      ),
+                      const SizedBox(height: 6),
+                      EntryMetaChips(entry: e, l10n: l10n),
                       if ((e.taskTitle ?? '').trim().isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 6),

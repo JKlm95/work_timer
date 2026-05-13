@@ -13,6 +13,7 @@ import '../services/stats_service.dart';
 import '../utils/calendar_utils.dart';
 import '../utils/format_duration.dart';
 import '../utils/workspace_color.dart';
+import '../widgets/ui/app_empty_state.dart';
 
 class StatsTab extends StatefulWidget {
   const StatsTab({super.key});
@@ -75,36 +76,11 @@ class _StatsTabState extends State<StatsTab> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 24),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.insights_outlined,
-                        size: 56,
-                        color: scheme.outline,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        l10n.statsEmptyTitle,
-                        style: textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        l10n.statsEmptyBody,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
+              const SizedBox(height: 20),
+              AppEmptyState(
+                icon: Icons.insights_outlined,
+                title: l10n.statsEmptyTitle,
+                body: l10n.statsEmptyBody,
               ),
             ],
           );
@@ -248,65 +224,84 @@ class _StatsTabState extends State<StatsTab> {
                               orElse: () => state.activeWorkspace,
                             )
                             .name;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                        final idx = summary.workspaceShare.indexOf(share);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (idx > 0)
+                              Divider(
+                                height: 24,
+                                color: scheme.outlineVariant.withValues(
+                                  alpha: 0.55,
+                                ),
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 9,
-                                    backgroundColor: workspaceAccentColor(
-                                      state.workspaces
-                                          .firstWhere(
-                                            (w) => w.id == share.workspaceId,
-                                            orElse: () => state.activeWorkspace,
-                                          )
-                                          .colorHex,
-                                      scheme.primary,
-                                    ).withValues(alpha: 0.45),
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 9,
+                                        backgroundColor: workspaceAccentColor(
+                                          state.workspaces
+                                              .firstWhere(
+                                                (w) =>
+                                                    w.id == share.workspaceId,
+                                                orElse: () =>
+                                                    state.activeWorkspace,
+                                              )
+                                              .colorHex,
+                                          scheme.primary,
+                                        ).withValues(alpha: 0.45),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          workspaceName,
+                                          style: textTheme.titleSmall?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        formatDurationHm(share.duration),
+                                        style: textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: scheme.primary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      workspaceName,
-                                      style: textTheme.bodyLarge,
-                                    ),
-                                  ),
-                                  Text(
-                                    formatDurationHm(share.duration),
-                                    style: textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: scheme.primary,
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton.icon(
+                                      onPressed: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) => BlocProvider.value(
+                                              value: context.read<TimerCubit>(),
+                                              child: ProjectReportScreen(
+                                                workspaceId: share.workspaceId,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(
+                                        Icons.assignment_outlined,
+                                        size: 18,
+                                      ),
+                                      label: Text(l10n.statsOpenProjectReport),
                                     ),
                                   ),
                                 ],
                               ),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton.icon(
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => BlocProvider.value(
-                                          value: context.read<TimerCubit>(),
-                                          child: ProjectReportScreen(
-                                            workspaceId: share.workspaceId,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(
-                                    Icons.assignment_outlined,
-                                    size: 18,
-                                  ),
-                                  label: Text(l10n.statsOpenProjectReport),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         );
                       }).toList(),
                     );
@@ -430,6 +425,10 @@ class _WorkspaceFilter extends StatelessWidget {
           label: Text(allLabel),
           selected: selectedIds.isEmpty,
           onSelected: (_) => onChanged({}),
+          showCheckmark: false,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
         ...workspaces.map(
           (workspace) => FilterChip(
@@ -441,8 +440,12 @@ class _WorkspaceFilter extends StatelessWidget {
               ).withValues(alpha: 0.45),
               child: const SizedBox.shrink(),
             ),
-            label: Text(workspace.name),
+            label: Text(workspace.name, overflow: TextOverflow.ellipsis),
             selected: selectedIds.contains(workspace.id),
+            showCheckmark: false,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             onSelected: (value) {
               final next = {...selectedIds};
               if (value) {
@@ -477,24 +480,27 @@ class _MetricTile extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: scheme.primary, size: 22),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
               title,
               style: textTheme.labelLarge?.copyWith(
                 color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               value,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                height: 1.1,
               ),
             ),
           ],

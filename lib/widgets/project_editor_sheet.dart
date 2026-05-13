@@ -317,46 +317,58 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
               ),
             ),
             if (_shareEmployer) ...[
-              TextField(
-                controller: _companyCtrl,
-                decoration: InputDecoration(
-                  labelText: l10n.projectsCompanyName,
-                  border: const OutlineInputBorder(),
+              Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: _companyCtrl,
+                        decoration: InputDecoration(
+                          labelText: l10n.projectsCompanyName,
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _slugCtrl,
+                        decoration: InputDecoration(
+                          labelText: l10n.projectsCompanySlugHint,
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.projectsShareEmployerProfileNamesHint,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _emailCtrl,
+                        decoration: InputDecoration(
+                          labelText: l10n.projectsEmployeeWorkEmail,
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _employerEmailsCtrl,
+                        decoration: InputDecoration(
+                          labelText: l10n.projectsEmployerEmailsHint,
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _slugCtrl,
-                decoration: InputDecoration(
-                  labelText: l10n.projectsCompanySlugHint,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.projectsShareEmployerProfileNamesHint,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _emailCtrl,
-                decoration: InputDecoration(
-                  labelText: l10n.projectsEmployeeWorkEmail,
-                  border: const OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _employerEmailsCtrl,
-                decoration: InputDecoration(
-                  labelText: l10n.projectsEmployerEmailsHint,
-                  border: const OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
+              const SizedBox(height: 12),
             ],
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

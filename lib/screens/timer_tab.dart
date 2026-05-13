@@ -9,10 +9,12 @@ import '../l10n/work_mode_strings.dart';
 import '../models/work_entry.dart';
 import '../models/work_mode.dart';
 import '../models/workspace.dart';
+import '../theme/app_layout.dart';
 import '../utils/calendar_utils.dart';
 import '../utils/format_duration.dart';
 import '../utils/workspace_color.dart';
 import '../widgets/stop_session_debrief_dialog.dart';
+import '../widgets/ui/app_empty_state.dart';
 
 class TimerTab extends StatelessWidget {
   const TimerTab({super.key});
@@ -184,18 +186,34 @@ class TimerTab extends StatelessWidget {
               sliver: SliverToBoxAdapter(
                 child: Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Text(
+                          l10n.timerWorkspace,
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: l10n.timerWorkspace,
-                            border: const OutlineInputBorder(),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
                             isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                           ),
                           child: state.workspaces.isEmpty
-                              ? Text(l10n.timerWorkspaceLoading)
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  child: Text(l10n.timerWorkspaceLoading),
+                                )
                               : DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     isExpanded: true,
@@ -207,7 +225,7 @@ class TimerTab extends StatelessWidget {
                                             child: Row(
                                               children: [
                                                 CircleAvatar(
-                                                  radius: 7,
+                                                  radius: 8,
                                                   backgroundColor:
                                                       workspaceAccentColor(
                                                         w.colorHex,
@@ -222,6 +240,7 @@ class TimerTab extends StatelessWidget {
                                                         : w.name,
                                                     overflow:
                                                         TextOverflow.ellipsis,
+                                                    maxLines: 1,
                                                   ),
                                                 ),
                                               ],
@@ -239,25 +258,29 @@ class TimerTab extends StatelessWidget {
                                   ),
                                 ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 18),
                         Text(
                           l10n.timerWorkMode,
-                          style: textTheme.titleSmall?.copyWith(
+                          style: textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         SegmentedButton<WorkMode>(
                           segments: [
                             ButtonSegment(
                               value: WorkMode.remote,
                               label: Text(WorkMode.remote.localized(l10n)),
-                              icon: const Icon(Icons.home_outlined),
+                              icon: const Icon(Icons.home_outlined, size: 20),
                             ),
                             ButtonSegment(
                               value: WorkMode.office,
                               label: Text(WorkMode.office.localized(l10n)),
-                              icon: const Icon(Icons.apartment_outlined),
+                              icon: const Icon(
+                                Icons.apartment_outlined,
+                                size: 20,
+                              ),
                             ),
                           ],
                           selected: {state.nextSessionMode},
@@ -265,6 +288,10 @@ class TimerTab extends StatelessWidget {
                             if (state.canChangeMode) cubit.setNextMode(s.first);
                           },
                           showSelectedIcon: false,
+                          style: ButtonStyle(
+                            visualDensity: VisualDensity.comfortable,
+                            tapTargetSize: MaterialTapTargetSize.padded,
+                          ),
                         ),
                         if (!state.canChangeMode) ...[
                           const SizedBox(height: 8),
@@ -282,50 +309,77 @@ class TimerTab extends StatelessWidget {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
               sliver: SliverToBoxAdapter(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 450),
                   curve: Curves.easeInOut,
                   padding: const EdgeInsets.symmetric(
-                    vertical: 28,
-                    horizontal: 16,
+                    vertical: 32,
+                    horizontal: 20,
                   ),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(AppLayout.radiusLg + 8),
+                    color: switch (state.runState) {
+                      TimerRunState.running =>
+                        scheme.primaryContainer.withValues(
+                          alpha: theme.brightness == Brightness.dark
+                              ? 0.2
+                              : 0.32,
+                        ),
+                      TimerRunState.paused =>
+                        scheme.tertiaryContainer.withValues(
+                          alpha: theme.brightness == Brightness.dark
+                              ? 0.16
+                              : 0.28,
+                        ),
+                      TimerRunState.idle =>
+                        scheme.surfaceContainerHighest.withValues(
+                          alpha: theme.brightness == Brightness.dark
+                              ? 0.35
+                              : 0.55,
+                        ),
+                    },
                     border: Border.all(
                       color: switch (state.runState) {
                         TimerRunState.idle => scheme.outlineVariant.withValues(
-                          alpha: 0.6,
+                          alpha: 0.55,
                         ),
                         TimerRunState.running => scheme.primary.withValues(
-                          alpha: pulse ? 0.85 : 0.45,
+                          alpha: pulse ? 0.9 : 0.5,
                         ),
                         TimerRunState.paused => scheme.tertiary.withValues(
-                          alpha: 0.65,
+                          alpha: 0.55,
                         ),
                       },
-                      width: state.runState == TimerRunState.idle ? 1 : 2,
+                      width: state.runState == TimerRunState.idle ? 1 : 2.5,
                     ),
                   ),
                   child: Column(
                     children: [
-                      Text(
-                        _formatClock(state.elapsed),
-                        textAlign: TextAlign.center,
-                        style: textTheme.displayLarge?.copyWith(
-                          fontFamily: 'monospace',
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                          letterSpacing: 2,
-                          fontWeight: FontWeight.w500,
-                          color: switch (state.runState) {
-                            TimerRunState.running => scheme.primary,
-                            TimerRunState.paused => scheme.onSurfaceVariant,
-                            TimerRunState.idle => scheme.onSurface,
-                          },
+                      Semantics(
+                        label:
+                            '${l10n.navTimer}: ${_formatClock(state.elapsed)}',
+                        child: Text(
+                          _formatClock(state.elapsed),
+                          textAlign: TextAlign.center,
+                          style: textTheme.displayMedium?.copyWith(
+                            fontFamily: 'monospace',
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            letterSpacing: 3,
+                            fontWeight: FontWeight.w600,
+                            height: 1.05,
+                            fontSize: (textTheme.displayMedium?.fontSize ?? 45)
+                                .clamp(38, 56),
+                            color: switch (state.runState) {
+                              TimerRunState.running => scheme.primary,
+                              TimerRunState.paused => scheme.onSurfaceVariant,
+                              TimerRunState.idle => scheme.onSurface,
+                            },
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -340,43 +394,62 @@ class TimerTab extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _statusLabel(state.runState, l10n),
-                            style: textTheme.titleMedium?.copyWith(
+                            _statusLabel(state.runState, l10n).toUpperCase(),
+                            style: textTheme.labelLarge?.copyWith(
                               color: scheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.1,
                             ),
                           ),
                         ],
                       ),
                       if (state.workspaces.isNotEmpty) ...[
-                        const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircleAvatar(
-                              radius: 8,
-                              backgroundColor: workspaceAccentColor(
-                                state.activeWorkspace.colorHex,
-                                scheme.primary,
-                              ).withValues(alpha: 0.45),
-                              child: Icon(
-                                Icons.folder_outlined,
-                                size: 14,
-                                color: scheme.onSurface,
-                              ),
+                        const SizedBox(height: 18),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: scheme.surface.withValues(
+                              alpha: theme.brightness == Brightness.dark
+                                  ? 0.22
+                                  : 0.75,
                             ),
-                            const SizedBox(width: 10),
-                            Flexible(
-                              child: Text(
-                                state.activeWorkspace.name,
-                                style: textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                            borderRadius: BorderRadius.circular(
+                              AppLayout.radiusMd,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 10,
+                                backgroundColor: workspaceAccentColor(
+                                  state.activeWorkspace.colorHex,
+                                  scheme.primary,
+                                ).withValues(alpha: 0.5),
+                                child: Icon(
+                                  Icons.folder_outlined,
+                                  size: 16,
+                                  color: scheme.onSurface,
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 10),
+                              Flexible(
+                                child: Text(
+                                  state.activeWorkspace.name,
+                                  style: textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         if (state.activeWorkspace.hourlyRate != null &&
                             state.activeWorkspace.hourlyRate! > 0) ...[
@@ -384,8 +457,9 @@ class TimerTab extends StatelessWidget {
                           Text(
                             '${state.activeWorkspace.hourlyRate} '
                             '${state.activeWorkspace.currencyCode ?? ''}/h',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: scheme.outline,
+                            style: textTheme.labelMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -399,50 +473,62 @@ class TimerTab extends StatelessWidget {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      height: 54,
-                      child: FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          textStyle: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: SizedBox(
+                        height: AppLayout.primaryButtonHeight,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            textStyle: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        onPressed: primaryOnPressed,
-                        icon: Icon(primaryIcon),
-                        label: Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: Text(primaryLabel),
+                          onPressed: primaryOnPressed,
+                          icon: Icon(primaryIcon, size: 26),
+                          label: Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Text(primaryLabel),
+                          ),
                         ),
                       ),
                     ),
                     if (state.runState != TimerRunState.idle) ...[
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 48,
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            final settings = context.read<SettingsCubit>();
-                            StopSessionDebriefResult? r;
-                            if (settings.state.showDebriefAfterStop &&
-                                context.mounted) {
-                              r = await showStopSessionDebriefDialog(context);
-                            }
-                            if (!context.mounted) return;
-                            if (r?.neverShowAgain == true) {
-                              await settings.setShowDebriefAfterStop(false);
-                            }
-                            final skipFields = r == null || r.skipped;
-                            await cubit.stop(
-                              taskTitle: skipFields ? null : r.taskTitle,
-                              note: skipFields ? null : r.note,
-                              isBillable: r?.isBillable ?? true,
-                            );
-                          },
-                          icon: const Icon(Icons.stop_circle_outlined),
-                          label: Text(l10n.timerStop),
+                      const SizedBox(width: 12),
+                      Tooltip(
+                        message: l10n.timerStop,
+                        child: SizedBox(
+                          width: AppLayout.primaryButtonHeight,
+                          height: AppLayout.primaryButtonHeight,
+                          child: IconButton.filledTonal(
+                            style: IconButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppLayout.radiusSm + 2,
+                                ),
+                              ),
+                            ),
+                            onPressed: () async {
+                              final settings = context.read<SettingsCubit>();
+                              StopSessionDebriefResult? r;
+                              if (settings.state.showDebriefAfterStop &&
+                                  context.mounted) {
+                                r = await showStopSessionDebriefDialog(context);
+                              }
+                              if (!context.mounted) return;
+                              if (r?.neverShowAgain == true) {
+                                await settings.setShowDebriefAfterStop(false);
+                              }
+                              final skipFields = r == null || r.skipped;
+                              await cubit.stop(
+                                taskTitle: skipFields ? null : r.taskTitle,
+                                note: skipFields ? null : r.note,
+                                isBillable: r?.isBillable ?? true,
+                              );
+                            },
+                            icon: const Icon(Icons.stop_circle_outlined),
+                          ),
                         ),
                       ),
                     ],
@@ -465,35 +551,10 @@ class TimerTab extends StatelessWidget {
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverToBoxAdapter(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.event_note_outlined,
-                            size: 48,
-                            color: scheme.outline,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.dashboardNoSessionsTitle,
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.dashboardNoSessionsBody,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
+                  child: AppEmptyState(
+                    icon: Icons.event_note_outlined,
+                    title: l10n.dashboardNoSessionsTitle,
+                    body: l10n.dashboardNoSessionsBody,
                   ),
                 ),
               )
@@ -617,7 +678,7 @@ class _StatCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

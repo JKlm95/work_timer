@@ -71,7 +71,11 @@ class _HomeShellState extends State<HomeShell> {
           ],
         ),
         body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 220),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
           // Domyślny passthrough + scrollowalne taby = czasem wysokość body 0 (pusty ekran).
           layoutBuilder: (currentChild, previousChildren) {
             return Stack(

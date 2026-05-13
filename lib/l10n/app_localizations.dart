@@ -848,6 +848,12 @@ abstract class AppLocalizations {
   /// **'All types'**
   String get historyAllEntryTypes;
 
+  /// No description provided for @historyBadgeDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed'**
+  String get historyBadgeDeleted;
+
   /// No description provided for @entryTypeWork.
   ///
   /// In en, this message translates to:

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_layout.dart';
 import 'app_typography.dart';
 
 ThemeData buildWorkTimerTheme(Brightness brightness) {
   final isLight = brightness == Brightness.light;
   final scheme = AppColors.colorSchemeFor(brightness);
+  final textTheme = AppTypography.textTheme(scheme);
 
   final cardColor = isLight
       ? AppColors.surfaceCard
@@ -14,18 +16,51 @@ ThemeData buildWorkTimerTheme(Brightness brightness) {
       ? AppColors.surfaceCard
       : scheme.surfaceContainerHighest;
   final borderIdle = isLight ? AppColors.borderInputIdle : scheme.outline;
+  final chipOutline = scheme.outlineVariant.withValues(
+    alpha: isLight ? 0.45 : 0.62,
+  );
+  final chipBg = scheme.surfaceContainerHighest.withValues(
+    alpha: isLight ? 0.35 : 0.4,
+  );
 
   return ThemeData(
     colorScheme: scheme,
     brightness: brightness,
-    textTheme: AppTypography.textTheme(scheme),
+    textTheme: textTheme,
     scaffoldBackgroundColor: isLight
         ? AppColors.surfaceApp
         : AppColors.surfaceAppDark,
+    splashFactory: InkSparkle.splashFactory,
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
+    dialogTheme: DialogThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppLayout.radiusMd + 4),
+      ),
+      backgroundColor: cardColor,
+    ),
+    chipTheme: ChipThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppLayout.radiusSm),
+      ),
+      side: BorderSide(color: chipOutline),
+      backgroundColor: chipBg,
+      deleteIconColor: scheme.onSurfaceVariant,
+      labelStyle: textTheme.labelMedium,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+      showCheckmark: false,
+    ),
     cardTheme: CardThemeData(
       color: cardColor,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppLayout.radiusLg),
+      ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -48,9 +83,37 @@ ThemeData buildWorkTimerTheme(Brightness brightness) {
       style: FilledButton.styleFrom(
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        minimumSize: const Size(0, AppLayout.minTouchTarget),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppLayout.radiusSm + 2),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, AppLayout.secondaryButtonHeight),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppLayout.radiusSm + 2),
+        ),
+        side: BorderSide(color: scheme.outline.withValues(alpha: 0.75)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        minimumSize: const Size(
+          AppLayout.minTouchTarget,
+          AppLayout.minTouchTarget,
+        ),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppLayout.radiusMd),
+      ),
+      extendedPadding: const EdgeInsets.symmetric(horizontal: 20),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: isLight

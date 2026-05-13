@@ -415,6 +415,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyAllEntryTypes => 'All types';
 
   @override
+  String get historyBadgeDeleted => 'Removed';
+
+  @override
   String get entryTypeWork => 'Work';
 
   @override
