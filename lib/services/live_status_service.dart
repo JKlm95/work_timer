@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../bloc/timer_cubit.dart';
@@ -96,6 +97,20 @@ class LiveStatusService {
         data['sessionStartedAt'] = FieldValue.delete();
       }
       data['sessionPausedAt'] = FieldValue.delete();
+    }
+
+    if (kDebugMode) {
+      final sessionStartDesc = state.resumeAt?.toIso8601String() ?? 'null';
+      debugPrint(
+        '[LiveStatus] syncFromTimerState uid=$uid timerState=$timerStr '
+        'isOnline=$online runState=${state.runState.name} '
+        'accumulatedSec=${state.accumulated.inSeconds} resumeAt=$sessionStartDesc '
+        'workspace=${w.id} lifecycle=${LiveStatusAppBinding.lifecycle.name}',
+      );
+      debugPrint(
+        '[LiveStatus] firestore payload keys: ${data.keys.toList()} '
+        '(serverTimestamp on lastSeenAt/updatedAt)',
+      );
     }
 
     try {

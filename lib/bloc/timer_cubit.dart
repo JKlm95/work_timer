@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:home_widget/home_widget.dart';
@@ -138,8 +139,15 @@ class TimerCubit extends Cubit<TimerState> {
   int _lastWidgetElapsedSecond = -1;
   DateTime? _lastIosWidgetThrottle;
 
-  void _notifyLive() {
+  void _notifyLive({String reason = ''}) {
     if (isClosed || _liveStatus == null) return;
+    if (kDebugMode) {
+      debugPrint(
+        '[TimerCubit] _notifyLive reason=${reason.isEmpty ? "?" : reason} '
+        'runState=${state.runState.name} elapsed=${state.elapsed.inSeconds}s '
+        'resumeAt=${state.resumeAt} accumulated=${state.accumulated.inSeconds}s',
+      );
+    }
     unawaited(_liveStatus.syncFromTimerState(state));
   }
 
@@ -175,7 +183,7 @@ class TimerCubit extends Cubit<TimerState> {
     await _applyAndroidWorkspaceSelectionIfIdle();
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
-    _notifyLive();
+    _notifyLive(reason: 'init');
   }
 
   /// Po powrocie do apki: serwis Kotlin i widget zapisują do prefs, Flutter trzyma
@@ -205,7 +213,7 @@ class TimerCubit extends Cubit<TimerState> {
       }),
     );
     await _writeWidgetSnapshot();
-    _notifyLive();
+    _notifyLive(reason: 'syncFromNativeStoresOnResume');
   }
 
   Future<void> setActiveWorkspace(String workspaceId) async {
@@ -217,7 +225,7 @@ class TimerCubit extends Cubit<TimerState> {
     );
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
-    _notifyLive();
+    _notifyLive(reason: 'setActiveWorkspace');
   }
 
   Future<void> saveProject(Workspace workspace) async {
@@ -234,7 +242,7 @@ class TimerCubit extends Cubit<TimerState> {
     );
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
-    _notifyLive();
+    _notifyLive(reason: 'saveProject');
   }
 
   Future<void> createWorkspace(String name) async {
@@ -251,7 +259,7 @@ class TimerCubit extends Cubit<TimerState> {
     );
     await refreshStatsEntries();
     await _writeWidgetSnapshot();
-    _notifyLive();
+    _notifyLive(reason: 'createWorkspace');
   }
 
   Future<void> renameWorkspace({
@@ -261,7 +269,7 @@ class TimerCubit extends Cubit<TimerState> {
     await _repository.renameWorkspace(workspaceId: workspaceId, name: name);
     emit(state.copyWith(workspaces: _repository.workspaces));
     await _writeWidgetSnapshot();
-    _notifyLive();
+    _notifyLive(reason: 'renameWorkspace');
   }
 
   void setNextMode(WorkMode mode) {
@@ -301,6 +309,7 @@ class TimerCubit extends Cubit<TimerState> {
       nextSessionMode: state.nextSessionMode.name,
     );
     _writeWidgetSnapshot();
+    _notifyLive(reason: 'play');
   }
 
   void pause() {
@@ -319,7 +328,7 @@ class TimerCubit extends Cubit<TimerState> {
     _persistSession();
     TimerServiceBridge.pause();
     _writeWidgetSnapshot();
-    _notifyLive();
+    _notifyLive(reason: 'pause');
   }
 
   Future<void> stop({
@@ -384,7 +393,7 @@ class TimerCubit extends Cubit<TimerState> {
         debugPrint('refreshStatsEntries after stop: $e');
       }),
     );
-    _notifyLive();
+    _notifyLive(reason: 'stop');
   }
 
   Future<void> addManualEntry({
@@ -661,6 +670,22 @@ class TimerCubit extends Cubit<TimerState> {
         await _alignRepositoryWithWorkspaceIfPossible(
           mirror['workspaceId'] as String?,
         );
+        final mirrorRun =
+            mirror['runState'] as String? ?? TimerRunState.idle.name;
+        if (mirrorRun == TimerRunState.idle.name) {
+          final local = await _repository.localCache.loadTimerSession();
+          if (local != null && local.runState != TimerRunState.idle.name) {
+            if (kDebugMode) {
+              debugPrint(
+                '[TimerCubit] hydrate: mirror=idle, local=${local.runState} — '
+                'używam sesji z cache (native mógł nie nadążyć za Flutterem)',
+              );
+            }
+            _applyStoredTimerSession(local);
+            _persistSession();
+            return;
+          }
+        }
         _applyAndroidExternalSnapshot(mirror);
         _persistSession();
         return;

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../l10n/app_localizations.dart';
@@ -198,12 +199,22 @@ class _TimerResumeSyncScopeState extends State<_TimerResumeSyncScope>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final cubit = context.read<TimerCubit>();
+      if (kDebugMode) {
+        debugPrint(
+          '[LiveStatus] lifecycle=$state preSync runState=${cubit.state.runState.name}',
+        );
+      }
       if (state == AppLifecycleState.resumed) {
         await cubit.syncFromNativeStoresOnResume();
         await widget.liveStatus.syncFromTimerState(cubit.state);
       } else if (state == AppLifecycleState.paused ||
           state == AppLifecycleState.detached) {
         await widget.liveStatus.syncFromTimerState(cubit.state);
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[LiveStatus] lifecycle=$state postSync runState=${cubit.state.runState.name}',
+        );
       }
     });
   }
