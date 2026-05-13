@@ -12,6 +12,9 @@ abstract class WorkRemoteStore {
     required DateTime to,
   });
 
+  /// Pojedynczy wpis (np. przed wysłaniem kolejki — porównanie `updatedAt` z serwerem).
+  Future<WorkEntry?> fetchEntry({required String uid, required String entryId});
+
   Future<void> upsertWorkspace({
     required String uid,
     required Workspace workspace,

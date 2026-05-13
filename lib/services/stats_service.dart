@@ -60,7 +60,8 @@ class StatsService {
     final filtered = entries.where((e) {
       final inWorkspace =
           workspaceIds.isEmpty || workspaceIds.contains(e.workspaceId);
-      return inWorkspace &&
+      return e.countsInTimeAggregates &&
+          inWorkspace &&
           !e.start.isBefore(DateTime(from.year, from.month, from.day)) &&
           !e.start.isAfter(
             DateTime(to.year, to.month, to.day, 23, 59, 59, 999),
@@ -120,7 +121,7 @@ class StatsService {
     final filtered = entries.where((e) {
       final inWorkspace =
           workspaceIds.isEmpty || workspaceIds.contains(e.workspaceId);
-      if (!inWorkspace || e.isDeleted) return false;
+      if (!inWorkspace || !e.countsInTimeAggregates) return false;
       return !e.start.isBefore(fromDay) && !e.start.isAfter(toDay);
     });
 
@@ -129,7 +130,6 @@ class StatsService {
     final earnings = <String, double>{};
 
     for (final e in filtered) {
-      if (!e.end.isAfter(e.start)) continue;
       final d = e.duration;
       if (e.isBillable) {
         billable += d;

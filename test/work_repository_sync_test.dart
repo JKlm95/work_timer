@@ -211,4 +211,46 @@ void main() {
       hasLength(1),
     );
   });
+
+  test(
+    'syncPending: serwer z nowszym updatedAt (np. panel) — nie wysyła upsert, czyści kolejkę',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferences.setMockInitialValues({});
+      await markMigrationDone();
+
+      final cache = LocalCacheStore();
+      final remote = FakeWorkRemoteStore();
+      final online = FixedOnlineChecker(true);
+
+      final stale = WorkEntry(
+        id: 'e-merge',
+        workspaceId: Workspace.defaultId,
+        start: DateTime(2026, 7, 1, 9),
+        end: DateTime(2026, 7, 1, 10),
+        mode: WorkMode.office,
+        updatedAt: DateTime(2026, 7, 1, 10),
+      );
+      final newerRemote = WorkEntry(
+        id: 'e-merge',
+        workspaceId: Workspace.defaultId,
+        start: DateTime(2026, 7, 1, 9),
+        end: DateTime(2026, 7, 1, 11),
+        mode: WorkMode.remote,
+        updatedAt: DateTime(2026, 7, 2, 15),
+      );
+      remote.remoteEntriesById['e-merge'] = newerRemote;
+      await cache.savePendingQueue(Workspace.defaultId, [stale]);
+
+      final repo = WorkRepository(
+        localCache: cache,
+        remoteStore: remote,
+        onlineChecker: online,
+      );
+      await repo.initForUser(uid);
+
+      expect(remote.upsertedEntries, isEmpty);
+      expect(await cache.loadPendingQueue(Workspace.defaultId), isEmpty);
+    },
+  );
 }

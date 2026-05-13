@@ -28,8 +28,9 @@ class _StatsTabState extends State<StatsTab> {
   Iterable<WorkEntry> _filteredForSelection(List<WorkEntry> entries) =>
       entries.where(
         (e) =>
-            _selectedWorkspaceIds.isEmpty ||
-            _selectedWorkspaceIds.contains(e.workspaceId),
+            e.countsInTimeAggregates &&
+            (_selectedWorkspaceIds.isEmpty ||
+                _selectedWorkspaceIds.contains(e.workspaceId)),
       );
 
   Duration _sum(Iterable<WorkEntry> items) =>

@@ -64,7 +64,7 @@ Future<void> showProjectDetailSheet(
                   );
                   final wsMap = {for (final w in state.workspaces) w.id: w};
                   final monthEntries = state.statsEntries.where((e) {
-                    return !e.isDeleted &&
+                    return e.countsInTimeAggregates &&
                         e.workspaceId == wsheet.id &&
                         !e.start.isBefore(monthRange.start) &&
                         !e.start.isAfter(monthRange.end);

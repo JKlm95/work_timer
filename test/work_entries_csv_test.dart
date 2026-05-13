@@ -66,7 +66,7 @@ void main() {
     expect(csv.split('\n').first.contains(';'), isTrue);
   });
 
-  test('workEntriesToCsv pomija isDeleted', () {
+  test('workEntriesToCsv pomija isDeleted i start >= end', () {
     final entries = [
       WorkEntry(
         id: 'gone',
@@ -76,6 +76,14 @@ void main() {
         mode: WorkMode.office,
         updatedAt: DateTime(2026, 5, 2, 10),
         isDeleted: true,
+      ),
+      WorkEntry(
+        id: 'badtime',
+        workspaceId: Workspace.defaultId,
+        start: DateTime(2026, 5, 4, 12),
+        end: DateTime(2026, 5, 4, 9),
+        mode: WorkMode.office,
+        updatedAt: DateTime(2026, 5, 4, 12),
       ),
       WorkEntry(
         id: 'keep',
@@ -88,6 +96,7 @@ void main() {
     ];
     final csv = workEntriesToCsv(entries);
     expect(csv.contains('gone'), isFalse);
+    expect(csv.contains('badtime'), isFalse);
     expect(csv.contains('keep'), isTrue);
   });
 }

@@ -18,9 +18,9 @@ Ten dokument opisuje **ścieżki Firestore** i **podział odpowiedzialności** m
 
 ## Kto co zapisuje i czyta
 
-### Zapisuje **wyłącznie mobile** (Flutter)
+### Zapisuje **mobile** (Flutter)
 
-- `entries`, `workspaces` — przez `WorkRepository` / `FirebaseWorkStore` (w tym kolejka offline).
+- `entries`, `workspaces` — przez `WorkRepository` / `FirebaseWorkStore` (w tym kolejka offline). **Wpisy czasu mogą też tworzyć i edytować panel pracodawcy** — patrz sekcja niżej „Wpisy `entries`”.
 - `profile/main` — zapis z ekranu Ustawienia (`UserProfileCubit` / `UserProfileRepository`).
 - `userEmailIndex/{emailLower}` — przy logowaniu i przy zapisie profilu (`UserEmailIndexService`); dokument musi być spójny z tokenem (patrz `firestore.rules`).
 - `live/status` — `LiveStatusService` (logowanie, wylogowanie, zmiany timera, lifecycle, heartbeat).
@@ -30,6 +30,41 @@ Ten dokument opisuje **ścieżki Firestore** i **podział odpowiedzialności** m
 - `entries`, `workspaces` — raporty, lista pracowników, szczegóły (zgodnie z uprawnieniami wdrożonymi w panelu i docelowo w regułach Firestore).
 - `live/status` — widżety „Working / Paused / Online”, szacunek kwoty w locie (panel liczy z `sessionStartedAt` + `accumulatedSecondsBeforePause` wg **[TECHNICAL.md](TECHNICAL.md)** § 4b).
 - `profile/main`, `userEmailIndex` — wyświetlanie imienia/nazwiska i powiązanie e-mail ↔ pracownik.
+
+---
+
+## Wpisy `entries` — mobile i panel pracodawcy
+
+Ta sama kolekcja `users/{employeeUid}/entries/{entryId}` obsługuje:
+
+| Źródło | Zachowanie |
+|--------|------------|
+| **Mobile** | Timer, ręczne wpisy, edycja; „usunięcie” w aplikacji to **soft delete** (`isDeleted: true`). |
+| **Panel web** | CRUD po stronie pracodawcy (np. `createEmployeeEntry`, `updateEmployeeEntry`, `softDeleteEmployeeEntry`, `restoreEmployeeEntry`) — ten sam model pól co mobile, plus opcjonalne metadane. |
+
+### Pola opcjonalne / techniczne z panelu
+
+Mobile **ignoruje** przy parsowaniu (nie muszą być w modelu Dart), ale zostają w dokumencie przy `set(merge: true)` z aplikacji, o ile mobile ich nie nadpisuje tym samym kluczem: m.in. `editedAt`, `editedBy`, `createdBy`, `createdVia` (np. `"employer_panel"`). Wpis z `createdVia` jest normalnie widoczny w historii i statystykach, jeśli spełnia warunki widoczności.
+
+### Soft delete
+
+Usunięcie = `isDeleted: true` (nie usuwanie dokumentu). Mobile **nie** pokazuje takich wpisów w standardowej historii, **nie** sumuje ich w statystykach / kalendarzu / eksporcie ani w szacunkach rozliczeń (patrz `WorkEntry.countsInTimeAggregates`).
+
+### `billingRatePercent`
+
+Wpływa na szacunek kwot (`StatsService.buildBillingEstimate`, stawka × czas × procent / 100). Wartości dopuszczalne w regułach: **50, 80, 100, 150, 200**; **`null`** traktowane jak **100**; nieznana liczba całkowita → **100** (bezpieczny fallback).
+
+### `entryType`
+
+Brak pola lub nieznany string → fallback **`work`** (zgodnie z `entryTypeFromStorage`); dopasowanie **bez rozróżniania wielkości liter** (`VACATION` → urlop).
+
+### Nieważny przedział czasu (`start >= end`)
+
+Nie powinien wywalić aplikacji: czas trwania traktowany jak zero, wpis **pomijany** w sumach i raportach (nie wchodzi w `countsInTimeAggregates`).
+
+### Konflikt offline vs panel
+
+Przed wysłaniem wpisu z lokalnej kolejki `syncPending` pobierany jest aktualny dokument z serwera; jeśli **`updatedAt` na serwerze jest nowszy** niż w kolejce, mobile **nie wykonuje** `upsert` (wariant „wygrał panel / inna sesja”). Szczegół: `WorkRepository.syncPending` + `WorkRemoteStore.fetchEntry`.
 
 ---
 

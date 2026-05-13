@@ -69,7 +69,7 @@ lib/
 
 - **Auth:** e-mail/hasło, reset hasła (`AuthService` / Firebase API).
 - **Firestore** (wysokopoziomowo):
-  - `users/{uid}/entries/{entryId}`
+  - `users/{uid}/entries/{entryId}` — wpisy z **timera / historii mobile** oraz z **panelu pracodawcy** (CRUD); dokument może mieć dodatkowe pola (`editedAt`, `createdVia`, …), które mobile ignoruje przy parsowaniu; **soft delete** = `isDeleted: true`; szczegóły kompatybilności: **[DATA_CONTRACT.md](DATA_CONTRACT.md)** (sekcja o `entries`).
   - `users/{uid}/workspaces/{workspaceId}`
   - `users/{uid}/live/status` — **stan na żywo** timera / online dla **panelu pracodawcy** (nie mylić z historią wpisów — patrz § 4b).
   - `users/{uid}/profile/main` — globalny profil pracownika (imię, nazwisko, e-mail; Ustawienia w aplikacji).
@@ -271,7 +271,7 @@ Rozszerzona checklista: **[QA_CHECKLIST.md](QA_CHECKLIST.md)**. Skrót:
 
 ## 10. Testy automatyczne
 
-W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService** w tym **`buildBillingEstimate`**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, **mapowanie live status** — `test/live_status_sync_plan_test.dart`, eksport **CSV** `workEntriesToCsv` (nagłówek z nowymi kolumnami), mapowanie błędów Auth, **`SettingsCubit`** w tym **debrief**) — uruchomienie: `flutter test`. **PDF** (`buildWorkEntriesPdfDocument`, pakiet **`pdf`**) nie ma osobnego testu jednostkowego; weryfikacja ręczna z menu eksportu w **Historii**.
+W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService** w tym **`buildBillingEstimate`**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, **kompatybilność wpisów z panelem** — `test/work_entry_employer_panel_compat_test.dart`, **mapowanie live status** — `test/live_status_sync_plan_test.dart`, eksport **CSV** `workEntriesToCsv` (nagłówek z nowymi kolumnami), mapowanie błędów Auth, **`SettingsCubit`** w tym **debrief**) — uruchomienie: `flutter test`. **PDF** (`buildWorkEntriesPdfDocument`, pakiet **`pdf`**) nie ma osobnego testu jednostkowego; weryfikacja ręczna z menu eksportu w **Historii**.
 
 ---
 

@@ -88,6 +88,7 @@ class _HistoryTabState extends State<HistoryTab> {
   }
 
   Iterable<WorkEntry> _filtered(List<WorkEntry> entries) => entries
+      .where((e) => e.countsInTimeAggregates)
       .where(_entryInRange)
       .where(_entryMatchesMode)
       .where(_entryMatchesEntryType);

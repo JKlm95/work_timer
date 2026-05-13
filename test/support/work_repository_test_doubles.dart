@@ -30,6 +30,17 @@ class FakeWorkRemoteStore implements WorkRemoteStore {
     entriesByWorkspace[workspaceId] = entries;
   }
 
+  /// Symulacja dokumentu na serwerze (np. nowszy `updatedAt` niż w kolejce).
+  final Map<String, WorkEntry> remoteEntriesById = {};
+
+  @override
+  Future<WorkEntry?> fetchEntry({
+    required String uid,
+    required String entryId,
+  }) async {
+    return remoteEntriesById[entryId];
+  }
+
   @override
   Future<void> upsertEntry({
     required String uid,

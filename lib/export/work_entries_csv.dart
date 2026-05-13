@@ -3,7 +3,7 @@ import '../models/work_mode.dart';
 
 /// CSV pod Excel: opcjonalny **UTF-8 BOM**, separator `,` lub `;` (PL).
 ///
-/// Pomija [WorkEntry.isDeleted].
+/// Pomija wpisy bez sensownego przedziału (m.in. [WorkEntry.isDeleted], `start >= end`).
 String workEntriesToCsv(
   List<WorkEntry> entries, {
   Map<String, String> workspaceNames = const {},
@@ -31,7 +31,7 @@ String workEntriesToCsv(
   ];
   b.writeln(headers.join(sep));
   for (final e in entries) {
-    if (e.isDeleted) continue;
+    if (!e.countsInTimeAggregates) continue;
     final name = workspaceNames[e.workspaceId] ?? '';
     final row = [
       _csvCell(e.id, sep),

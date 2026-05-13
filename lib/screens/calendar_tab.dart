@@ -50,7 +50,7 @@ class _CalendarTabState extends State<CalendarTab> {
   Map<DateTime, List<WorkEntry>> _byDay(List<WorkEntry> entries) {
     final map = <DateTime, List<WorkEntry>>{};
     for (final e in entries) {
-      if (e.isDeleted) continue;
+      if (!e.countsInTimeAggregates) continue;
       final key = _dayKey(e.start);
       map.putIfAbsent(key, () => []).add(e);
     }

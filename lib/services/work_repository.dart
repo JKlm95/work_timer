@@ -228,7 +228,7 @@ class WorkRepository {
       if (_isCurrentMonthRange(range)) {
         final localMonth = await _localCache.loadCurrentMonthCache(workspaceId);
         if (!online) {
-          results.addAll(localMonth.where((e) => !e.isDeleted));
+          results.addAll(localMonth.where((e) => e.countsInTimeAggregates));
           continue;
         }
         final uid = _uid;
@@ -276,6 +276,14 @@ class WorkRepository {
       final remaining = <WorkEntry>[];
       for (final entry in queue) {
         try {
+          final remote = await _remoteStore.fetchEntry(
+            uid: uid,
+            entryId: entry.id,
+          );
+          if (remote != null && remote.updatedAt.isAfter(entry.updatedAt)) {
+            // Serwer (np. panel pracodawcy) ma nowszą wersję — nie nadpisujemy.
+            continue;
+          }
           await _remoteStore.upsertEntry(uid: uid, entry: entry);
         } catch (e) {
           debugPrint('syncPending error for ${workspace.id}: $e');
@@ -440,7 +448,7 @@ class WorkRepository {
 
     mergeIn(remote);
     mergeIn(local);
-    return byId.values.where((e) => !e.isDeleted).toList();
+    return byId.values.where((e) => e.countsInTimeAggregates).toList();
   }
 
   List<WorkEntry> _upsertById(List<WorkEntry> source, WorkEntry entry) {

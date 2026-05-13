@@ -178,7 +178,7 @@ class _ProjectReportScreenState extends State<ProjectReportScreen> {
       ).showSnackBar(SnackBar(content: Text(l10n.reportExportEmpty)));
       return;
     }
-    final visible = _entries.where((e) => !e.isDeleted).toList();
+    final visible = _entries.where((e) => e.countsInTimeAggregates).toList();
     final names = {for (final x in state.workspaces) x.id: x.name};
     final sep = Localizations.localeOf(context).languageCode == 'pl'
         ? ';'
@@ -257,7 +257,7 @@ class _ProjectReportScreenState extends State<ProjectReportScreen> {
       ).showSnackBar(SnackBar(content: Text(l10n.reportExportEmpty)));
       return;
     }
-    final visible = _entries.where((e) => !e.isDeleted).toList();
+    final visible = _entries.where((e) => e.countsInTimeAggregates).toList();
     final names = {for (final x in state.workspaces) x.id: x.name};
     final sep = Localizations.localeOf(context).languageCode == 'pl'
         ? ';'
@@ -498,7 +498,7 @@ class _ProjectReportScreenState extends State<ProjectReportScreen> {
                     child: CircularProgressIndicator(),
                   ),
                 )
-              else if (_entries.where((e) => !e.isDeleted).isEmpty)
+              else if (_entries.where((e) => e.countsInTimeAggregates).isEmpty)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(28),
@@ -591,7 +591,7 @@ class _ProjectReportScreenState extends State<ProjectReportScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                ..._entries.where((e) => !e.isDeleted).map((e) {
+                ..._entries.where((e) => e.countsInTimeAggregates).map((e) {
                   final amount = billableAmountForEntry(e, w);
                   return Card(
                     margin: const EdgeInsets.only(bottom: 10),

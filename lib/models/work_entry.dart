@@ -5,6 +5,13 @@ import 'entry_type.dart';
 import 'work_mode.dart';
 import 'workspace.dart';
 
+/// Wpis czasu pracy (Firestore: `users/{uid}/entries/{entryId}`).
+///
+/// Pola zapisywane z mobile są w [toFirestore]. Dokument może zawierać dodatkowe
+/// klucze z **panelu pracodawcy** (np. `editedAt`, `editedBy`, `createdBy`,
+/// `createdVia`) — [WorkEntry.fromFirestore] ich nie odczytuje; przy zapisie z
+/// aplikacji `set(merge: true)` nie usuwają się, dopóki mobile ich nie nadpisze
+/// tym samym kluczem.
 class WorkEntry {
   WorkEntry({
     required this.id,
@@ -39,14 +46,18 @@ class WorkEntry {
   /// Procent stawki godzinowej (50–200), domyślnie 100. Używane tylko przy rozliczalnej pracy.
   final int billingRatePercent;
 
-  Duration get duration => end.difference(start);
+  /// Czy wpis ma sensowny przedział czasu (np. wpisy z panelu z `start >= end` nie psują sum).
+  bool get hasPositiveDuration => end.isAfter(start);
+
+  Duration get duration =>
+      hasPositiveDuration ? end.difference(start) : Duration.zero;
+
+  /// Wpis widoczny w historii / sumach czasu / wykresach (bez soft delete i bez uszkodzonych przedziałów).
+  bool get countsInTimeAggregates => !isDeleted && hasPositiveDuration;
 
   /// Czy wpis liczy się do szacowanego przychodu (stawka × czas).
   bool get countsTowardEarningsEstimate =>
-      !isDeleted &&
-      entryType == EntryType.work &&
-      isBillable &&
-      start.isBefore(end);
+      countsInTimeAggregates && entryType == EntryType.work && isBillable;
 
   WorkEntry copyWith({
     String? workspaceId,

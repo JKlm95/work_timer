@@ -37,6 +37,7 @@ Zaznaczaj punkty przy wydaniu / przed demo. Wymaga działającego Firebase, wdro
 
 - [ ] Z włączonym trybem offline / wyłączoną siecią: dodanie wpisu lub zmiana — dane lokalnie; **banner** o cache / kolejce (Timer / Historia).
 - [ ] Powrót online: `syncPending` — wpisy i workspace’y trafiają do Firestore bez duplikatów (wg obserwacji w konsoli lub odświeżeniu listy).
+- [ ] Jeśli panel edytuje ten sam wpis co oczekuje w kolejce mobile: po syncu **wygrywa nowszy `updatedAt`** na serwerze (mobile nie nadpisuje starszą wersją z kolejki).
 
 ---
 
@@ -46,6 +47,14 @@ Zaznaczaj punkty przy wydaniu / przed demo. Wymaga działającego Firebase, wdro
 - [ ] Przy **running**: panel pokazuje stan pracy / szacunek zgodny z kontraktem czasu (`sessionStartedAt` + `accumulated…`).
 - [ ] Przy **paused**: brak naliczania bieżącego segmentu; `accumulated…` = pełna suma do pauzy.
 - [ ] Po **stop**: w raporcie panelu / liście wpisów pojawia się nowa sesja z `entries`.
+
+### Wpisy czasu z panelu (`entries`)
+
+- [ ] Utworzenie wpisu z panelu — widoczny w **Historii** mobile (odświeżenie / zakres dat), sumy w **Statystykach** zgodne (z uwzględnieniem `billingRatePercent` i typu wpisu).
+- [ ] Edycja wpisu z panelu — mobile widzi zmiany po ponownym pobraniu danych.
+- [ ] **Soft delete** z panelu (`isDeleted: true`) — wpis **znika** z historii / statystyk / eksportu na mobile.
+- [ ] **Przywrócenie** wpisu (`isDeleted: false`) — wpis wraca do widoków i sum.
+- [ ] Wpis z `createdVia: employer_panel` (lub innym) — **nie** jest ukrywany tylko z powodu tego pola.
 
 ---
 

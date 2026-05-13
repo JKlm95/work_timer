@@ -42,10 +42,35 @@ class FirebaseWorkStore implements WorkRemoteStore {
         .orderBy('start', descending: true)
         .get();
 
-    return snapshot.docs
-        .map((doc) => WorkEntry.fromFirestore(doc.id, doc.data()))
-        .where((e) => !e.isDeleted && e.workspaceId == workspaceId)
-        .toList();
+    final out = <WorkEntry>[];
+    for (final doc in snapshot.docs) {
+      try {
+        final e = WorkEntry.fromFirestore(doc.id, doc.data());
+        if (!e.isDeleted && e.workspaceId == workspaceId) {
+          out.add(e);
+        }
+      } catch (err, st) {
+        debugPrint('fetchEntriesInRange: skip ${doc.id}: $err\n$st');
+      }
+    }
+    return out;
+  }
+
+  @override
+  Future<WorkEntry?> fetchEntry({
+    required String uid,
+    required String entryId,
+  }) async {
+    final doc = await _entriesRef(uid).doc(entryId).get();
+    if (!doc.exists) return null;
+    final data = doc.data();
+    if (data == null) return null;
+    try {
+      return WorkEntry.fromFirestore(doc.id, data);
+    } catch (err, st) {
+      debugPrint('fetchEntry: skip ${doc.id}: $err\n$st');
+      return null;
+    }
   }
 
   @override

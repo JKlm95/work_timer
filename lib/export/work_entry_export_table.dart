@@ -13,7 +13,7 @@ List<List<String>>? buildLocalizedExportTable({
   required List<WorkEntry> entries,
   required Map<String, String> workspaceNames,
 }) {
-  final visible = entries.where((e) => !e.isDeleted).toList();
+  final visible = entries.where((e) => e.countsInTimeAggregates).toList();
   if (visible.isEmpty) return null;
 
   final dFmt = DateFormat.yMMMd(localeCode);
