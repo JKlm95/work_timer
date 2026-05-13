@@ -738,4 +738,38 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get calendarDayNoEntries => 'Brak wpisów w tym dniu.';
+
+  @override
+  String get legalScreenTitle => 'Regulamin';
+
+  @override
+  String get legalIntro =>
+      'Aby korzystać z Work Timer, musisz zaakceptować Regulamin oraz Politykę prywatności.';
+
+  @override
+  String get legalTermsLink => 'Regulamin';
+
+  @override
+  String get legalPrivacyLink => 'Polityka prywatności';
+
+  @override
+  String get legalCheckboxLabel =>
+      'Zapoznałem(-am) się i akceptuję Regulamin oraz Politykę prywatności.';
+
+  @override
+  String get legalContinue => 'Kontynuuj';
+
+  @override
+  String get legalSaveFailed =>
+      'Nie udało się zapisać zgody. Sprawdź połączenie i spróbuj ponownie.';
+
+  @override
+  String get legalCouldNotOpenLink => 'Nie udało się otworzyć linku.';
+
+  @override
+  String get legalCheckFailed =>
+      'Nie udało się zweryfikować zapisanej zgody. Sprawdź połączenie.';
+
+  @override
+  String get legalRetry => 'Spróbuj ponownie';
 }

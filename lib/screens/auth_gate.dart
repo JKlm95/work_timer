@@ -9,6 +9,7 @@ import '../bloc/auth_cubit.dart';
 import '../bloc/timer_cubit.dart';
 import '../bloc/user_profile_cubit.dart';
 import '../utils/auth_error_localizer.dart';
+import '../services/legal_consent_repository.dart';
 import '../services/live_status_app_binding.dart';
 import '../services/live_status_service.dart';
 import '../services/user_email_index_service.dart';
@@ -16,6 +17,27 @@ import '../services/user_profile_repository.dart';
 import '../services/work_repository.dart';
 import '../widgets/splash_loading_view.dart';
 import 'home_shell.dart';
+import 'legal_consent_screen.dart';
+
+enum _PostAuthPhase {
+  /// Przed pierwszym rozstrzygnięciem lub po wylogowaniu.
+  idle,
+
+  /// Sprawdzanie `users/{uid}/legal/consents`.
+  checkingLegal,
+
+  /// Wymagana akceptacja w UI.
+  needsLegalUi,
+
+  /// Nie udało się odczytać dokumentu zgód (np. offline).
+  legalFetchFailed,
+
+  /// Inicjalizacja `TimerCubit` (splash jak dotychczas).
+  initializingTimer,
+
+  /// Zgoda OK i cubity gotowe — główna aplikacja.
+  ready,
+}
 
 class AuthGate extends StatefulWidget {
   const AuthGate({
@@ -39,6 +61,9 @@ class _AuthGateState extends State<AuthGate> {
   TimerCubit? _timerCubit;
   UserProfileCubit? _profileCubit;
   String? _loadedUid;
+  _PostAuthPhase _phase = _PostAuthPhase.idle;
+  final LegalConsentRepository _legalConsentRepository =
+      LegalConsentRepository();
 
   Future<void> _disposeTimer() async {
     final c = _timerCubit;
@@ -54,18 +79,7 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
-  Future<void> _onAuthChanged(AuthState state) async {
-    if (state.loading) return;
-    if (state.user == null) {
-      await _disposeTimer();
-      if (mounted) setState(() {});
-      return;
-    }
-    final uid = state.user!.uid;
-    if (_timerCubit != null && _loadedUid == uid) return;
-
-    await _disposeTimer();
-
+  Future<void> _bootstrapTimerForUser(String uid) async {
     final sw = Stopwatch()..start();
     final cubit = TimerCubit(
       uid: uid,
@@ -97,7 +111,71 @@ class _AuthGateState extends State<AuthGate> {
       _timerCubit = cubit;
       _profileCubit = profileCubit;
       _loadedUid = uid;
+      _phase = _PostAuthPhase.ready;
     });
+  }
+
+  Future<void> _onAuthChanged(AuthState state) async {
+    if (state.loading) return;
+    if (state.user == null) {
+      await _disposeTimer();
+      if (mounted) {
+        setState(() => _phase = _PostAuthPhase.idle);
+      }
+      return;
+    }
+    final uid = state.user!.uid;
+
+    if (_phase == _PostAuthPhase.ready &&
+        _timerCubit != null &&
+        _loadedUid == uid) {
+      return;
+    }
+
+    await _disposeTimer();
+    if (!mounted) return;
+
+    setState(() => _phase = _PostAuthPhase.checkingLegal);
+
+    final gate = await _legalConsentRepository.checkGate(uid);
+    if (!mounted) return;
+
+    switch (gate) {
+      case LegalConsentGate.satisfied:
+        setState(() => _phase = _PostAuthPhase.initializingTimer);
+        await _bootstrapTimerForUser(uid);
+        break;
+      case LegalConsentGate.needsAcceptance:
+        setState(() => _phase = _PostAuthPhase.needsLegalUi);
+        break;
+      case LegalConsentGate.fetchFailed:
+        setState(() => _phase = _PostAuthPhase.legalFetchFailed);
+        break;
+    }
+  }
+
+  Future<void> _retryLegalCheck(String uid) async {
+    setState(() => _phase = _PostAuthPhase.checkingLegal);
+    final gate = await _legalConsentRepository.checkGate(uid);
+    if (!mounted) return;
+    switch (gate) {
+      case LegalConsentGate.satisfied:
+        setState(() => _phase = _PostAuthPhase.initializingTimer);
+        await _bootstrapTimerForUser(uid);
+        break;
+      case LegalConsentGate.needsAcceptance:
+        setState(() => _phase = _PostAuthPhase.needsLegalUi);
+        break;
+      case LegalConsentGate.fetchFailed:
+        setState(() => _phase = _PostAuthPhase.legalFetchFailed);
+        break;
+    }
+  }
+
+  Future<void> _afterLegalConsent(String uid) async {
+    if (!mounted) return;
+    setState(() => _phase = _PostAuthPhase.initializingTimer);
+    await _bootstrapTimerForUser(uid);
   }
 
   @override
@@ -126,19 +204,70 @@ class _AuthGateState extends State<AuthGate> {
           if (state.user == null) {
             return const _AuthScreen();
           }
-          if (_timerCubit == null || _profileCubit == null) {
-            return const SplashLoadingView();
+
+          final uid = state.user!.uid;
+
+          switch (_phase) {
+            case _PostAuthPhase.idle:
+            case _PostAuthPhase.checkingLegal:
+            case _PostAuthPhase.initializingTimer:
+              return const SplashLoadingView();
+            case _PostAuthPhase.legalFetchFailed:
+              final l10n = AppLocalizations.of(context)!;
+              return Scaffold(
+                appBar: AppBar(title: Text(l10n.legalScreenTitle)),
+                body: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          l10n.legalCheckFailed,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: () => unawaited(_retryLegalCheck(uid)),
+                          child: Text(l10n.legalRetry),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () =>
+                              unawaited(context.read<AuthCubit>().signOut()),
+                          child: Text(l10n.signOut),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            case _PostAuthPhase.needsLegalUi:
+              return LegalConsentScreen(
+                uid: uid,
+                repository: _legalConsentRepository,
+                onConsentSaved: () => unawaited(_afterLegalConsent(uid)),
+                onSignOut: () {
+                  unawaited(context.read<AuthCubit>().signOut());
+                },
+              );
+            case _PostAuthPhase.ready:
+              if (_timerCubit == null || _profileCubit == null) {
+                return const SplashLoadingView();
+              }
+              return MultiBlocProvider(
+                providers: [
+                  BlocProvider.value(value: _timerCubit!),
+                  BlocProvider.value(value: _profileCubit!),
+                ],
+                child: _TimerResumeSyncScope(
+                  liveStatus: widget.liveStatus,
+                  child: HomeShell(
+                    onSignOut: context.read<AuthCubit>().signOut,
+                  ),
+                ),
+              );
           }
-          return MultiBlocProvider(
-            providers: [
-              BlocProvider.value(value: _timerCubit!),
-              BlocProvider.value(value: _profileCubit!),
-            ],
-            child: _TimerResumeSyncScope(
-              liveStatus: widget.liveStatus,
-              child: HomeShell(onSignOut: context.read<AuthCubit>().signOut),
-            ),
-          );
         },
       ),
     );

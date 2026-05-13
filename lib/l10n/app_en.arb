@@ -294,5 +294,15 @@
   "workspacesEmptyBody": "Create your first project to start tracking time.",
   "calendarDaySummaryTitle": "Day summary",
   "calendarDayEstimatedHint": "Estimated earnings",
-  "calendarDayNoEntries": "No entries on this day."
+  "calendarDayNoEntries": "No entries on this day.",
+  "legalScreenTitle": "Legal",
+  "legalIntro": "To continue using Work Timer, you must accept the Terms of Service and the Privacy Policy.",
+  "legalTermsLink": "Terms of Service",
+  "legalPrivacyLink": "Privacy Policy",
+  "legalCheckboxLabel": "I have read and agree to the Terms of Service and the Privacy Policy.",
+  "legalContinue": "Continue",
+  "legalSaveFailed": "Could not save your acceptance. Check your connection and try again.",
+  "legalCouldNotOpenLink": "Could not open the link.",
+  "legalCheckFailed": "We could not verify your saved acceptance. Check your connection.",
+  "legalRetry": "Retry"
 }

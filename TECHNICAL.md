@@ -16,6 +16,7 @@ Dokument dla **deweloperów i rekrutera technicznego**: architektura, integracja
 | Lokalnie | **shared_preferences** (JSON, prefs Flutter + zapis z Kotlina), **home_widget** (Android widget prefs); **`file_picker`** (zapis CSV/PDF na dysku), **`path_provider`** (katalog tymczasowy przed `share_plus`) |
 | Kalendarz UI | **`table_calendar`** + `intl` `initializeDateFormatting` w `main` (`en_US`, `pl_PL`) |
 | Sieć / offline | **connectivity_plus** do warunkowania zapytań; kolejka pending |
+| Zgody prawne | **`LegalConsentRepository`** + ekran **`LegalConsentScreen`**; linki **`url_launcher`**; wersje w `lib/config/legal_versions.dart`, URL w `lib/config/legal_links.dart` |
 | Android | **Kotlin** — `ForegroundService`, `AppWidgetProvider` (home_widget), **MethodChannel** `work_timer/service_control` |
 | iOS | **Swift** — `AppDelegate` + **WidgetKit** + **App Groups** (`UserDefaults`), te same nazwy metod MethodChannel co na Androidzie; brak ForegroundService (timer = Flutter + cache) |
 
@@ -29,7 +30,7 @@ lib/
 ├── bloc/                     # auth_cubit.dart, timer_cubit.dart, settings_cubit.dart, user_profile_cubit.dart
 ├── l10n/                     # app_*.arb, app_localizations*.dart (generowane), work_mode_strings.dart
 ├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart, app_layout.dart (radius, touch targets)
-├── screens/                  # auth_gate (+ splash), home_shell, timer_tab, history_tab, stats_tab, calendar_tab, workspaces_tab, settings_tab
+├── screens/                  # auth_gate (+ splash + legal consent gate), legal_consent_screen, home_shell, timer_tab, …
 ├── models/                   # work_entry, workspace, work_mode, entry_type, billing_currency
 ├── utils/                    # m.in. workspace_color, project_field_utils, export_save.dart (CSV/PDF zapis mobilny SAF)
 ├── export/                   # work_entries_csv.dart (CSV / Excel), work_entries_pdf.dart (PDF A4 poziom, Noto Sans z assets)
@@ -42,6 +43,7 @@ lib/
 │   ├── online_checker.dart         # abstrakcja sieci (testy: FixedOnlineChecker)
 │   ├── local_cache_store.dart      # prefs: wpisy, workspace, sesja; kolejka upsert workspace (offline)
 │   ├── firebase_work_store.dart
+│   ├── legal_consent_repository.dart  # users/{uid}/legal/consents — gate przed TimerCubit
 │   ├── live_status_service.dart     # zapis users/{uid}/live/status (panel)
 │   ├── live_status_sync_plan.dart   # czyste mapowanie TimerState → pola live (testowalne)
 │   ├── live_status_app_binding.dart # lifecycle → isOnline w serwisie
@@ -64,7 +66,8 @@ lib/
 1. **`main.dart`** — `Firebase.initializeApp`, `SharedPreferences` → **`SettingsCubit`** (outer `BlocProvider`), singletony `AuthService`, `WorkRepository`; **`MaterialApp`** z `theme` / `darkTheme` z `buildWorkTimerTheme`, `themeMode` ze stanu ustawień, delegaty `AppLocalizations`.
 2. **`AuthGate`** (stanful):
    - `BlocListener` na `AuthCubit`: przy rozstrzygnięciu sesji Firebase i przy zmianie użytkownika wywołuje **`_onAuthChanged`**.
-   - Dla **zalogowanego** użytkownika: tworzy **`TimerCubit`**, **`await init()`** (timeout 15 s), minimalny czas wyświetlania splash (~520 ms), potem **`BlocProvider.value`** + `HomeShell`.
+   - Dla **zalogowanego** użytkownika: **najpierw** odczyt `users/{uid}/legal/consents` (`LegalConsentRepository.checkGate`). Jeśli brak dokumentu, dane nieparsowalne albo `terms`/`privacy` nie zaakceptowane — **`LegalConsentScreen`** (bez startu `TimerCubit`). Po udanym zapisie zgody — dalej jak wcześniej. Przy błędzie odczytu (np. offline) — ekran Retry / wyloguj (bez pętli nawigacji).
+   - Po spełnionym gate prawnym: tworzy **`TimerCubit`**, **`await init()`** (timeout 15 s), minimalny czas wyświetlania splash (~520 ms), potem **`BlocProvider.value`** + `HomeShell`.
 3. **`TimerCubit.init()`** — `reload()` prefs (Android po zapisie z Kotlina), `initForUser`, pierwszy `emit` z **workspaces**, **`await _hydrateTimerFromPersistedStores()`** (Android: lustro JVM + **`_alignRepositoryWithWorkspaceIfPossible`**; iOS/web: prefs/`home_widget` jak w tej metodzie — **zanim** pierwszy **`loadEntriesForRange`**), **`emit`** z wpisami z **`loadEntriesForRange`**, **`_applyAndroidWorkspaceSelectionIfIdle`**, **`refreshStatsEntries`**, **`_writeWidgetSnapshot`**.
 
 ---
@@ -77,6 +80,7 @@ lib/
   - `users/{uid}/workspaces/{workspaceId}`
   - `users/{uid}/live/status` — **stan na żywo** timera / online dla **panelu pracodawcy** (nie mylić z historią wpisów — patrz § 4b).
   - `users/{uid}/profile/main` — globalny profil pracownika (imię, nazwisko, e-mail; Ustawienia w aplikacji).
+  - `users/{uid}/legal/consents` — **akceptacja regulaminu i polityki prywatności** (jeden dokument); wymagany przed wejściem do `HomeShell`; pola i reguły: **[DATA_CONTRACT.md](DATA_CONTRACT.md)** (sekcja „Zgody prawne”).
   - `userEmailIndex/{emailLower}` — indeks pod panel pracodawcy (m.in. `uid`, `firstName`, `lastName`, `displayName`, `email`, `providerIds`); synchronizowany przy auth i przy zapisie profilu (`UserEmailIndexService`).
 - **Legacy (bez migracji):** w starszych dokumentach `workspaces` mogą występować pola `employeeFirstName` / `employeeLastName` — **aplikacja ich już nie czyta ani nie zapisuje**; imię i nazwisko są wyłącznie w profilu globalnym / `userEmailIndex`.
 - **Reguły:** plik **`firestore.rules`** w repozytorium — **wdroż całość** (konsola lub `firebase deploy --only firestore:rules`). Reguły muszą obejmować **obie** podkolekcje (`entries` **i** `workspaces`). Same reguły tylko dla `entries` skutkują **`permission-denied`** przy zapisie/odczycie workspace’ów i po reinstalacji „znikały” workspace’y w chmurze.  

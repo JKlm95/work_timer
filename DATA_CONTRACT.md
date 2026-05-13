@@ -12,6 +12,7 @@ Ten dokument opisuje **ścieżki Firestore** i **podział odpowiedzialności** m
 | `users/{uid}/workspaces/{workspaceId}` | Projekty (nazwa, kolor, archiwum, stawka, udostępnienie pracodawcy itd.) — **źródło prawdy** dla konfiguracji projektów. |
 | `users/{uid}/live/status` | **Stan na żywo** (online, stan timera, aktywny projekt, znaczniki sesji) — tylko podgląd dla panelu; **nie** zastępuje `entries`. Szczegóły pól: **[TECHNICAL.md](TECHNICAL.md)** § 4b. |
 | `users/{uid}/profile/main` | Profil globalny pracownika (imię, nazwisko, e-mail wyświetlany w aplikacji) — **źródło prawdy** dla danych osobowych w kontekście konta. |
+| `users/{uid}/legal/consents` | **Zgody prawne** (regulamin + polityka prywatności): jeden dokument na użytkownika; brak lub niespełniony dokument blokuje wejście do głównej aplikacji po zalogowaniu. Szczegóły pól i reguł: sekcja **„Zgody prawne”** poniżej. |
 | `userEmailIndex/{emailLower}` | Indeks **lookup** UID i metadanych profilu po znormalizowanym adresie e-mail — ułatwia panelowi powiązanie konta pracownika z adresem. |
 
 ---
@@ -24,6 +25,23 @@ Ten dokument opisuje **ścieżki Firestore** i **podział odpowiedzialności** m
 - `profile/main` — zapis z ekranu Ustawienia (`UserProfileCubit` / `UserProfileRepository`).
 - `userEmailIndex/{emailLower}` — przy logowaniu i przy zapisie profilu (`UserEmailIndexService`); dokument musi być spójny z tokenem (patrz `firestore.rules`).
 - `live/status` — `LiveStatusService` (logowanie, wylogowanie, zmiany timera, lifecycle, heartbeat).
+- **`users/{uid}/legal/consents`** — zapis wyłącznie z aplikacji po akceptacji w **`LegalConsentScreen`** (`LegalConsentRepository.saveAcceptance`). Panel pracodawcy **nie** musi tego czytać; odczyt ma wyłącznie właściciel konta (reguły Firestore).
+
+### Zgody prawne — `users/{uid}/legal/consents`
+
+| Pole | Znaczenie |
+|------|-----------|
+| `termsAccepted` | `true` — wymagane przy zapisie (reguły + aplikacja). |
+| `privacyAccepted` | `true` — j.w. |
+| `acceptedAt` | `serverTimestamp` — moment akceptacji. |
+| `termsVersion` | String (np. `1.0`) — musi być zgodny z wartością wysyłaną przez aplikację (`lib/config/legal_versions.dart`); przy zmianie regulaminu w sklepie podnieś wersję i rozważ osobny flow „re-consent”. |
+| `privacyVersion` | Analogicznie do `termsVersion`. |
+| `updatedAt` | Opcjonalnie w regułach: jeśli obecne, musi być `timestamp`; aplikacja ustawia `serverTimestamp` przy zapisie. |
+| `acceptedPlatform` | Opcjonalnie: krótki string platformy (np. `android`, `iOS`, `web`) — aplikacja wypełnia z `defaultTargetPlatform` / web. |
+
+**Walidacja po stronie klienta:** `LegalConsentRecord.tryParse` — brak wymaganych pól, puste wersje lub `false` na zgodach → użytkownik widzi ponownie ekran akceptacji (`LegalConsentGate.needsAcceptance`).
+
+**Walidacja w `firestore.rules`:** funkcja `hasValidLegalConsentsShape` — dokładny zestaw kluczy, typy, `delete` zabronione; tylko **owner** `{uid}` może **read/create/update** dokumentu `consents` (nie `allow write: if isSignedIn()` globalnie dla tej ścieżki).
 
 ### Czyta **głównie panel webowy**
 
@@ -75,6 +93,7 @@ Przed wysłaniem wpisu z lokalnej kolejki `syncPending` pobierany jest aktualny 
 | Historia czasu | `users/{uid}/entries` | Po **stop** timera mobile tworzy wpis tutaj; panel pokazuje raporty z tej kolekcji. |
 | Konfiguracja projektów | `users/{uid}/workspaces` | Stawka, waluta, flagi udostępnienia pracodawcy. |
 | Profil pracownika | `users/{uid}/profile/main` + indeks e-mail | Imię/nazwisko w UI mobile; panel może czytać to samo lub indeks. |
+| Zgody ToS / Privacy | `users/{uid}/legal/consents` | Tylko mobile (właściciel); brak lub niepoprawny dokument → ekran zgód zamiast `HomeShell`. |
 | „Co robi pracownik teraz” | `users/{uid}/live/status` | Odświeżane często; **nie** służy do rozliczeń końcowych — do tego służą `entries`. |
 
 ---
@@ -82,7 +101,8 @@ Przed wysłaniem wpisu z lokalnej kolejki `syncPending` pobierany jest aktualny 
 ## Reguły bezpieczeństwa (Firestore)
 
 Wdrożenie: **`firestore.rules`** w repozytorium.  
-**MVP** może dopuszczać szeroki odczyt dla zalogowanych użytkowników (np. `live`, `userEmailIndex`) — **produkcja** powinna ograniczyć odczyt panelu pracodawcy do kont powiązanych z pracownikiem (np. lista śledzonych pracowników / członkostwo w organizacji). Szczegóły walidacji pól live: komentarz przy regule `users/{uid}/live` w pliku rules.
+**MVP** może dopuszczać szeroki odczyt dla zalogowanych użytkowników (np. `live`, `userEmailIndex`) — **produkcja** powinna ograniczyć odczyt panelu pracodawcy do kont powiązanych z pracownikiem (np. lista śledzonych pracowników / członkostwo w organizacji). Szczegóły walidacji pól live: komentarz przy regule `users/{uid}/live` w pliku rules.  
+**Zgody:** ścieżka `users/{uid}/legal/consents` — tylko właściciel; zapis dozwolony wyłącznie przy poprawnym kształcie (`hasValidLegalConsentsShape`); `delete` zawsze `false`.
 
 ---
 

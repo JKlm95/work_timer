@@ -14,6 +14,17 @@ Zaznaczaj punkty przy wydaniu / przed demo. Wymaga działającego Firebase, wdro
 
 ---
 
+## Zgody prawne (ToS / Privacy)
+
+- [ ] **Nowy użytkownik** po pierwszym zalogowaniu: zamiast `HomeShell` pojawia się ekran zgód; linki Terms / Privacy otwierają się w przeglądarce (`url_launcher`).
+- [ ] Checkbox wyłączony → przycisk **Continue** nieaktywny; po zaznaczeniu — aktywny; po zapisie — przejście do głównej aplikacji i dokument `users/{uid}/legal/consents` w Firestore (pola zgodne z **[DATA_CONTRACT.md](DATA_CONTRACT.md)**).
+- [ ] **Wylogowanie** na ekranie zgód działa; ponowne logowanie — jeśli dokument już istnieje i jest poprawny, **pomija** ekran zgód.
+- [ ] **Offline przy odczycie** zgód: komunikat + **Retry**; po przywróceniu sieci Retry przechodzi dalej (lub pokazuje ekran zgód jeśli nadal brak dokumentu).
+- [ ] **Offline przy zapisie** zgód: komunikat błędu na ekranie; po powrocie online ponowna akceptacja zapisuje dokument (bez duplikacji logiki auth).
+- [ ] **Uszkodzony dokument** (np. brak `acceptedAt` w danych): aplikacja traktuje jak brak zgody — ponowny ekran akceptacji (merge naprawia dokument przy zapisie).
+
+---
+
 ## Projekty (workspaces)
 
 - [ ] Utworzenie nowego projektu (nazwa wymagana).

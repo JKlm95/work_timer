@@ -1459,6 +1459,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No entries on this day.'**
   String get calendarDayNoEntries;
+
+  /// No description provided for @legalScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Legal'**
+  String get legalScreenTitle;
+
+  /// No description provided for @legalIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'To continue using Work Timer, you must accept the Terms of Service and the Privacy Policy.'**
+  String get legalIntro;
+
+  /// No description provided for @legalTermsLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get legalTermsLink;
+
+  /// No description provided for @legalPrivacyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get legalPrivacyLink;
+
+  /// No description provided for @legalCheckboxLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'I have read and agree to the Terms of Service and the Privacy Policy.'**
+  String get legalCheckboxLabel;
+
+  /// No description provided for @legalContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get legalContinue;
+
+  /// No description provided for @legalSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save your acceptance. Check your connection and try again.'**
+  String get legalSaveFailed;
+
+  /// No description provided for @legalCouldNotOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the link.'**
+  String get legalCouldNotOpenLink;
+
+  /// No description provided for @legalCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not verify your saved acceptance. Check your connection.'**
+  String get legalCheckFailed;
+
+  /// No description provided for @legalRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get legalRetry;
 }
 
 class _AppLocalizationsDelegate

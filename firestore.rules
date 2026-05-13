@@ -343,6 +343,39 @@ service cloud.firestore {
           );
     }
 
+    function hasValidLegalConsentsShape(data) {
+      return data.keys().hasAll([
+            'termsAccepted',
+            'privacyAccepted',
+            'acceptedAt',
+            'termsVersion',
+            'privacyVersion'
+          ]) &&
+          data.keys().hasOnly([
+            'termsAccepted',
+            'privacyAccepted',
+            'acceptedAt',
+            'termsVersion',
+            'privacyVersion',
+            'updatedAt',
+            'acceptedPlatform'
+          ]) &&
+          data.termsAccepted == true &&
+          data.privacyAccepted == true &&
+          data.acceptedAt is timestamp &&
+          data.termsVersion is string &&
+          data.termsVersion.size() > 0 &&
+          data.termsVersion.size() <= 32 &&
+          data.privacyVersion is string &&
+          data.privacyVersion.size() > 0 &&
+          data.privacyVersion.size() <= 32 &&
+          (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+          (!('acceptedPlatform' in data) ||
+              (data.acceptedPlatform is string &&
+                  data.acceptedPlatform.size() > 0 &&
+                  data.acceptedPlatform.size() <= 64));
+    }
+
     match /users/{uid}/profile/{docId} {
       allow read: if isOwner(uid);
 
@@ -396,6 +429,16 @@ service cloud.firestore {
 
       allow update: if employerTracksUser(uid) &&
           hasValidWorkspaceBillingPatch();
+
+      allow delete: if false;
+    }
+
+    match /users/{uid}/legal/{docId} {
+      allow read: if isOwner(uid) && docId == 'consents';
+
+      allow create, update: if isOwner(uid) &&
+          docId == 'consents' &&
+          hasValidLegalConsentsShape(request.resource.data);
 
       allow delete: if false;
     }

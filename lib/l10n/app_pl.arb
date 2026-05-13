@@ -294,5 +294,15 @@
   "workspacesEmptyBody": "Utwórz pierwszy projekt, żeby zacząć śledzić czas.",
   "calendarDaySummaryTitle": "Podsumowanie dnia",
   "calendarDayEstimatedHint": "Szacowane przychody",
-  "calendarDayNoEntries": "Brak wpisów w tym dniu."
+  "calendarDayNoEntries": "Brak wpisów w tym dniu.",
+  "legalScreenTitle": "Regulamin",
+  "legalIntro": "Aby korzystać z Work Timer, musisz zaakceptować Regulamin oraz Politykę prywatności.",
+  "legalTermsLink": "Regulamin",
+  "legalPrivacyLink": "Polityka prywatności",
+  "legalCheckboxLabel": "Zapoznałem(-am) się i akceptuję Regulamin oraz Politykę prywatności.",
+  "legalContinue": "Kontynuuj",
+  "legalSaveFailed": "Nie udało się zapisać zgody. Sprawdź połączenie i spróbuj ponownie.",
+  "legalCouldNotOpenLink": "Nie udało się otworzyć linku.",
+  "legalCheckFailed": "Nie udało się zweryfikować zapisanej zgody. Sprawdź połączenie.",
+  "legalRetry": "Spróbuj ponownie"
 }

@@ -733,4 +733,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get calendarDayNoEntries => 'No entries on this day.';
+
+  @override
+  String get legalScreenTitle => 'Legal';
+
+  @override
+  String get legalIntro =>
+      'To continue using Work Timer, you must accept the Terms of Service and the Privacy Policy.';
+
+  @override
+  String get legalTermsLink => 'Terms of Service';
+
+  @override
+  String get legalPrivacyLink => 'Privacy Policy';
+
+  @override
+  String get legalCheckboxLabel =>
+      'I have read and agree to the Terms of Service and the Privacy Policy.';
+
+  @override
+  String get legalContinue => 'Continue';
+
+  @override
+  String get legalSaveFailed =>
+      'Could not save your acceptance. Check your connection and try again.';
+
+  @override
+  String get legalCouldNotOpenLink => 'Could not open the link.';
+
+  @override
+  String get legalCheckFailed =>
+      'We could not verify your saved acceptance. Check your connection.';
+
+  @override
+  String get legalRetry => 'Retry';
 }
