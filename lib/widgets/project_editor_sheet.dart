@@ -296,12 +296,25 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.projectsHourlyRatePanelHint,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 12),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.projectsShareEmployer),
               value: _shareEmployer,
               onChanged: (v) => setState(() => _shareEmployer = v),
+            ),
+            Text(
+              l10n.projectsShareEmployerSubtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             if (_shareEmployer) ...[
               TextField(

@@ -42,6 +42,9 @@ lib/
 │   ├── online_checker.dart         # abstrakcja sieci (testy: FixedOnlineChecker)
 │   ├── local_cache_store.dart      # prefs: wpisy, workspace, sesja; kolejka upsert workspace (offline)
 │   ├── firebase_work_store.dart
+│   ├── live_status_service.dart     # zapis users/{uid}/live/status (panel)
+│   ├── live_status_sync_plan.dart   # czyste mapowanie TimerState → pola live (testowalne)
+│   ├── live_status_app_binding.dart # lifecycle → isOnline w serwisie
 │   ├── timer_service_bridge.dart   # MethodChannel Android + iOS (App Group / reload)
 │   └── stats_service.dart
 └── widgets/
@@ -68,10 +71,51 @@ lib/
 - **Firestore** (wysokopoziomowo):
   - `users/{uid}/entries/{entryId}`
   - `users/{uid}/workspaces/{workspaceId}`
+  - `users/{uid}/live/status` — **stan na żywo** timera / online dla **panelu pracodawcy** (nie mylić z historią wpisów — patrz § 4b).
   - `users/{uid}/profile/main` — globalny profil pracownika (imię, nazwisko, e-mail; Ustawienia w aplikacji).
   - `userEmailIndex/{emailLower}` — indeks pod panel pracodawcy (m.in. `uid`, `firstName`, `lastName`, `displayName`, `email`, `providerIds`); synchronizowany przy auth i przy zapisie profilu (`UserEmailIndexService`).
 - **Legacy (bez migracji):** w starszych dokumentach `workspaces` mogą występować pola `employeeFirstName` / `employeeLastName` — **aplikacja ich już nie czyta ani nie zapisuje**; imię i nazwisko są wyłącznie w profilu globalnym / `userEmailIndex`.
-- **Reguły:** plik **`firestore.rules`** w repozytorium — **wdroż całość** (konsola lub `firebase deploy --only firestore:rules`). Reguły muszą obejmować **obie** podkolekcje (`entries` **i** `workspaces`). Same reguły tylko dla `entries` skutkują **`permission-denied`** przy zapisie/odczycie workspace’ów i po reinstalacji „znikały” workspace’y w chmurze.
+- **Reguły:** plik **`firestore.rules`** w repozytorium — **wdroż całość** (konsola lub `firebase deploy --only firestore:rules`). Reguły muszą obejmować **obie** podkolekcje (`entries` **i** `workspaces`). Same reguły tylko dla `entries` skutkują **`permission-denied`** przy zapisie/odczycie workspace’ów i po reinstalacji „znikały” workspace’y w chmurze.  
+  **Produkcja (panel pracodawcy):** docelowo odczyt `live/status`, `entries`, `workspaces` itd. powinien być ograniczony do pracodawców powiązanych z pracownikiem (np. lista `trackedEmployees` / membership) — obecne reguły MVP mogą być szersze; doprecyzuj je przed produkcyjnym wdrożeniem panelu.
+
+---
+
+## 4b. Live status — `users/{uid}/live/status`
+
+**Cel:** jeden dokument w podkolekcji **`live`** (id dokumentu **`status`**) z **aktualnym** stanem: czy aplikacja uważa użytkownika za „online”, w jakim stanie jest timer, który projekt jest aktywny, oraz pola pomocnicze do wyświetlenia / szacunku kwoty na panelu.  
+**Wpisy `entries`** to **historia i raporty** (źródło prawdy dla czasu przepracowanego); **`live/status`** to wyłącznie **podgląd realtime** dla UI panelu (nie zastępuje historii ani eksportów).
+
+### Pola dokumentu
+
+| Pole | Znaczenie |
+|------|-----------|
+| `uid` | Identyfikator użytkownika Firebase (spójność z ścieżką). |
+| `isOnline` | `true` gdy timer w stanie **running** lub **paused** (użytkownik „w pracy” z perspektywy panelu), albo gdy timer **idle** ale aplikacja w **foreground** (`resumed`). Przy **idle** w tle — `false` (chyba że timer nie jest idle — wtedy zostaje `true`). |
+| `timerState` | String: `idle` \| `running` \| `paused` — zsynchronizowany z `TimerCubit` / lifecycle (patrz `LiveTimerState`). |
+| `activeWorkspaceId` | Id aktywnego projektu (`Workspace.id`). |
+| `activeCompanySlug` | Slug firmy z projektu (pusty string jeśli brak). |
+| `activeWorkspaceName` | Nazwa projektu do wyświetlenia. |
+| `sessionStartedAt` | `Timestamp` — początek **bieżącego segmentu** `running` (kotwica `resumeAt`); przy `paused` / `idle` usuwane (`FieldValue.delete()`). Panel liczy czas: `accumulatedSecondsBeforePause + (now - sessionStartedAt)` gdy `running`. |
+| `sessionPausedAt` | `Timestamp` — moment ostatniej pauzy (MVP zapis przy przejściu w `paused`); przy `running` / `idle` usuwane. |
+| `accumulatedSecondsBeforePause` | Sekundy **zakończonych** segmentów przed bieżącym `running`; przy `paused` to pełna suma do momentu pauzy; przy `idle` = `0`. |
+| `billingRatePercent` | MVP: stałe `100` (późniejszy wybór procentu rozliczenia). |
+| `hourlyRate` | Stawka z aktywnego projektu; **brak stawki** → pole **usunięte** (nie `0`, żeby nie mylić z prawdziwą zerową stawką). |
+| `currency` | Kod waluty (np. PLN) lub **usunięte** gdy brak poprawnej waluty. |
+| `lastSeenAt` | `serverTimestamp` — ostatni kontakt (sync lub heartbeat). |
+| `updatedAt` | `serverTimestamp` — jak wyżej. |
+
+### Kiedy mobile aktualizuje dokument
+
+- **Logowanie:** `markSignedIn` — szkic dokumentu (`idle`, puste workspace, usunięte stawki/sesja).  
+- **Wylogowanie:** `markSignedOut` — `idle`, `isOnline: false`, czyszczenie pól sesji ( **`await` przed `signOut()`** ).  
+- **Start timera (play):** natychmiast `syncFromTimerState` z `TimerCubit` (`timerState: running`, …).  
+- **Pauza / wznowienie / stop:** `syncFromTimerState` po zmianie stanu.  
+- **Init timera / zmiana projektu / zapis projektu:** `syncFromTimerState` po odświeżeniu stanu.  
+- **`AppLifecycleState.resumed`:** `syncFromNativeStoresOnResume` (Android: hydracja z natywy), potem `syncFromTimerState`.  
+- **`paused` / `detached`:** `syncFromTimerState` (żeby `isOnline` odzwierciedlało idle vs timer w tle).  
+- **Heartbeat (~45 s):** tylko `lastSeenAt` + `updatedAt` (merge), gdy użytkownik zalogowany i (foreground **lub** timer ≠ idle).
+
+Implementacja: `LiveStatusService`, binding lifecycle: `LiveStatusAppBinding` + `AuthGate` / `_TimerResumeSyncScope`.
 
 ---
 
@@ -209,7 +253,9 @@ lib/
 
 ---
 
-## 9. Testy manualne (skrót checklisty)
+## 9. Testy manualne
+
+Rozszerzona checklista: **[QA_CHECKLIST.md](QA_CHECKLIST.md)**. Skrót:
 
 - Rejestracja, logowanie, reset hasła.
 - Projekty: tworzenie / edycja / archiwum; przełączanie; rozdzielenie wpisów; timer nie startuje na zarchiwizowanym projekcie.
@@ -225,7 +271,7 @@ lib/
 
 ## 10. Testy automatyczne
 
-W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService** w tym **`buildBillingEstimate`**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, eksport **CSV** `workEntriesToCsv` (nagłówek z nowymi kolumnami), mapowanie błędów Auth, **`SettingsCubit`** w tym **debrief**) — uruchomienie: `flutter test`. **PDF** (`buildWorkEntriesPdfDocument`, pakiet **`pdf`**) nie ma osobnego testu jednostkowego; weryfikacja ręczna z menu eksportu w **Historii**.
+W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService** w tym **`buildBillingEstimate`**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, **mapowanie live status** — `test/live_status_sync_plan_test.dart`, eksport **CSV** `workEntriesToCsv` (nagłówek z nowymi kolumnami), mapowanie błędów Auth, **`SettingsCubit`** w tym **debrief**) — uruchomienie: `flutter test`. **PDF** (`buildWorkEntriesPdfDocument`, pakiet **`pdf`**) nie ma osobnego testu jednostkowego; weryfikacja ręczna z menu eksportu w **Historii**.
 
 ---
 
@@ -249,4 +295,4 @@ Włącz **Actions** w ustawieniach repozytorium (domyślnie w publicznych repach
 
 ---
 
-*Ostatnia aktualizacja dokumentu: sortowanie Historii malejąco po `start`, `export_save` / SAF dla zapisu plików, `TimerCubit.init`/resume — hydratacja i wyrównanie aktywnego workspace z lustrem/widgetem przed pierwszym odczytem cache (§ 3, § 6.3, § 7e, § 11).*
+*Ostatnia aktualizacja: § 4b live/status, DATA_CONTRACT / QA_CHECKLIST, testy `live_status_sync_plan`, drobne UX (profil / projekt / offline).*

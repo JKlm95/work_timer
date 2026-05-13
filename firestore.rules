@@ -127,6 +127,8 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Live status (panel pracodawcy). MVP: read dla zalogowanych — na produkcji
+    // zawęż odczyt do pracodawców z relacją do pracownika (np. trackedEmployees).
     match /users/{uid}/live/{docId} {
       allow read: if isSignedIn();
       allow create, update: if isOwner(uid) &&

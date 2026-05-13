@@ -162,7 +162,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get syncOfflineBanner =>
-      'Widzisz dane z pamięci podręcznej. Synchronizacja może być ograniczona offline.';
+      'Brak sieci lub serwer niedostępny — pokazujemy dane z pamięci podręcznej. Zmiany wyślą się po powrocie online.';
 
   @override
   String get statsCardToday => 'Dziś';
@@ -498,6 +498,14 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectsShareEmployer => 'Pola pod udostępnianie pracodawcy';
 
   @override
+  String get projectsShareEmployerSubtitle =>
+      'Po włączeniu zapisujemy dane firmy i kontaktu przy projekcie, żeby panel pracodawcy mógł powiązać projekt z Twoim kontem. Wyświetlane imię i nazwisko bierzemy z Ustawienia → Twój profil.';
+
+  @override
+  String get projectsHourlyRatePanelHint =>
+      'Bez stawki godzinowej szacunki rozliczeń i kwoty „live” u pracodawcy mogą pozostać puste — czas i tak jest liczony.';
+
+  @override
   String get projectsArchiveAction => 'Archiwizuj';
 
   @override
@@ -563,6 +571,14 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get settingsProfileIndexSyncFailed =>
       'Profil zapisany, ale synchronizacja katalogu e-mail nie powiodła się. Spróbuj później.';
+
+  @override
+  String get settingsProfileEmployerPanelHint =>
+      'Imię, nazwisko i e-mail są widoczne dla pracodawcy przy udostępnionym projekcie oraz w wyszukiwaniu w panelu pracodawcy.';
+
+  @override
+  String get settingsOfflineSyncHint =>
+      'Bez sieci aplikacja działa na zapisanych danych. Nowe wpisy i zmiany projektów trafiają do kolejki i wysyłamy je w chmurę po powrocie online.';
 
   @override
   String get settingsAppearance => 'Wygląd';

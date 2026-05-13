@@ -3,10 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import '../bloc/timer_cubit.dart';
-import '../models/billing_currency.dart';
-import '../models/live_status.dart';
 import '../models/workspace.dart';
 import 'live_status_app_binding.dart';
+import 'live_status_sync_plan.dart';
 
 /// `users/{uid}/live/status` — podgląd online / timera dla panelu pracodawcy.
 class LiveStatusService {
@@ -25,11 +24,6 @@ class LiveStatusService {
     return LiveStatusAppBinding.lifecycle == AppLifecycleState.resumed;
   }
 
-  bool _computeIsOnline(TimerState state) {
-    if (state.runState != TimerRunState.idle) return true;
-    return _isForeground();
-  }
-
   Map<String, dynamic> _workspaceFields(Workspace w) {
     return {
       'activeWorkspaceId': w.id,
@@ -38,27 +32,17 @@ class LiveStatusService {
     };
   }
 
-  Map<String, dynamic> _billingFields(Workspace w) {
-    final rate = w.hourlyRate;
-    final code = BillingCurrency.normalizeOrNull(w.currencyCode);
+  Map<String, dynamic> _billingFieldsMap(LiveBillingFieldPlan plan) {
     return {
-      if (rate != null && rate > 0)
-        'hourlyRate': rate
+      if (plan.shouldDeleteHourly)
+        'hourlyRate': FieldValue.delete()
       else
-        'hourlyRate': FieldValue.delete(),
-      if (code != null) 'currency': code else 'currency': FieldValue.delete(),
+        'hourlyRate': plan.hourlyRate,
+      if (plan.shouldDeleteCurrency)
+        'currency': FieldValue.delete()
+      else
+        'currency': plan.currency,
     };
-  }
-
-  String _timerStateString(TimerRunState rs) {
-    switch (rs) {
-      case TimerRunState.idle:
-        return LiveTimerState.idle;
-      case TimerRunState.running:
-        return LiveTimerState.running;
-      case TimerRunState.paused:
-        return LiveTimerState.paused;
-    }
   }
 
   /// Pełny zapis po stanie timera / workspace / lifecycle.
@@ -66,8 +50,18 @@ class LiveStatusService {
     final uid = state.uid;
     final now = DateTime.now();
     final w = state.activeWorkspace;
-    final online = _computeIsOnline(state);
-    final timerStr = _timerStateString(state.runState);
+    final online = liveStatusIsOnlineForPanel(
+      runState: state.runState,
+      appIsForeground: _isForeground(),
+    );
+    final timerStr = liveTimerStateForFirestore(state.runState);
+    final sessionPlan = LiveSessionFieldPlan.fromTimer(
+      runState: state.runState,
+      accumulated: state.accumulated,
+      resumeAt: state.resumeAt,
+      now: now,
+    );
+    final billingPlan = LiveBillingFieldPlan.fromWorkspace(w);
 
     final data = <String, dynamic>{
       'uid': uid,
@@ -77,26 +71,24 @@ class LiveStatusService {
       'billingRatePercent': 100,
       'lastSeenAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
-      ..._billingFields(w),
+      ..._billingFieldsMap(billingPlan),
     };
 
-    if (state.runState == TimerRunState.idle) {
-      data['accumulatedSecondsBeforePause'] = 0;
+    data['accumulatedSecondsBeforePause'] =
+        sessionPlan.accumulatedSecondsBeforePause;
+    if (sessionPlan.sessionStartedDelete) {
       data['sessionStartedAt'] = FieldValue.delete();
-      data['sessionPausedAt'] = FieldValue.delete();
-    } else if (state.runState == TimerRunState.paused) {
-      data['accumulatedSecondsBeforePause'] = state.accumulated.inSeconds;
-      data['sessionStartedAt'] = FieldValue.delete();
-      data['sessionPausedAt'] = Timestamp.fromDate(now);
     } else {
-      data['accumulatedSecondsBeforePause'] = state.accumulated.inSeconds;
-      final ra = state.resumeAt;
-      if (ra != null) {
-        data['sessionStartedAt'] = Timestamp.fromDate(ra);
-      } else {
-        data['sessionStartedAt'] = FieldValue.delete();
-      }
+      data['sessionStartedAt'] = Timestamp.fromDate(
+        sessionPlan.sessionStartedAt!,
+      );
+    }
+    if (sessionPlan.sessionPausedDelete) {
       data['sessionPausedAt'] = FieldValue.delete();
+    } else {
+      data['sessionPausedAt'] = Timestamp.fromDate(
+        sessionPlan.sessionPausedAt!,
+      );
     }
 
     if (kDebugMode) {
@@ -126,7 +118,7 @@ class LiveStatusService {
       await _ref(uid).set({
         'uid': uid,
         'isOnline': true,
-        'timerState': LiveTimerState.idle,
+        'timerState': liveTimerStateForFirestore(TimerRunState.idle),
         'activeWorkspaceId': '',
         'activeCompanySlug': '',
         'activeWorkspaceName': '',
@@ -150,7 +142,7 @@ class LiveStatusService {
       await _ref(uid).set({
         'uid': uid,
         'isOnline': false,
-        'timerState': LiveTimerState.idle,
+        'timerState': liveTimerStateForFirestore(TimerRunState.idle),
         'activeWorkspaceId': '',
         'activeCompanySlug': '',
         'activeWorkspaceName': '',

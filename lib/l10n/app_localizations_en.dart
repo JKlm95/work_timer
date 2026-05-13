@@ -162,7 +162,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncOfflineBanner =>
-      'Showing cached data. Sync may be limited while offline.';
+      'Offline or server unavailable — showing cached data. Changes will sync when you are back online.';
 
   @override
   String get statsCardToday => 'Today';
@@ -494,6 +494,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectsShareEmployer => 'Prepare fields for employer sharing';
 
   @override
+  String get projectsShareEmployerSubtitle =>
+      'When enabled, company and contact fields are stored with the project so an employer panel can match this project to your account. Your display name comes from Settings → Your profile.';
+
+  @override
+  String get projectsHourlyRatePanelHint =>
+      'Without an hourly rate, billing estimates and employer live amounts may stay empty — time is still tracked.';
+
+  @override
   String get projectsArchiveAction => 'Move to archived';
 
   @override
@@ -560,6 +568,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsProfileIndexSyncFailed =>
       'Profile saved, but syncing the e-mail directory failed. Try again later.';
+
+  @override
+  String get settingsProfileEmployerPanelHint =>
+      'Your name and e-mail are shown to employers when you share a project and in the employer dashboard lookup.';
+
+  @override
+  String get settingsOfflineSyncHint =>
+      'Without network, the app keeps working on cached data. New entries and project changes are queued and sent to the cloud when you are back online.';
 
   @override
   String get settingsAppearance => 'Appearance';

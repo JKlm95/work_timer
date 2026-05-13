@@ -395,7 +395,7 @@ abstract class AppLocalizations {
   /// No description provided for @syncOfflineBanner.
   ///
   /// In en, this message translates to:
-  /// **'Showing cached data. Sync may be limited while offline.'**
+  /// **'Offline or server unavailable — showing cached data. Changes will sync when you are back online.'**
   String get syncOfflineBanner;
 
   /// No description provided for @statsCardToday.
@@ -1004,6 +1004,18 @@ abstract class AppLocalizations {
   /// **'Prepare fields for employer sharing'**
   String get projectsShareEmployer;
 
+  /// No description provided for @projectsShareEmployerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'When enabled, company and contact fields are stored with the project so an employer panel can match this project to your account. Your display name comes from Settings → Your profile.'**
+  String get projectsShareEmployerSubtitle;
+
+  /// No description provided for @projectsHourlyRatePanelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Without an hourly rate, billing estimates and employer live amounts may stay empty — time is still tracked.'**
+  String get projectsHourlyRatePanelHint;
+
   /// No description provided for @projectsArchiveAction.
   ///
   /// In en, this message translates to:
@@ -1135,6 +1147,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Profile saved, but syncing the e-mail directory failed. Try again later.'**
   String get settingsProfileIndexSyncFailed;
+
+  /// No description provided for @settingsProfileEmployerPanelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name and e-mail are shown to employers when you share a project and in the employer dashboard lookup.'**
+  String get settingsProfileEmployerPanelHint;
+
+  /// No description provided for @settingsOfflineSyncHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Without network, the app keeps working on cached data. New entries and project changes are queued and sent to the cloud when you are back online.'**
+  String get settingsOfflineSyncHint;
 
   /// No description provided for @settingsAppearance.
   ///

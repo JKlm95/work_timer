@@ -62,6 +62,13 @@ class _SettingsTabState extends State<SettingsTab> {
                     l10n.settingsProfileSection,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.settingsProfileEmployerPanelHint,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Card(
                     child: Padding(
@@ -172,6 +179,34 @@ class _SettingsTabState extends State<SettingsTab> {
                                     ),
                                   )
                                 : Text(l10n.settingsProfileSave),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.cloud_off_outlined,
+                            size: 24,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              l10n.settingsOfflineSyncHint,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
                           ),
                         ],
                       ),

@@ -2,9 +2,11 @@
 
 [![Flutter CI](https://github.com/JKlm95/work_timer/actions/workflows/flutter_ci.yml/badge.svg)](https://github.com/JKlm95/work_timer/actions/workflows/flutter_ci.yml)
 
-**Work Timer** to aplikacja mobilna (Flutter) do rejestrowania czasu pracy w **wielu projektach** (w kodzie nadal **`Workspace`**), z **Firebase** (logowanie e-mail, Firestore), **timera sesji**, historią, statystykami i **widgetem na ekranie głównym Androida** (MethodChannel, foreground service, SharedPreferences) oraz ścieżką **iOS** (WidgetKit, App Groups, `UserDefaults` — bez ForegroundService; timer w oparciu o timestampy w Flutterze). Obsługa **offline** (cache, kolejka synchronizacji). Motyw jasny/ciemny i lokalizacja PL/EN.
+**Work Timer** to aplikacja mobilna (**Flutter**) do rejestrowania czasu pracy w **wielu projektach** (`Workspace`), z **Firebase** (Auth, Firestore), **timera sesji**, historią, statystykami i **widgetem** (Android: foreground service + MethodChannel; iOS: WidgetKit + App Group). Obsługa **offline** (cache, kolejka synchronizacji). Motyw jasny/ciemny i lokalizacja **PL/EN**.
 
-Szczegóły architektury, setup Firebase i dane: **[TECHNICAL.md](TECHNICAL.md)**.
+Aplikacja współpracuje z **panelem pracodawcy** (osobny projekt webowy): udostępnia m.in. wpisy czasu, projekty, profil oraz **stan na żywo** timera w Firestore. Kontrakt ścieżek danych: **[DATA_CONTRACT.md](DATA_CONTRACT.md)**.
+
+Szczegóły architektury mobilki, widget, **live status**, setup Firebase: **[TECHNICAL.md](TECHNICAL.md)**. Checklistę testów ręcznych: **[QA_CHECKLIST.md](QA_CHECKLIST.md)**.
 
 ---
 
@@ -13,8 +15,8 @@ Szczegóły architektury, setup Firebase i dane: **[TECHNICAL.md](TECHNICAL.md)*
 | | |
 |---|---|
 | **Zakres** | Projekt portfolio — pełna ścieżka: UI, warstwa danych, integracja natywna Android, testy, CI. |
-| **Stack** | Flutter (Dart), Firebase Auth & Firestore, **flutter_bloc**, **home_widget** / **MethodChannel** (Android), **Swift** WidgetKit + App Group (iOS, patrz TECHNICAL). |
-| **Dokumentacja techniczna** | **[TECHNICAL.md](TECHNICAL.md)** — przepływy danych, widget, reguły Firestore, testy. |
+| **Stack** | Flutter (Dart 3), **flutter_bloc**, Firebase **Auth** + **Firestore**, **connectivity_plus**, **home_widget** / **MethodChannel** (Android), Swift **WidgetKit** + App Group (iOS). |
+| **Dokumentacja** | **[TECHNICAL.md](TECHNICAL.md)** — przepływy, widget, live status, reguły. **[DATA_CONTRACT.md](DATA_CONTRACT.md)** — ścieżki Firestore mobile ↔ panel. **[QA_CHECKLIST.md](QA_CHECKLIST.md)** — testy ręczne. |
 
 **Skrót przepływu widgetu (Android):**  
 Flutter (`TimerServiceBridge`) → **MethodChannel** `work_timer/service_control` → **Kotlin** (`WorkTimerForegroundService`) → **SharedPreferences** → odświeżenie **`WorkTimerWidgetProvider`**.
@@ -27,17 +29,45 @@ Flutter (`TimerServiceBridge`) → **MethodChannel** `work_timer/service_control
 
 ---
 
-## Możliwości
+## Główne funkcje
 
 - **Konto** — rejestracja, logowanie, reset hasła (Firebase Auth).
-- **Projekty** (UI „Projects” / „Projekty”) — tworzenie i edycja: nazwa, kolor, **stawka godzinowa + waluta** (PLN/EUR/USD/GBP, bez przeliczników między walutami), opcjonalne pola pod udostępnianie pracodawcy, **archiwum** (ukrycie z pickerów, blokada startu timera na zarchiwizowanym kontekście).
+- **Profil** — imię i nazwisko w Ustawieniach; synchronizacja z profilem w Firestore i indeksem e-mail pod panel pracodawcy.
+- **Projekty** (UI „Projects” / „Projekty”) — tworzenie i edycja: nazwa, kolor, **stawka godzinowa + waluta** (PLN/EUR/USD/GBP), pola pod **udostępnienie pracodawcy**, archiwum.
+- **Timer** — start / pauza / stop, tryb pracy; zapis sesji do `entries`; **live/status** dla panelu (online, stan timera, aktywny projekt).
+- **Historia, statystyki, kalendarz** — filtrowanie, raporty projektu, eksport **CSV/PDF**.
+- **Widget** (Android / iOS) — skrót do stanu timera i projektu (szczegóły w TECHNICAL).
+- **Offline** — kolejka zapisów; sync po powrocie sieci.
+
+---
+
+## Current architecture (skrót)
+
+```
+lib/main.dart
+  └── Firebase.init → WorkRepository (LocalCacheStore + FirebaseWorkStore)
+  └── AuthCubit, SettingsCubit, UserProfileRepository, LiveStatusService (singleton w drzewie)
+lib/screens/auth_gate.dart
+  └── TimerCubit (per user) + lifecycle → LiveStatusService.sync / heartbeat
+lib/bloc/timer_cubit.dart
+  └── Stan sesji, wpisy, workspaces; _notifyLive po zdarzeniach timera
+lib/services/live_status_service.dart
+  └── users/{uid}/live/status (merge)
+```
+
+- **Źródło prawdy czasu:** `users/{uid}/entries`.  
+- **Podgląd „teraz pracuje”:** `users/{uid}/live/status`.  
+- Więcej: **[TECHNICAL.md](TECHNICAL.md)**, **[DATA_CONTRACT.md](DATA_CONTRACT.md)**.
+
+---
+
+## Możliwości (szczegóły UI)
 - **Timer** — start / pauza / stop, tryb pracy (np. zdalna / biuro); opcjonalny **podsumowujący dialog po stopie** (zadanie, notatka, rozliczalność; wyłączenie w ustawieniach).
 - **Historia** — zakres dat, filtry trybu pracy **i typu wpisu** (np. praca / urlop), lista sesji **od najnowszej**, ręczne wpisy z polami jak przy timerze; eksport **CSV lub PDF** (menu) — udostępnianie (**`share_plus`**) oraz **zapis lokalny** przez **`saveExportWithPicker`** (Android/iOS: bajty w `file_picker` / SAF; desktop: ścieżka z dialogu).
 - **Statystyki** — agregaty, wykres tygodnia (ISO, pon–nd), udział czasu wg projektów (z kolorem), **szacunek rozliczeń**: czas rozliczalny / nierozliczalny oraz sumy pieniężne **osobno per waluta** przy ustawionej stawce — **[TECHNICAL.md](TECHNICAL.md)** § 7c–7e.
 - **Kalendarz** — widok miesiąca z markerami wg kolorów projektów (`table_calendar`).
 - **Widget (Android)** — czas i sterowanie z launchera; bez logowania — otwarcie aplikacji. Przy **idle** przełączanie projektu (‹/›), lista zsynchronizowana z Fluttera.
 - **Widget (iOS)** — podgląd projektu, stan (Idle / Running / Paused) i czasu; dane z **App Group**. Tap (`worktimer://…`) przełącza zakładki — zakres indeksów opisany w **[TECHNICAL.md](TECHNICAL.md)** § 6.6.
-- **Offline** — kolejka wpisów i **ponawiany zapis workspace’ów** do Firestore po powrocie sieci (`syncPending`).
 - **Motyw i język** — jasny / ciemny / system; polski / angielski / locale systemu (`SettingsCubit`, ARB w `lib/l10n/`); po starcie aplikacji ładowane są dane **`intl`** dla locale kalendarza (`en_US`, `pl_PL`).
 
 ---
@@ -58,7 +88,7 @@ Brak wbudowanych grafik w repozytorium. Aby dodać zrzuty: utwórz folder **`doc
 
 Wymagany **Flutter** i skonfigurowany projekt **Firebase** (`lib/firebase_options.dart`, pliki platform — na iOS dodaj **`GoogleService-Info.plist`** do `ios/Runner` z konsoli Firebase, jeśli go brakuje). Pełny setup: **[TECHNICAL.md](TECHNICAL.md)** § 8.
 
-**Firestore — reguły bezpieczeństwa:** w konsoli Firebase wdroż **`firestore.rules`** z tego repozytorium (albo `firebase deploy --only firestore:rules`). Muszą obejmować **`users/{uid}/entries`** **oraz** **`users/{uid}/workspaces`** — same reguły tylko dla wpisów blokują zapis/odczyt workspace’ów w produkcji (objaw: brak listy workspace’ów po reinstalacji). Szczegóły: **[TECHNICAL.md](TECHNICAL.md)** § 4 i § 8.
+**Firestore — reguły bezpieczeństwa:** w konsoli Firebase wdroż **`firestore.rules`** z tego repozytorium (albo `firebase deploy --only firestore:rules`). Muszą obejmować **`users/{uid}/entries`**, **`users/{uid}/workspaces`** oraz (dla panelu) **`users/{uid}/live`** i indeksy zgodnie z **[DATA_CONTRACT.md](DATA_CONTRACT.md)**. Same reguły tylko dla wpisów blokują zapis/odczyt workspace’ów w produkcji (objaw: brak listy workspace’ów po reinstalacji). Szczegóły: **[TECHNICAL.md](TECHNICAL.md)** § 4, § 4b i § 8.
 
 ```bash
 flutter pub get
@@ -83,4 +113,4 @@ Repozytorium nie zawiera pliku `LICENSE` — przy publikacji dodaj wybraną lice
 
 ---
 
-*Ten plik jest czytelny dla **rekrutera i przeglądu portfolio**. Dokumentacja developerska: **[TECHNICAL.md](TECHNICAL.md)**.*
+*Ten plik jest czytelny dla **rekrutera i przeglądu portfolio**. Dokumentacja developerska: **[TECHNICAL.md](TECHNICAL.md)**; kontrakt danych z panelem: **[DATA_CONTRACT.md](DATA_CONTRACT.md)**.*
