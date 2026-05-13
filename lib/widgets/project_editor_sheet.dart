@@ -111,28 +111,29 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
   }
 
   List<String> _parseEmployerEmails(String raw) {
-    return raw
+    final parts = raw
         .split(',')
         .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
+        .where((s) => s.isNotEmpty);
+    return normalizeLinkedEmployerEmails(parts);
   }
 
   Workspace _buildSaved() {
     final name = _nameCtrl.text.trim();
     final rateText = _rateCtrl.text.trim().replaceAll(',', '.');
     final rate = rateText.isEmpty ? null : double.tryParse(rateText);
-    final workEmail = _emailCtrl.text.trim();
-    final domain = extractEmailDomain(workEmail.isEmpty ? null : workEmail);
+    final workEmailNorm = _emailCtrl.text.trim().toLowerCase();
+    final domain = extractEmailDomain(
+      workEmailNorm.isEmpty ? null : workEmailNorm,
+    );
 
     String? slugOut;
     if (_shareEmployer) {
-      final manual = normalizeCompanySlug(_slugCtrl.text.trim());
-      if (manual != null) {
-        slugOut = manual;
-      } else {
-        slugOut = normalizeCompanySlug(_companyCtrl.text.trim());
-      }
+      slugOut = resolveCompanySlugForSave(
+        slugField: _slugCtrl.text,
+        companyNameField: _companyCtrl.text,
+        persistedSlug: _base.companySlug,
+      );
     }
 
     final colorNormalized = _parseHexRgb(_colorHexNoHash);
@@ -147,8 +148,8 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
           ? _companyCtrl.text.trim()
           : null,
       companySlug: slugOut,
-      employeeWorkEmail: _shareEmployer && workEmail.isNotEmpty
-          ? workEmail
+      employeeWorkEmail: _shareEmployer && workEmailNorm.isNotEmpty
+          ? workEmailNorm
           : null,
       employeeWorkEmailDomain: _shareEmployer ? domain : null,
       colorHex: colorNormalized != null

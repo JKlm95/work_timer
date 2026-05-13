@@ -32,7 +32,7 @@ lib/
 ├── theme/                    # app_colors.dart, app_theme.dart, app_typography.dart, app_layout.dart (radius, touch targets)
 ├── screens/                  # auth_gate (+ splash + legal consent gate), legal_consent_screen, home_shell, timer_tab, …
 ├── models/                   # work_entry, workspace, work_mode, entry_type, billing_currency
-├── utils/                    # m.in. workspace_color, project_field_utils, export_save.dart (CSV/PDF zapis mobilny SAF)
+├── utils/                    # m.in. workspace_color, project_field_utils, workspace_firestore_write (merge workspace + delete pól sharingu), export_save.dart
 ├── export/                   # work_entries_csv.dart (CSV / Excel), work_entries_pdf.dart (PDF A4 poziom, Noto Sans z assets)
 ├── services/
 │   ├── auth_service.dart
@@ -77,7 +77,7 @@ lib/
 - **Auth:** e-mail/hasło, reset hasła (`AuthService` / Firebase API).
 - **Firestore** (wysokopoziomowo):
   - `users/{uid}/entries/{entryId}` — wpisy z **timera / historii mobile** oraz z **panelu pracodawcy** (CRUD); dokument może mieć dodatkowe pola (`editedAt`, `createdVia`, …), które mobile ignoruje przy parsowaniu; **soft delete** = `isDeleted: true`; szczegóły kompatybilności: **[DATA_CONTRACT.md](DATA_CONTRACT.md)** (sekcja o `entries`).
-  - `users/{uid}/workspaces/{workspaceId}`
+  - `users/{uid}/workspaces/{workspaceId}` — projekty; **udostępnianie pracodawcy jest per workspace** (inne `companySlug` / `linkedEmployerEmails` na projekt). Zapis do Firestore: `FirebaseWorkStore` + `workspaceFirestoreMergeWrite` — przy `isSharedWithEmployer: false` merge **usuwa** pola sharingu (`FieldValue.delete()`), żeby nie zostawały stare metadane. Szczegóły pól i model dostępu panelu do wpisów: **[DATA_CONTRACT.md](DATA_CONTRACT.md)** (sekcja „Workspaces — sharing”).
   - `users/{uid}/live/status` — **stan na żywo** timera / online dla **panelu pracodawcy** (nie mylić z historią wpisów — patrz § 4b).
   - `users/{uid}/profile/main` — globalny profil pracownika (imię, nazwisko, e-mail; Ustawienia w aplikacji).
   - `users/{uid}/legal/consents` — **akceptacja regulaminu i polityki prywatności** (jeden dokument); wymagany przed wejściem do `HomeShell`; pola i reguły: **[DATA_CONTRACT.md](DATA_CONTRACT.md)** (sekcja „Zgody prawne”).

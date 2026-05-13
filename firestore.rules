@@ -176,6 +176,14 @@ service cloud.firestore {
               request.resource.data.editedBy == request.auth.uid);
     }
 
+    function optionalEmployerEmailRefsListOk(data) {
+      return !data.keys().hasAny(['linkedEmployerEmails']) ||
+          (
+            data.linkedEmployerEmails is list &&
+            data.linkedEmployerEmails.size() <= 32
+          );
+    }
+
     function hasValidWorkspaceShape(data) {
       return data.keys().hasAll([
             'name',
@@ -216,7 +224,7 @@ service cloud.firestore {
           optionalString(data, 'currency') &&
           optionalString(data, 'currencyCode') &&
           optionalBool(data, 'isSharedWithEmployer') &&
-          optionalList(data, 'linkedEmployerEmails') &&
+          optionalEmployerEmailRefsListOk(data) &&
           optionalString(data, 'employeeFirstName') &&
           optionalString(data, 'employeeLastName');
     }

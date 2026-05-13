@@ -27,3 +27,29 @@ String? extractEmailDomain(String? email) {
   final domain = email.trim().substring(at + 1).toLowerCase();
   return domain.isEmpty ? null : domain;
 }
+
+/// E-maile kont pracodawców / panelu: trim, lower-case, bez duplikatów (kolejność zachowana).
+List<String> normalizeLinkedEmployerEmails(Iterable<String> raw) {
+  final seen = <String>{};
+  final out = <String>[];
+  for (final s in raw) {
+    final t = s.trim().toLowerCase();
+    if (t.isEmpty || seen.contains(t)) continue;
+    seen.add(t);
+    out.add(t);
+  }
+  return out;
+}
+
+/// Slug firmy przy zapisie: ręczny slug > zapisany wcześniej (stabilność) > wyliczenie z nazwy.
+String? resolveCompanySlugForSave({
+  required String slugField,
+  required String companyNameField,
+  required String? persistedSlug,
+}) {
+  final manual = normalizeCompanySlug(slugField);
+  if (manual != null) return manual;
+  final persisted = normalizeCompanySlug(persistedSlug);
+  if (persisted != null) return persisted;
+  return normalizeCompanySlug(companyNameField);
+}

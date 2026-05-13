@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/work_entry.dart';
 import '../models/workspace.dart';
+import '../utils/workspace_firestore_write.dart';
 import 'work_remote_store.dart';
 
 class FirebaseWorkStore implements WorkRemoteStore {
@@ -78,9 +79,9 @@ class FirebaseWorkStore implements WorkRemoteStore {
     required String uid,
     required Workspace workspace,
   }) async {
-    await _workspacesRef(
-      uid,
-    ).doc(workspace.id).set(workspace.toFirestore(), SetOptions(merge: true));
+    await _workspacesRef(uid)
+        .doc(workspace.id)
+        .set(workspaceFirestoreMergeWrite(workspace), SetOptions(merge: true));
   }
 
   @override

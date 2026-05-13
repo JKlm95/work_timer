@@ -141,7 +141,8 @@ class Workspace {
 
     List<String> emails(dynamic v) {
       if (v is! List) return const [];
-      return v.whereType<String>().toList(growable: false);
+      final raw = v.whereType<String>();
+      return normalizeLinkedEmployerEmails(raw);
     }
 
     DateTime parsed(String key, String fallback) {
@@ -157,7 +158,12 @@ class Workspace {
       isArchived: json['isArchived'] as bool? ?? false,
       companyName: json['companyName'] as String?,
       companySlug: normalizeCompanySlug(json['companySlug'] as String?),
-      employeeWorkEmail: json['employeeWorkEmail'] as String?,
+      employeeWorkEmail: () {
+        final e = json['employeeWorkEmail'] as String?;
+        if (e == null) return null;
+        final t = e.trim();
+        return t.isEmpty ? null : t.toLowerCase();
+      }(),
       employeeWorkEmailDomain:
           json['employeeWorkEmailDomain'] as String? ??
           extractEmailDomain(json['employeeWorkEmail'] as String?),
