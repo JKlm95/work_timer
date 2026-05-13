@@ -1,6 +1,12 @@
 rules_version = '2';
+
+// Zunifikowane reguły: mobile (właściciel) + panel pracodawcy (trackedEmployeeUids).
+// Wpisy: pracodawca — create/update wg employerEntry* (brak hard delete); pracownik — pełny kształt + pola audytu z panelu.
+// Deploy: wklej ten plik do Firebase Console → Firestore → Rules.
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -9,41 +15,294 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    function employerTracksUser(userId) {
+      return isSignedIn() &&
+          exists(
+            /databases/$(database)/documents/employers/$(request.auth.uid)/trackedEmployeeUids/$(userId)
+          );
+    }
+
+    // Live status + miejsca wymagające wyłącznie int (bez float).
     function billingRatePercentOk(data) {
       return !data.keys().hasAny(['billingRatePercent']) ||
-          (data.billingRatePercent is int &&
-              (data.billingRatePercent == 50 ||
-                  data.billingRatePercent == 80 ||
-                  data.billingRatePercent == 100 ||
-                  data.billingRatePercent == 150 ||
-                  data.billingRatePercent == 200));
+          (
+            data.billingRatePercent is int &&
+            (
+              data.billingRatePercent == 50 ||
+              data.billingRatePercent == 80 ||
+              data.billingRatePercent == 100 ||
+              data.billingRatePercent == 150 ||
+              data.billingRatePercent == 200
+            )
+          );
+    }
+
+    // Wpisy czasu: panel może zapisywać też float (50.0 …) — zgodnie z work_timer_employer_panel.
+    function billingRatePercentOkEntry(data) {
+      return !data.keys().hasAny(['billingRatePercent']) ||
+          (
+            data.billingRatePercent is int &&
+            (
+              data.billingRatePercent == 50 ||
+              data.billingRatePercent == 80 ||
+              data.billingRatePercent == 100 ||
+              data.billingRatePercent == 150 ||
+              data.billingRatePercent == 200
+            )
+          ) ||
+          (
+            data.billingRatePercent is float &&
+            (
+              data.billingRatePercent == 50.0 ||
+              data.billingRatePercent == 80.0 ||
+              data.billingRatePercent == 100.0 ||
+              data.billingRatePercent == 150.0 ||
+              data.billingRatePercent == 200.0
+            )
+          );
+    }
+
+    function optionalString(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is string;
+    }
+
+    function optionalBool(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is bool;
+    }
+
+    function optionalList(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is list;
+    }
+
+    function optionalNumber(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is number;
+    }
+
+    function optionalTimestamp(data, key) {
+      return !data.keys().hasAny([key]) ||
+          data[key] == null ||
+          data[key] is timestamp;
+    }
+
+    function entryOptionalAuditFieldsOk(data) {
+      return (!data.keys().hasAny(['editedAt']) || data.editedAt is timestamp) &&
+          (!data.keys().hasAny(['editedBy']) ||
+              (data.editedBy is string && data.editedBy.size() > 0 && data.editedBy.size() <= 128)) &&
+          (!data.keys().hasAny(['createdBy']) ||
+              (data.createdBy is string && data.createdBy.size() > 0 && data.createdBy.size() <= 128)) &&
+          (!data.keys().hasAny(['createdVia']) ||
+              (data.createdVia is string && data.createdVia.size() > 0 && data.createdVia.size() <= 64));
     }
 
     function hasValidEntryShape(data) {
-      return data.keys().hasAll(['workspaceId', 'start', 'end', 'mode', 'updatedAt', 'isDeleted']) &&
-          billingRatePercentOk(data) &&
+      return data.keys().hasAll([
+            'workspaceId',
+            'start',
+            'end',
+            'mode',
+            'updatedAt',
+            'isDeleted'
+          ]) &&
+          data.keys().hasOnly([
+            'workspaceId',
+            'start',
+            'end',
+            'mode',
+            'updatedAt',
+            'isDeleted',
+            'taskTitle',
+            'note',
+            'isBillable',
+            'entryType',
+            'billingRatePercent',
+            'editedAt',
+            'editedBy',
+            'createdBy',
+            'createdVia'
+          ]) &&
+          billingRatePercentOkEntry(data) &&
           data.workspaceId is string &&
+          data.workspaceId.size() > 0 &&
+          data.workspaceId.size() <= 128 &&
           data.start is timestamp &&
           data.end is timestamp &&
+          data.end > data.start &&
           data.updatedAt is timestamp &&
           data.mode is string &&
-          data.isDeleted is bool;
+          data.mode.size() <= 64 &&
+          data.isDeleted is bool &&
+          optionalString(data, 'taskTitle') &&
+          (!data.keys().hasAny(['taskTitle']) || data.taskTitle.size() <= 4000) &&
+          optionalString(data, 'note') &&
+          (!data.keys().hasAny(['note']) || data.note.size() <= 4000) &&
+          optionalBool(data, 'isBillable') &&
+          optionalString(data, 'entryType') &&
+          (!data.keys().hasAny(['entryType']) || data.entryType.size() <= 64) &&
+          entryOptionalAuditFieldsOk(data);
+    }
+
+    function employerEntryCoreFieldsValid() {
+      let e = request.resource.data;
+      return e.workspaceId is string &&
+          e.workspaceId.size() > 0 &&
+          e.workspaceId.size() <= 128 &&
+          e.start is timestamp &&
+          e.updatedAt is timestamp &&
+          e.isDeleted is bool &&
+          (!('end' in e) || e.end == null || (e.end is timestamp && e.end > e.start)) &&
+          (!('mode' in e) || (e.mode is string && e.mode.size() <= 64)) &&
+          (!('taskTitle' in e) || (e.taskTitle is string && e.taskTitle.size() <= 4000)) &&
+          (!('note' in e) || (e.note is string && e.note.size() <= 4000)) &&
+          (!('entryType' in e) || (e.entryType is string && e.entryType.size() <= 64)) &&
+          (!('createdVia' in e) || (e.createdVia is string && e.createdVia.size() <= 64)) &&
+          (!('createdBy' in e) || (e.createdBy is string && e.createdBy.size() <= 128)) &&
+          (!('editedBy' in e) || (e.editedBy is string && e.editedBy.size() <= 128)) &&
+          (!('editedAt' in e) || e.editedAt is timestamp) &&
+          (!('isBillable' in e) || e.isBillable is bool) &&
+          billingRatePercentOkEntry(e) &&
+          entryOptionalAuditFieldsOk(e);
+    }
+
+    function employerEntryCreateValid() {
+      let e = request.resource.data;
+      return employerEntryCoreFieldsValid() &&
+          e.createdBy == request.auth.uid &&
+          e.createdVia == 'employer_panel';
+    }
+
+    function employerEntryUpdateValid() {
+      return employerEntryCoreFieldsValid() &&
+          (!('editedBy' in request.resource.data) ||
+              request.resource.data.editedBy == request.auth.uid);
     }
 
     function hasValidWorkspaceShape(data) {
-      return data.keys().hasAll(['name', 'createdAt', 'updatedAt', 'isArchived']) &&
+      return data.keys().hasAll([
+            'name',
+            'createdAt',
+            'updatedAt',
+            'isArchived'
+          ]) &&
+          data.keys().hasOnly([
+            'name',
+            'createdAt',
+            'updatedAt',
+            'isArchived',
+            'companyName',
+            'companySlug',
+            'employeeWorkEmail',
+            'employeeWorkEmailDomain',
+            'colorHex',
+            'hourlyRate',
+            'currency',
+            'currencyCode',
+            'isSharedWithEmployer',
+            'linkedEmployerEmails',
+
+            // legacy fields — tolerated for old documents / old clients
+            'employeeFirstName',
+            'employeeLastName'
+          ]) &&
           data.name is string &&
           data.createdAt is timestamp &&
           data.updatedAt is timestamp &&
-          data.isArchived is bool;
+          data.isArchived is bool &&
+          optionalString(data, 'companyName') &&
+          optionalString(data, 'companySlug') &&
+          optionalString(data, 'employeeWorkEmail') &&
+          optionalString(data, 'employeeWorkEmailDomain') &&
+          optionalString(data, 'colorHex') &&
+          optionalNumber(data, 'hourlyRate') &&
+          optionalString(data, 'currency') &&
+          optionalString(data, 'currencyCode') &&
+          optionalBool(data, 'isSharedWithEmployer') &&
+          optionalList(data, 'linkedEmployerEmails') &&
+          optionalString(data, 'employeeFirstName') &&
+          optionalString(data, 'employeeLastName');
     }
 
-    // MVP: indeks email → uid dla panelu pracodawcy (Flutter Web czyta z klienta).
-    // Odczyt: dowolny zalogowany użytkownik — świadomy kompromis prywatności na MVP.
-    // Zapis: tylko własny uid + email zgodny z tokenem + emailLower == id dokumentu
-    // (żeby nie nadpisać cudzego wpisu pod fałszywym adresem przy tym samym koncie).
+    function hasValidWorkspaceBillingPatch() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'hourlyRate',
+            'currency',
+            'currencyCode',
+            'updatedAt'
+          ]) &&
+          request.resource.data.updatedAt is timestamp &&
+          (
+            !request.resource.data.keys().hasAny(['hourlyRate']) ||
+            request.resource.data.hourlyRate is number
+          ) &&
+          (
+            !request.resource.data.keys().hasAny(['currency']) ||
+            request.resource.data.currency in ['PLN', 'EUR', 'USD', 'GBP']
+          ) &&
+          (
+            !request.resource.data.keys().hasAny(['currencyCode']) ||
+            request.resource.data.currencyCode in ['PLN', 'EUR', 'USD', 'GBP']
+          );
+    }
+
+    function hasValidLiveStatusShape(data, uid) {
+      return data.keys().hasOnly([
+            'uid',
+            'isOnline',
+            'timerState',
+            'activeWorkspaceId',
+            'activeCompanySlug',
+            'activeWorkspaceName',
+            'sessionStartedAt',
+            'sessionPausedAt',
+            'accumulatedSecondsBeforePause',
+            'billingRatePercent',
+            'hourlyRate',
+            'currency',
+            'lastSeenAt',
+            'updatedAt'
+          ]) &&
+          data.keys().hasAll([
+            'uid',
+            'isOnline',
+            'timerState',
+            'lastSeenAt',
+            'updatedAt'
+          ]) &&
+          data.uid == uid &&
+          data.uid == request.auth.uid &&
+          data.isOnline is bool &&
+          data.timerState in ['idle', 'running', 'paused'] &&
+          data.lastSeenAt is timestamp &&
+          data.updatedAt is timestamp &&
+          optionalString(data, 'activeWorkspaceId') &&
+          optionalString(data, 'activeCompanySlug') &&
+          optionalString(data, 'activeWorkspaceName') &&
+          optionalTimestamp(data, 'sessionStartedAt') &&
+          optionalTimestamp(data, 'sessionPausedAt') &&
+          optionalNumber(data, 'accumulatedSecondsBeforePause') &&
+          billingRatePercentOk(data) &&
+          optionalNumber(data, 'hourlyRate') &&
+          optionalString(data, 'currency');
+    }
+
     function hasValidUserEmailIndexShape(data, emailLower) {
-      return data.keys().hasAll(['uid', 'email', 'emailLower', 'updatedAt', 'firstName', 'lastName']) &&
+      return data.keys().hasAll([
+            'uid',
+            'email',
+            'emailLower',
+            'updatedAt',
+            'firstName',
+            'lastName'
+          ]) &&
+          data.keys().hasOnly([
+            'uid',
+            'email',
+            'emailLower',
+            'updatedAt',
+            'firstName',
+            'lastName',
+            'displayName',
+            'providerIds'
+          ]) &&
           data.uid is string &&
           data.email is string &&
           data.emailLower is string &&
@@ -53,100 +312,108 @@ service cloud.firestore {
           data.uid == request.auth.uid &&
           data.emailLower == emailLower &&
           data.email == request.auth.token.email &&
-          (!data.keys().hasAny(['displayName']) || data.displayName is string) &&
-          (!data.keys().hasAny(['providerIds']) || data.providerIds is list);
+          optionalString(data, 'displayName') &&
+          optionalList(data, 'providerIds');
     }
 
-    // Profil pracownika (imię / nazwisko) — tylko właściciel; dokument `main`.
     function hasValidUserProfileMainShape(data) {
-      return data.keys().hasAll(['firstName', 'lastName', 'displayName', 'email', 'updatedAt']) &&
+      return data.keys().hasAll([
+            'firstName',
+            'lastName',
+            'displayName',
+            'email',
+            'updatedAt'
+          ]) &&
+          data.keys().hasOnly([
+            'firstName',
+            'lastName',
+            'displayName',
+            'email',
+            'updatedAt'
+          ]) &&
           data.firstName is string &&
           data.lastName is string &&
           data.displayName is string &&
           data.email is string &&
           data.updatedAt is timestamp &&
           data.email == request.auth.token.email &&
-          (data.firstName.size() > 0 || data.lastName.size() > 0);
-    }
-
-    function liveTimerStateStringOk(s) {
-      return s == 'idle' || s == 'running' || s == 'paused';
-    }
-
-    function liveBillingPercentOk(data) {
-      return data.billingRatePercent is int &&
-          (data.billingRatePercent == 50 ||
-              data.billingRatePercent == 80 ||
-              data.billingRatePercent == 100 ||
-              data.billingRatePercent == 150 ||
-              data.billingRatePercent == 200);
-    }
-
-    function hasValidLiveStatusShape(data) {
-      return data.keys().hasAll([
-              'uid',
-              'isOnline',
-              'timerState',
-              'activeWorkspaceId',
-              'activeCompanySlug',
-              'activeWorkspaceName',
-              'accumulatedSecondsBeforePause',
-              'billingRatePercent',
-              'lastSeenAt',
-              'updatedAt']) &&
-          data.uid is string &&
-          data.uid == request.auth.uid &&
-          data.isOnline is bool &&
-          data.timerState is string &&
-          liveTimerStateStringOk(data.timerState) &&
-          data.activeWorkspaceId is string &&
-          data.activeCompanySlug is string &&
-          data.activeWorkspaceName is string &&
-          data.accumulatedSecondsBeforePause is int &&
-          data.accumulatedSecondsBeforePause >= 0 &&
-          liveBillingPercentOk(data) &&
-          data.lastSeenAt is timestamp &&
-          data.updatedAt is timestamp &&
-          (!data.keys().hasAny(['sessionStartedAt']) || data.sessionStartedAt is timestamp) &&
-          (!data.keys().hasAny(['sessionPausedAt']) || data.sessionPausedAt is timestamp) &&
-          (!data.keys().hasAny(['hourlyRate']) || data.hourlyRate is float) &&
-          (!data.keys().hasAny(['currency']) || data.currency is string);
+          (
+            data.firstName.size() > 0 ||
+            data.lastName.size() > 0
+          );
     }
 
     match /users/{uid}/profile/{docId} {
       allow read: if isOwner(uid);
+
       allow create, update: if isOwner(uid) &&
           docId == 'main' &&
           hasValidUserProfileMainShape(request.resource.data);
+
       allow delete: if false;
     }
 
     match /userEmailIndex/{emailLower} {
+      /*
+        Client-only MVP compromise:
+        Employer panel needs to search employee by email before trackedEmployeeUids exists.
+        True production hardening would move lookup to Cloud Functions or split public/private index.
+      */
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && hasValidUserEmailIndexShape(request.resource.data, emailLower);
+
+      allow create, update: if isSignedIn() &&
+          hasValidUserEmailIndexShape(request.resource.data, emailLower);
+
       allow delete: if false;
     }
 
-    // Live status (panel pracodawcy). MVP: read dla zalogowanych — na produkcji
-    // zawęż odczyt do pracodawców z relacją do pracownika (np. trackedEmployees).
-    match /users/{uid}/live/{docId} {
-      allow read: if isSignedIn();
+    match /users/{uid}/live/status {
+      allow read: if isOwner(uid) || employerTracksUser(uid);
+
       allow create, update: if isOwner(uid) &&
-          docId == 'status' &&
-          hasValidLiveStatusShape(request.resource.data);
+          hasValidLiveStatusShape(request.resource.data, uid);
+
       allow delete: if false;
     }
 
     match /users/{uid}/entries/{entryId} {
-      allow read: if isOwner(uid);
-      allow create, update: if isOwner(uid) && hasValidEntryShape(request.resource.data);
+      allow read: if isOwner(uid) || employerTracksUser(uid);
+
+      allow create: if (isOwner(uid) && hasValidEntryShape(request.resource.data)) ||
+          (employerTracksUser(uid) && employerEntryCreateValid());
+
+      allow update: if (isOwner(uid) && hasValidEntryShape(request.resource.data)) ||
+          (employerTracksUser(uid) && employerEntryUpdateValid());
+
       allow delete: if false;
     }
 
     match /users/{uid}/workspaces/{workspaceId} {
-      allow read: if isOwner(uid);
-      allow create, update: if isOwner(uid) && hasValidWorkspaceShape(request.resource.data);
+      allow read: if isOwner(uid) || employerTracksUser(uid);
+
+      allow create, update: if isOwner(uid) &&
+          hasValidWorkspaceShape(request.resource.data);
+
+      allow update: if employerTracksUser(uid) &&
+          hasValidWorkspaceBillingPatch();
+
       allow delete: if false;
+    }
+
+    match /employers/{employerUid}/trackedEmployees/{docId} {
+      allow read, write: if isOwner(employerUid);
+    }
+
+    match /employers/{employerUid}/trackedEmployeeUids/{employeeUid} {
+      allow read, write: if isOwner(employerUid);
+    }
+
+    match /employers/{employerUid}/groups/{groupId} {
+      allow read, write: if isOwner(employerUid);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
