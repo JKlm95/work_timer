@@ -494,15 +494,22 @@ class AppLocalizationsPl extends AppLocalizations {
   String get projectsEmployeeWorkEmail => 'Służbowy e-mail';
 
   @override
-  String get projectsEmployerEmailsHint =>
-      'E-maile pracodawcy (rozdziel przecinkiem)';
-
-  @override
   String get projectsShareEmployer => 'Pola pod udostępnianie pracodawcy';
 
   @override
   String get projectsShareEmployerSubtitle =>
-      'Po włączeniu zapisujemy dane firmy i kontaktu przy projekcie, żeby panel pracodawcy mógł powiązać projekt z Twoim kontem. Wyświetlane imię i nazwisko bierzemy z Ustawienia → Twój profil.';
+      'Po włączeniu zapisujemy nazwę firmy i Twój służbowy e-mail dla tego projektu. Panel pracodawcy może Cię wyszukać po tym adresie. Wyświetlane imię i nazwisko bierzemy z Ustawienia → Twój profil.';
+
+  @override
+  String get projectsWorkEmailRequired =>
+      'Przy udostępnianiu pracodawcy podaj służbowy e-mail.';
+
+  @override
+  String get projectsWorkEmailInvalid => 'Podaj poprawny adres służbowy.';
+
+  @override
+  String get projectsCompanyNameRequired =>
+      'Przy udostępnianiu pracodawcy podaj nazwę firmy.';
 
   @override
   String get projectsHourlyRatePanelHint =>

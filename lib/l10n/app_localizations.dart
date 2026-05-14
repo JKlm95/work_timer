@@ -998,12 +998,6 @@ abstract class AppLocalizations {
   /// **'Work e-mail'**
   String get projectsEmployeeWorkEmail;
 
-  /// No description provided for @projectsEmployerEmailsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Employer e-mails (comma-separated)'**
-  String get projectsEmployerEmailsHint;
-
   /// No description provided for @projectsShareEmployer.
   ///
   /// In en, this message translates to:
@@ -1013,8 +1007,26 @@ abstract class AppLocalizations {
   /// No description provided for @projectsShareEmployerSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'When enabled, company and contact fields are stored with the project so an employer panel can match this project to your account. Your display name comes from Settings → Your profile.'**
+  /// **'When enabled, store your company name and work e-mail for this project. The employer panel can look you up by that work e-mail. Your display name comes from Settings → Your profile.'**
   String get projectsShareEmployerSubtitle;
+
+  /// No description provided for @projectsWorkEmailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Work e-mail is required when sharing with an employer.'**
+  String get projectsWorkEmailRequired;
+
+  /// No description provided for @projectsWorkEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid work e-mail address.'**
+  String get projectsWorkEmailInvalid;
+
+  /// No description provided for @projectsCompanyNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Company name is required when sharing with an employer.'**
+  String get projectsCompanyNameRequired;
 
   /// No description provided for @projectsHourlyRatePanelHint.
   ///

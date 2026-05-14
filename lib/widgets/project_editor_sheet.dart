@@ -43,7 +43,6 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
   late final TextEditingController _companyCtrl;
   late final TextEditingController _slugCtrl;
   late final TextEditingController _emailCtrl;
-  late final TextEditingController _employerEmailsCtrl;
   late final TextEditingController _customColorCtrl;
 
   late Workspace _base;
@@ -52,6 +51,8 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
   late bool _shareEmployer;
   late bool _isArchived;
   String? _nameError;
+  String? _companyNameError;
+  String? _workEmailError;
 
   @override
   void initState() {
@@ -73,9 +74,6 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
     _companyCtrl = TextEditingController(text: _base.companyName ?? '');
     _slugCtrl = TextEditingController(text: _base.companySlug ?? '');
     _emailCtrl = TextEditingController(text: _base.employeeWorkEmail ?? '');
-    _employerEmailsCtrl = TextEditingController(
-      text: _base.linkedEmployerEmails.join(', '),
-    );
     final ch = _base.colorHex;
     _customColorCtrl = TextEditingController(
       text: ch != null && ch.startsWith('#') ? ch.substring(1) : (ch ?? ''),
@@ -105,27 +103,15 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
     _companyCtrl.dispose();
     _slugCtrl.dispose();
     _emailCtrl.dispose();
-    _employerEmailsCtrl.dispose();
     _customColorCtrl.dispose();
     super.dispose();
-  }
-
-  List<String> _parseEmployerEmails(String raw) {
-    final parts = raw
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty);
-    return normalizeLinkedEmployerEmails(parts);
   }
 
   Workspace _buildSaved() {
     final name = _nameCtrl.text.trim();
     final rateText = _rateCtrl.text.trim().replaceAll(',', '.');
     final rate = rateText.isEmpty ? null : double.tryParse(rateText);
-    final workEmailNorm = _emailCtrl.text.trim().toLowerCase();
-    final domain = extractEmailDomain(
-      workEmailNorm.isEmpty ? null : workEmailNorm,
-    );
+    final workNorm = normalizeEmployeeWorkEmail(_emailCtrl.text);
 
     String? slugOut;
     if (_shareEmployer) {
@@ -148,19 +134,17 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
           ? _companyCtrl.text.trim()
           : null,
       companySlug: slugOut,
-      employeeWorkEmail: _shareEmployer && workEmailNorm.isNotEmpty
-          ? workEmailNorm
+      employeeWorkEmail: _shareEmployer ? workNorm : null,
+      employeeWorkEmailDomain: _shareEmployer
+          ? normalizeEmployeeWorkEmailDomain(null, workEmail: workNorm)
           : null,
-      employeeWorkEmailDomain: _shareEmployer ? domain : null,
       colorHex: colorNormalized != null
           ? '#${colorNormalized.toUpperCase()}'
           : null,
       hourlyRate: rate,
       currencyCode: _currencyCode,
       isSharedWithEmployer: _shareEmployer,
-      linkedEmployerEmails: _shareEmployer
-          ? _parseEmployerEmails(_employerEmailsCtrl.text)
-          : const [],
+      linkedEmployerEmails: const [],
     );
   }
 
@@ -309,7 +293,11 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.projectsShareEmployer),
               value: _shareEmployer,
-              onChanged: (v) => setState(() => _shareEmployer = v),
+              onChanged: (v) => setState(() {
+                _shareEmployer = v;
+                _companyNameError = null;
+                _workEmailError = null;
+              }),
             ),
             Text(
               l10n.projectsShareEmployerSubtitle,
@@ -329,6 +317,7 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
                         controller: _companyCtrl,
                         decoration: InputDecoration(
                           labelText: l10n.projectsCompanyName,
+                          errorText: _companyNameError,
                           border: const OutlineInputBorder(),
                         ),
                       ),
@@ -352,15 +341,7 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
                         controller: _emailCtrl,
                         decoration: InputDecoration(
                           labelText: l10n.projectsEmployeeWorkEmail,
-                          border: const OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _employerEmailsCtrl,
-                        decoration: InputDecoration(
-                          labelText: l10n.projectsEmployerEmailsHint,
+                          errorText: _workEmailError,
                           border: const OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.emailAddress,
@@ -385,8 +366,25 @@ class _ProjectEditorBodyState extends State<_ProjectEditorBody> {
                   _nameError = _nameCtrl.text.trim().isEmpty
                       ? l10n.projectsValidationName
                       : null;
+                  _companyNameError = null;
+                  _workEmailError = null;
+                  if (_shareEmployer) {
+                    if (_companyCtrl.text.trim().isEmpty) {
+                      _companyNameError = l10n.projectsCompanyNameRequired;
+                    }
+                    final rawMail = _emailCtrl.text.trim();
+                    if (rawMail.isEmpty) {
+                      _workEmailError = l10n.projectsWorkEmailRequired;
+                    } else if (!isValidEmployeeWorkEmailFormat(rawMail)) {
+                      _workEmailError = l10n.projectsWorkEmailInvalid;
+                    }
+                  }
                 });
-                if (_nameError != null) return;
+                if (_nameError != null ||
+                    _companyNameError != null ||
+                    _workEmailError != null) {
+                  return;
+                }
                 Navigator.of(context).pop(_buildSaved());
               },
               icon: const Icon(Icons.save_outlined),

@@ -184,6 +184,38 @@ service cloud.firestore {
           );
     }
 
+    function hasValidEmployeeWorkEmailIndexShape(data, docId) {
+      return data.keys().hasOnly([
+            'uid',
+            'workEmailLower',
+            'domain',
+            'workspaceIds',
+            'updatedAt'
+          ]) &&
+          data.keys().hasAll([
+            'uid',
+            'workEmailLower',
+            'domain',
+            'workspaceIds',
+            'updatedAt'
+          ]) &&
+          data.uid is string &&
+          data.uid == request.auth.uid &&
+          data.uid.size() > 0 &&
+          data.uid.size() <= 128 &&
+          data.workEmailLower is string &&
+          data.workEmailLower == docId &&
+          data.workEmailLower.size() > 0 &&
+          data.workEmailLower.size() <= 254 &&
+          data.domain is string &&
+          data.domain.size() > 0 &&
+          data.domain.size() <= 253 &&
+          data.workspaceIds is list &&
+          data.workspaceIds.size() > 0 &&
+          data.workspaceIds.size() <= 64 &&
+          data.updatedAt is timestamp;
+    }
+
     function hasValidWorkspaceShape(data) {
       return data.keys().hasAll([
             'name',
@@ -406,6 +438,16 @@ service cloud.firestore {
           hasValidUserEmailIndexShape(request.resource.data, emailLower);
 
       allow delete: if false;
+    }
+
+    match /employeeWorkEmailIndex/{workEmailLower} {
+      allow read: if isSignedIn();
+
+      allow create, update: if isSignedIn() &&
+          hasValidEmployeeWorkEmailIndexShape(request.resource.data, workEmailLower);
+
+      allow delete: if isSignedIn() &&
+          resource.data.uid == request.auth.uid;
     }
 
     match /users/{uid}/live/status {

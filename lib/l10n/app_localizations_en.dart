@@ -491,14 +491,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectsEmployeeWorkEmail => 'Work e-mail';
 
   @override
-  String get projectsEmployerEmailsHint => 'Employer e-mails (comma-separated)';
-
-  @override
   String get projectsShareEmployer => 'Prepare fields for employer sharing';
 
   @override
   String get projectsShareEmployerSubtitle =>
-      'When enabled, company and contact fields are stored with the project so an employer panel can match this project to your account. Your display name comes from Settings → Your profile.';
+      'When enabled, store your company name and work e-mail for this project. The employer panel can look you up by that work e-mail. Your display name comes from Settings → Your profile.';
+
+  @override
+  String get projectsWorkEmailRequired =>
+      'Work e-mail is required when sharing with an employer.';
+
+  @override
+  String get projectsWorkEmailInvalid => 'Enter a valid work e-mail address.';
+
+  @override
+  String get projectsCompanyNameRequired =>
+      'Company name is required when sharing with an employer.';
 
   @override
   String get projectsHourlyRatePanelHint =>

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/billing_currency.dart';
 import '../models/work_entry.dart';
 import '../models/workspace.dart';
+import 'employee_work_email_index_service.dart';
 import 'local_cache_store.dart';
 import 'online_checker.dart';
 import 'work_remote_store.dart';
@@ -21,13 +22,16 @@ class WorkRepository {
     required LocalCacheStore localCache,
     required WorkRemoteStore remoteStore,
     OnlineChecker? onlineChecker,
+    EmployeeWorkEmailIndexService? workEmailIndex,
   }) : _localCache = localCache,
        _remoteStore = remoteStore,
-       _onlineChecker = onlineChecker ?? ConnectivityOnlineChecker();
+       _onlineChecker = onlineChecker ?? ConnectivityOnlineChecker(),
+       _workEmailIndex = workEmailIndex;
 
   final LocalCacheStore _localCache;
   final WorkRemoteStore _remoteStore;
   final OnlineChecker _onlineChecker;
+  final EmployeeWorkEmailIndexService? _workEmailIndex;
 
   String? _uid;
   List<Workspace> _workspaces = const [];
@@ -57,9 +61,11 @@ class WorkRepository {
       if (uid != null) {
         try {
           final remote = await _remoteStore.fetchWorkspaces(uid);
+          final beforeFetch = List<Workspace>.from(_workspaces);
           final merged = _mergeWorkspaces(_workspaces, remote);
           _workspaces = _sortWorkspaces(merged);
           await _localCache.saveWorkspaces(_workspaces);
+          await _reconcileWorkEmailIndex(beforeFetch, _workspaces);
           for (final workspace in _workspaces) {
             if (remote.every((r) => r.id != workspace.id)) {
               await _scheduleWorkspaceRemoteUpsert(workspace);
@@ -108,6 +114,7 @@ class WorkRepository {
   }
 
   Future<Workspace> createWorkspace(String name) async {
+    final before = List<Workspace>.from(_workspaces);
     final workspace = Workspace(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: name.trim().isEmpty ? 'Workspace' : name.trim(),
@@ -120,6 +127,7 @@ class WorkRepository {
     await _localCache.saveActiveWorkspaceId(workspace.id);
     _activeWorkspaceId = workspace.id;
     await _scheduleWorkspaceRemoteUpsert(workspace);
+    await _reconcileWorkEmailIndex(before, List<Workspace>.from(_workspaces));
     return workspace;
   }
 
@@ -135,6 +143,7 @@ class WorkRepository {
   }
 
   Future<void> saveWorkspace(Workspace workspace) async {
+    final before = List<Workspace>.from(_workspaces);
     final idx = _workspaces.indexWhere((w) => w.id == workspace.id);
     if (idx >= 0) {
       final next = [..._workspaces];
@@ -147,6 +156,7 @@ class WorkRepository {
     }
     await _localCache.saveWorkspaces(_workspaces);
     await _scheduleWorkspaceRemoteUpsert(workspace);
+    await _reconcileWorkEmailIndex(before, List<Workspace>.from(_workspaces));
     await _ensureActiveNotArchivedPreferably();
   }
 
@@ -267,7 +277,12 @@ class WorkRepository {
     final uid = _uid;
     if (uid == null || !await _onlineChecker.check()) return;
 
+    final beforeWorkspaceFlush = List<Workspace>.from(_workspaces);
     await _flushPendingWorkspaceUpserts();
+    await _reconcileWorkEmailIndex(
+      beforeWorkspaceFlush,
+      List<Workspace>.from(_workspaces),
+    );
 
     for (final workspace in _workspaces) {
       final queue = await _localCache.loadPendingQueue(workspace.id);
@@ -291,6 +306,20 @@ class WorkRepository {
         }
       }
       await _localCache.savePendingQueue(workspace.id, remaining);
+    }
+  }
+
+  Future<void> _reconcileWorkEmailIndex(
+    List<Workspace> before,
+    List<Workspace> after,
+  ) async {
+    final svc = _workEmailIndex;
+    final uid = _uid;
+    if (svc == null || uid == null) return;
+    try {
+      await svc.reconcile(uid: uid, before: before, after: after);
+    } catch (e, st) {
+      debugPrint('WorkRepository._reconcileWorkEmailIndex: $e\n$st');
     }
   }
 

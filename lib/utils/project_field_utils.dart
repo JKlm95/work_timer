@@ -28,6 +28,31 @@ String? extractEmailDomain(String? email) {
   return domain.isEmpty ? null : domain;
 }
 
+/// Prosty walidator adresu służbowego (UI + indeks).
+bool isValidEmployeeWorkEmailFormat(String raw) {
+  final s = raw.trim();
+  if (s.isEmpty) return false;
+  final lower = s.toLowerCase();
+  return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(lower);
+}
+
+/// Trim + lower-case; `null` gdy pusty lub niepoprawny format.
+String? normalizeEmployeeWorkEmail(String? raw) {
+  if (raw == null) return null;
+  final t = raw.trim().toLowerCase();
+  if (t.isEmpty) return null;
+  if (!isValidEmployeeWorkEmailFormat(t)) return null;
+  return t;
+}
+
+/// Domena zapisana przy workspace (spójnie z częścią po `@`).
+String? normalizeEmployeeWorkEmailDomain(String? domain, {String? workEmail}) {
+  final d = domain?.trim().toLowerCase();
+  if (d != null && d.isNotEmpty) return d;
+  final em = normalizeEmployeeWorkEmail(workEmail);
+  return extractEmailDomain(em);
+}
+
 /// E-maile kont pracodawców / panelu: trim, lower-case, bez duplikatów (kolejność zachowana).
 List<String> normalizeLinkedEmployerEmails(Iterable<String> raw) {
   final seen = <String>{};

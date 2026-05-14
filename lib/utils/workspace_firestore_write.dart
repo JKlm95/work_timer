@@ -25,7 +25,8 @@ Map<String, dynamic> workspaceFirestoreMergeWrite(Workspace w) {
   }
 
   m['isSharedWithEmployer'] = true;
-  m['linkedEmployerEmails'] = w.linkedEmployerEmails;
+  // Legacy: mobile nie zapisuje już listy pracodawców — usuń z Firestore przy każdym udostępnionym zapisie.
+  m['linkedEmployerEmails'] = FieldValue.delete();
 
   void stringOrDelete(String key, String? v) {
     final t = v?.trim();

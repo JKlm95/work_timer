@@ -41,6 +41,8 @@ class Workspace {
   /// Kod waluty rozliczenia: PLN/EUR/USD/GBP.
   final String? currencyCode;
   final bool isSharedWithEmployer;
+
+  /// **Legacy (tylko odczyt z Firestore):** lista e-maili pracodawców — mobile nie zapisuje ani nie pokazuje w UI.
   final List<String> linkedEmployerEmails;
 
   String? get effectiveEmailDomain =>
@@ -158,15 +160,13 @@ class Workspace {
       isArchived: json['isArchived'] as bool? ?? false,
       companyName: json['companyName'] as String?,
       companySlug: normalizeCompanySlug(json['companySlug'] as String?),
-      employeeWorkEmail: () {
-        final e = json['employeeWorkEmail'] as String?;
-        if (e == null) return null;
-        final t = e.trim();
-        return t.isEmpty ? null : t.toLowerCase();
-      }(),
-      employeeWorkEmailDomain:
-          json['employeeWorkEmailDomain'] as String? ??
-          extractEmailDomain(json['employeeWorkEmail'] as String?),
+      employeeWorkEmail: normalizeEmployeeWorkEmail(
+        json['employeeWorkEmail'] as String?,
+      ),
+      employeeWorkEmailDomain: normalizeEmployeeWorkEmailDomain(
+        json['employeeWorkEmailDomain'] as String?,
+        workEmail: json['employeeWorkEmail'] as String?,
+      ),
       colorHex: json['colorHex'] as String?,
       hourlyRate: rate(json['hourlyRate']),
       currencyCode: BillingCurrency.normalizeOrNull(

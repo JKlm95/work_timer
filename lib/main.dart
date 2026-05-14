@@ -17,6 +17,7 @@ import 'bloc/settings_cubit.dart';
 import 'firebase_options.dart';
 import 'screens/auth_gate.dart';
 import 'services/auth_service.dart';
+import 'services/employee_work_email_index_service.dart';
 import 'services/firebase_work_store.dart';
 import 'services/live_status_service.dart';
 import 'services/local_cache_store.dart';
@@ -47,9 +48,11 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final authService = AuthService();
+  final workEmailIndex = EmployeeWorkEmailIndexService();
   final repository = WorkRepository(
     localCache: LocalCacheStore(),
     remoteStore: FirebaseWorkStore(),
+    workEmailIndex: workEmailIndex,
   );
   final userProfileRepository = UserProfileRepository();
   final userEmailIndex = UserEmailIndexService();

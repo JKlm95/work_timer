@@ -80,24 +80,27 @@ void main() {
       expect(m['linkedEmployerEmails'], isA<FieldValue>());
     });
 
-    test('udostępniony: zapisuje listę linked (może być pusta)', () {
-      final w = Workspace(
-        id: 'w1',
-        name: 'Projekt',
-        createdAt: t0,
-        updatedAt: t1,
-        isSharedWithEmployer: true,
-        companyName: 'Corp',
-        companySlug: 'corp',
-        employeeWorkEmail: 'me@corp.com',
-        employeeWorkEmailDomain: 'corp.com',
-        linkedEmployerEmails: const [],
-      );
-      final m = workspaceFirestoreMergeWrite(w);
-      expect(m['isSharedWithEmployer'], isTrue);
-      expect(m['linkedEmployerEmails'], isEmpty);
-      expect(m['companySlug'], 'corp');
-    });
+    test(
+      'udostępniony: usuwa legacy linkedEmployerEmails (FieldValue.delete)',
+      () {
+        final w = Workspace(
+          id: 'w1',
+          name: 'Projekt',
+          createdAt: t0,
+          updatedAt: t1,
+          isSharedWithEmployer: true,
+          companyName: 'Corp',
+          companySlug: 'corp',
+          employeeWorkEmail: 'me@corp.com',
+          employeeWorkEmailDomain: 'corp.com',
+          linkedEmployerEmails: const ['legacy@x.com'],
+        );
+        final m = workspaceFirestoreMergeWrite(w);
+        expect(m['isSharedWithEmployer'], isTrue);
+        expect(m['linkedEmployerEmails'], isA<FieldValue>());
+        expect(m['companySlug'], 'corp');
+      },
+    );
   });
 
   group('Workspace.fromJson linkedEmployerEmails', () {

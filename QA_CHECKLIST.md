@@ -30,12 +30,13 @@ Zaznaczaj punkty przy wydaniu / przed demo. Wymaga działającego Firebase, wdro
 - [ ] Utworzenie nowego projektu (nazwa wymagana).
 - [ ] Edycja projektu: zmiana nazwy, koloru, waluty.
 - [ ] **Stawka godzinowa:** ustawienie stawki > 0 — w `live/status` przy aktywnym projekcie pojawia się `hourlyRate` / `currency`; usunięcie stawki — pola **znika** (brak `0` jako fałszywej stawki).
-- [ ] Włączenie **„Pola pod udostępnianie pracodawcy”** — zapis pól firmy / e-maili; dokument workspace w Firestore zawiera oczekiwane pola (`isSharedWithEmployer`, `companySlug`, `linkedEmployerEmails`, `employeeWorkEmail` …).
-- [ ] **Dwa projekty z różnym udostępnieniem:** różne `companySlug` lub różne `linkedEmployerEmails` zapisują się niezależnie (per workspace).
-- [ ] **Wyłączenie udostępnienia** (`isSharedWithEmployer` off): w dokumencie Firestore **znikają** pola sharingu (brak „zombie” `companySlug` / listy e-maili po merge).
-- [ ] **Pole „E-maile pracodawców”:** duplikaty i wielkość liter — po zapisie w Firestore lista jest **bez duplikatów**, **lower-case**; bardzo długa lista odrzucona przez reguły (max 32 pozycje).
+- [ ] Włączenie **„Pola pod udostępnianie pracodawcy”** wymaga **nazwy firmy** i **służbowego e-maila** (walidacja formatu); brak pola e-maila pracodawcy w UI.
+- [ ] Po zapisie: dokument `users/{uid}/workspaces/{id}` ma `isSharedWithEmployer`, `companyName`, `companySlug`, `employeeWorkEmail`, `employeeWorkEmailDomain`; **brak** aktywnego pola `linkedEmployerEmails` (legacy usuwane przez merge).
+- [ ] **`employeeWorkEmailIndex/{workEmailLower}`:** po włączeniu sharingu z poprawnym mailem pojawia się / aktualizuje się dokument z `uid`, `workspaceIds` zawierającym id projektu, `domain` zgodnym z mailem.
+- [ ] **Zmiana służbowego e-maila** przy projekcie: stary klucz indeksu traci `workspaceId`, nowy klucz go zyskuje (lub dokument pusty jest usuwany).
+- [ ] **Wyłączenie udostępnienia** (`isSharedWithEmployer` off): w workspace znikają pola sharingu; indeks dla poprzedniego maila nie zawiera już tego `workspaceId` (dokument usunięty, jeśli lista pusta).
 - [ ] **Slug firmy:** pusty slug przy edycji **nie zmienia** losowo istniejącego slug’a (stabilność); ręczna zmiana slug’a zapisuje się poprawnie.
-- [ ] **Interpretacja panelu (poza mobile):** wpis `entries` widoczny dla pracodawcy tylko wtedy, gdy reguły biznesowe wiążą `entry.workspaceId` z workspace’em faktycznie udostępnionym temu pracodawcy — **trackedEmployeeUids ≠ dostęp do wszystkich wpisów** (patrz **[DATA_CONTRACT.md](DATA_CONTRACT.md)**).
+- [ ] **Interpretacja panelu (poza mobile):** wpis `entries` widoczny dla pracodawcy tylko wtedy, gdy reguły biznesowe wiążą `entry.workspaceId` z workspace’em udostępnionym oraz dopasowanie **służbowego e-maila / domeny** do konta pracodawcy — **trackedEmployeeUids ≠ dostęp do wszystkich wpisów** (patrz **[DATA_CONTRACT.md](DATA_CONTRACT.md)**).
 - [ ] Archiwum / przywrócenie projektu; timer **nie** startuje na zarchiwizowanym projekcie (komunikat).
 
 ---
