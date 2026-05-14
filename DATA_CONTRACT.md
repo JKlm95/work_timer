@@ -10,11 +10,14 @@ Ten dokument opisuje **ścieżki Firestore** i **podział odpowiedzialności** m
 |---------|------|
 | `users/{uid}/entries/{entryId}` | Historia sesji i wpisów ręcznych — **źródło prawdy** dla czasu przepracowanego, raportów i eksportów. |
 | `users/{uid}/workspaces/{workspaceId}` | Projekty (nazwa, kolor, archiwum, stawka, **udostępnienie per pracodawca** itd.) — **źródło prawdy** dla konfiguracji projektów. Szczegół: sekcja **„Workspaces — sharing”** poniżej. |
-| `users/{uid}/live/status` | **Stan na żywo** (online, stan timera, aktywny projekt, znaczniki sesji) — tylko podgląd dla panelu; **nie** zastępuje `entries`. Szczegóły pól: **[TECHNICAL.md](TECHNICAL.md)** § 4b. |
+| `users/{uid}/live/status` | **Stan na żywo** (online, stan timera, aktywny projekt, znaczniki sesji) — tylko podgląd dla panelu; **nie** zastępuje `entries`. Szczegóły pól: **[TECHNICAL.md](TECHNICAL.md)** § 9. |
 | `users/{uid}/profile/main` | Profil globalny pracownika (imię, nazwisko, e-mail wyświetlany w aplikacji) — **źródło prawdy** dla danych osobowych w kontekście konta. |
 | `users/{uid}/legal/consents` | **Zgody prawne** (regulamin + polityka prywatności): jeden dokument na użytkownika; brak lub niespełniony dokument blokuje wejście do głównej aplikacji po zalogowaniu. Szczegóły pól i reguł: sekcja **„Zgody prawne”** poniżej. |
 | `userEmailIndex/{emailLower}` | Indeks **lookup** UID i metadanych profilu po znormalizowanym adresie e-mail (konto Firebase) — ułatwia panelowi powiązanie konta pracownika z adresem. |
 | `employeeWorkEmailIndex/{workEmailLower}` | Indeks **lookup UID + lista `workspaceIds`** po **pełnym** znormalizowanym adresie **służbowym** pracownika (`employeeWorkEmail` z projektu). Id dokumentu = `workEmailLower`. Mobile utrzymuje indeks przy zapisie workspace’ów (`EmployeeWorkEmailIndexService` + `WorkRepository`). Szczegóły: sekcja **„employeeWorkEmailIndex”** poniżej. |
+| `employers/{employerUid}/trackedEmployeeUids/{employeeUid}` | Flaga „pracodawca śledzi pracownika” — używana m.in. do odczytu **`live/status`** i walidacji zapisów pod **`trackedWorkspaces`** (reguły). Zapisuje **panel**. |
+| `employers/{employerUid}/trackedWorkspaces/{accessId}` | Dostęp **per workspace**: `accessId` = `{employeeUid}_{workspaceId}`. Wymagany m.in. do odczytu **`entries`** i patcha stawki na **`workspaces`** z poziomu pracodawcy (reguły). Zapisuje **panel**. |
+| `employers/{employerUid}/groups/{groupId}` | Grupy organizacyjne listy pracowników w panelu — bez wpływu na dane czasu po stronie mobile. Zapisuje **panel**. |
 
 ---
 
@@ -53,8 +56,8 @@ Ten dokument opisuje **ścieżki Firestore** i **podział odpowiedzialności** m
 
 **Wpisy `entries` a dostęp panelu**
 
-- Każdy wpis ma `workspaceId`. **Dostęp do wpisu dla danego pracodawcy** w modelu biznesowym = ten pracodawca ma uprawnienia do **konkretnego** workspace’a, do którego należy `entry.workspaceId` (np. mapowanie „tracked workspace” / membership w panelu — poza zakresem tej aplikacji mobilnej).
-- **`employers/{employerUid}/trackedEmployeeUids/{employeeUid}`** (i podobne relacje) opisują relację pracodawca ↔ pracownik; **nie** implikują same z siebie dostępu do wszystkich `entries` ani workspace’ów — interpretacja dostępu do danych musi być **per workspace** oraz zgodna z dopasowaniem **służbowego e-maila** / domeny do konta pracodawcy (panel web).
+- Każdy wpis ma `workspaceId`. **Dostęp do wpisu dla danego pracodawcy** w modelu biznesowym = ten pracodawca ma uprawnienia do **konkretnego** workspace’a, do którego należy `entry.workspaceId`. W **`firestore.rules`** jest to wymuszone przez dokument **`employers/{employerUid}/trackedWorkspaces/{accessId}`**, gdzie **`accessId` = `employeeUid + '_' + workspaceId`** (funkcja `trackedWorkspaceId` w rules) — bez takiego dokumentu zapytanie panelu do `entries` / patch billingu na workspace kończy się **`permission-denied`**.
+- **`employers/{employerUid}/trackedEmployeeUids/{employeeUid}`** wiąże listę śledzonych pracowników (m.in. odczyt **`live/status`**), ale **nie** zastępuje **`trackedWorkspaces`** przy odczycie `entries` ani przy wąskim odczycie workspace’ów — dostęp do danych czasu i edycji stawki jest **per workspace**, zgodnie z regułami i dopasowaniem **służbowego e-maila** / domeny po stronie panelu.
 
 ### Zgody prawne — `users/{uid}/legal/consents`
 
@@ -75,7 +78,7 @@ Ten dokument opisuje **ścieżki Firestore** i **podział odpowiedzialności** m
 ### Czyta **głównie panel webowy**
 
 - `entries`, `workspaces` — raporty, lista pracowników, szczegóły (zgodnie z uprawnieniami wdrożonymi w panelu i docelowo w regułach Firestore).
-- `live/status` — widżety „Working / Paused / Online”, szacunek kwoty w locie (panel liczy z `sessionStartedAt` + `accumulatedSecondsBeforePause` wg **[TECHNICAL.md](TECHNICAL.md)** § 4b).
+- `live/status` — widżety „Working / Paused / Online”, szacunek kwoty w locie (panel liczy z `sessionStartedAt` + `accumulatedSecondsBeforePause` wg **[TECHNICAL.md](TECHNICAL.md)** § 9).
 - `profile/main`, `userEmailIndex`, **`employeeWorkEmailIndex`** — panel może wyszukać pracownika po koncie (indeks profilu) lub po **służbowym e-mailu** z projektu (indeks workspace’ów).
 
 ---
@@ -130,9 +133,9 @@ Przed wysłaniem wpisu z lokalnej kolejki `syncPending` pobierany jest aktualny 
 
 ## Reguły bezpieczeństwa (Firestore)
 
-Wdrożenie: **`firestore.rules`** w repozytorium.  
-**MVP** może dopuszczać szeroki odczyt dla zalogowanych użytkowników (np. `live`, `userEmailIndex`) — **produkcja** powinna ograniczyć odczyt panelu pracodawcy do kont powiązanych z pracownikiem (np. lista śledzonych pracowników / członkostwo w organizacji). Szczegóły walidacji pól live: komentarz przy regule `users/{uid}/live` w pliku rules.  
-**Workspaces / indeks służbowy:** `workspaceFirestoreMergeWrite` usuwa pola sharingu i legacy `linkedEmployerEmails` przy udostępnionym zapisie. **`employeeWorkEmailIndex`** — reguły `hasValidEmployeeWorkEmailIndexShape` + odczyt dla zalogowanych (MVP); zapis tylko gdy `data.uid == request.auth.uid`.
+Wdrożenie: **`firestore.rules`** w repozytorium (identyczny plik co w projekcie panelu pracodawcy — jeden **source of truth**).  
+Reguły definiują m.in.: zapis **`live/status`** tylko przez właściciela `{uid}`; odczyt `live` dla pracodawcy z **`trackedEmployeeUids`**; odczyt i zapis (w dozwolonym zakresie) **`entries`** oraz patch stawki na **`workspaces`** dla pracodawcy z **`trackedWorkspaces`** (`employerHasTrackedWorkspace`); kształty dokumentów `profile`, `legal`, indeksów oraz kolekcji pod **`employers/{employerUid}/…`**. Szczegóły semantyki reguł: **[TECHNICAL.md](TECHNICAL.md)** § 12.  
+**Workspaces / indeks służbowy:** `workspaceFirestoreMergeWrite` usuwa pola sharingu i legacy `linkedEmployerEmails` przy zapisie. **`employeeWorkEmailIndex`** — `hasValidEmployeeWorkEmailIndexShape`; zapis tylko gdy `data.uid == request.auth.uid`.
 
 ---
 

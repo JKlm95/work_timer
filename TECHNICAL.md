@@ -1,10 +1,12 @@
 # Work Timer — dokumentacja techniczna
 
-Dokument dla **deweloperów i rekrutera technicznego**: architektura, integracja z Firebase, warstwa natywna Android i strategia danych.
+Dokument dla **deweloperów** utrzymujących aplikację mobilną: architektura `lib/`, integracja z **Firebase**, most do widgetów (**Android** / **iOS**), strategia danych lokalnych vs Firestore oraz zależności od **`firestore.rules`**. Kontrakt ścieżek z panelem pracodawcy: **[DATA_CONTRACT.md](DATA_CONTRACT.md)**.
 
 ---
 
-## 1. Stack
+## 1. Architektura katalogów i stos techniczny
+
+### 1.1. Tabela stacku
 
 | Warstwa | Wybór |
 |--------|--------|
@@ -20,9 +22,7 @@ Dokument dla **deweloperów i rekrutera technicznego**: architektura, integracja
 | Android | **Kotlin** — `ForegroundService`, `AppWidgetProvider` (home_widget), **MethodChannel** `work_timer/service_control` |
 | iOS | **Swift** — `AppDelegate` + **WidgetKit** + **App Groups** (`UserDefaults`), te same nazwy metod MethodChannel co na Androidzie; brak ForegroundService (timer = Flutter + cache) |
 
----
-
-## 2. Struktura projektu (lib)
+### 1.2. Struktura `lib/`
 
 ```
 lib/
@@ -54,254 +54,254 @@ lib/
     ├── splash_loading_view.dart
     ├── project_editor_sheet.dart    # formularz projektu (bottom sheet)
     ├── stop_session_debrief_dialog.dart
-    └── ui/                          # wspólne komponenty UI (polish)
-        ├── app_empty_state.dart   # pusty stan: ikona + tytuł + opcjonalny opis + opcjonalna akcja
-        ├── app_section_header.dart # nagłówek sekcji (tytuł + opcjonalny podtytuł)
-        └── entry_meta_chips.dart    # chipy metadanych wpisu (typ, billable, %, usunięty)
+    └── ui/                          # wspólne komponenty UI
+        ├── app_empty_state.dart
+        ├── app_section_header.dart
+        └── entry_meta_chips.dart
 ```
 
 ---
 
-## 3. Przepływ aplikacji po starcie
+## 2. Warstwy aplikacji (od UI do Firestore)
 
-1. **`main.dart`** — `Firebase.initializeApp`, `SharedPreferences` → **`SettingsCubit`** (outer `BlocProvider`), singletony `AuthService`, `WorkRepository`; **`MaterialApp`** z `theme` / `darkTheme` z `buildWorkTimerTheme`, `themeMode` ze stanu ustawień, delegaty `AppLocalizations`.
-2. **`AuthGate`** (stanful):
-   - `BlocListener` na `AuthCubit`: przy rozstrzygnięciu sesji Firebase i przy zmianie użytkownika wywołuje **`_onAuthChanged`**.
-   - Dla **zalogowanego** użytkownika: **najpierw** odczyt `users/{uid}/legal/consents` (`LegalConsentRepository.checkGate`). Jeśli brak dokumentu, dane nieparsowalne albo `terms`/`privacy` nie zaakceptowane — **`LegalConsentScreen`** (bez startu `TimerCubit`). Po udanym zapisie zgody — dalej jak wcześniej. Przy błędzie odczytu (np. offline) — ekran Retry / wyloguj (bez pętli nawigacji).
-   - Po spełnionym gate prawnym: tworzy **`TimerCubit`**, **`await init()`** (timeout 15 s), minimalny czas wyświetlania splash (~520 ms), potem **`BlocProvider.value`** + `HomeShell`.
-3. **`TimerCubit.init()`** — `reload()` prefs (Android po zapisie z Kotlina), `initForUser`, pierwszy `emit` z **workspaces**, **`await _hydrateTimerFromPersistedStores()`** (Android: lustro JVM + **`_alignRepositoryWithWorkspaceIfPossible`**; iOS/web: prefs/`home_widget` jak w tej metodzie — **zanim** pierwszy **`loadEntriesForRange`**), **`emit`** z wpisami z **`loadEntriesForRange`**, **`_applyAndroidWorkspaceSelectionIfIdle`**, **`refreshStatsEntries`**, **`_writeWidgetSnapshot`**.
+- **Prezentacja:** `screens/*`, `widgets/*` — Material 3, nawigacja w `HomeShell`, zakładki Timer / Historia / Statystyki / Kalendarz / Projekty / Ustawienia.
+- **Stan ekranów:** Cubity w `bloc/` — `TimerCubit` agreguje sesję, wpisy w zakresie, workspace’y, statystyki; `AuthCubit` sesja Firebase; `SettingsCubit` preferencje UI.
+- **Serwisy domenowe:** `WorkRepository` jednym wejściem do zapisu wpisów i projektów (cache + remote + kolejka); `LiveStatusService` utrzymuje dokument live; `EmployeeWorkEmailIndexService` + wywołania z repozytorium utrzymują indeks służbowych maili; `LegalConsentRepository` gate prawny; `UserProfileRepository` / indeks e-mail konta.
+- **Warstwa zdalna:** `FirebaseWorkStore` implementuje `WorkRemoteStore` (Firestore); reguły bezpieczeństwa muszą być zgodne z **[§ 12](#12-reguły-firestore--założenia-dla-tej-aplikacji)**.
+- **Warstwa lokalna:** `LocalCacheStore` — JSON w `SharedPreferences` (wpisy miesiąca, lista workspace’ów, sesja timera, kolejki).
+
+### 2.1. Splash i bootstrap
+
+- **`SplashLoadingView`** — pełnoekranowy gradient + animacja; przy `AuthCubit.loading` oraz do zakończenia `TimerCubit.init` po zalogowaniu. Teksty z **l10n**; gradient z **`AppColors`** (stały ekran marki).
+- **Android `launch_background`** — kolor spójny z gradientem (`values/colors.xml`, `drawable/launch_background.xml`), ograniczenie białego flasha przed pierwszym frame’m Fluttera.
+
+### 2.2. Motyw (jasny / ciemny)
+
+- **`AppColors`** — paleta marki + powierzchnie jasne; stałe **`surface*Dark`**, **`borderInputIdleDark`**, **`brandNavIndicatorDark`**; **`colorSchemeFor(Brightness)`** łączy `ColorScheme.fromSeed(brandPrimary)` z warstwami w trybie ciemnym.
+- **`buildWorkTimerTheme(brightness)`** — `colorScheme`, `textTheme` z **`AppTypography.textTheme`**, `CardTheme`, `InputDecorationTheme`, `FilledButton`, `NavigationBarTheme`, `dividerTheme`, `appBarTheme`.
+- **Ustawienia:** `SettingsTab` + `SettingsCubit`: locale (system / pl / en), `ThemeMode`, **`showDebriefAfterStop`**.
+
+### 2.3. Wielojęzyczność (ARB)
+
+- **`lib/l10n/app_en.arb`** (szablon), **`app_pl.arb`**, **`l10n.yaml`**; w `pubspec.yaml`: `flutter: generate: true`.
+- W kodzie: `AppLocalizations.of(context)!`. Po zmianie ARB: `flutter pub get` lub `flutter gen-l10n`.
+- Tryby pracy — etykiety w **`work_mode_strings.dart`**; etykiety Play / Pause / Stop jako stałe angielskie w obu locale (świadomy wybór w kodzie).
+
+### 2.4. Statystyki (`StatsTab`)
+
+- **`refreshStatsEntries`** ładuje od wcześniejszej z dat: pierwszy dzień bieżącego miesiąca **albo** poniedziałek tygodnia ISO — żeby wykres tygodnia miał dane z sąsiedniego miesiąca w tym samym tygodniu kalendarzowym.
+- Kafelki „Ten miesiąc” i średnie liczą tylko wpisy z **bieżącego miesiąca kalendarzowego**.
+- Wykres słupkowy: `LayoutBuilder` + `SizedBox` (jawna wysokość słupka).
+- **Rozliczenia:** `StatsService.buildBillingEstimate` — `isBillable`, typ pracy, stawka w `Workspace`, **grupowanie po walucie** (brak przeliczania między walutami).
+
+### 2.5. Kalendarz (`CalendarTab`)
+
+- Źródło: **`TimerCubit.statsEntries`** po **`refreshStatsEntries`** dla zakresu pierwszy–ostatni dzień wyświetlanego miesiąca.
+- Markery: kolor z `Workspace.colorHex` → `workspaceAccentColor`.
+
+### 2.6. Eksport CSV / PDF (`HistoryTab`, raport projektu)
+
+- Sortowanie listy / eksportu: **malejąco po `start`**.
+- **CSV:** `workEntriesToCsv` — BOM UTF-8, separator `;` (pl) / `,` (inne locale); kolumny m.in. `entryType`, `isBillable`, `taskTitle`, `note`.
+- **PDF:** `buildWorkEntriesPdfDocument` — pakiet **`pdf`**, A4 poziom, czcionka **`assets/fonts/NotoSans-Regular.ttf`** (UTF-8 / PL).
+- **Udostępnianie:** `getTemporaryDirectory` + **`share_plus`**.
+- **Zapis lokalny:** **`saveExportWithPicker`** (`export_save.dart`) — Android/iOS: bajty przez `file_picker`; desktop: ścieżka z dialogu; web: komunikat zachęcający do share.
 
 ---
 
-## 4. Autentykacja i Firestore
+## 3. Przepływ aplikacji i Auth
 
-- **Auth:** e-mail/hasło, reset hasła (`AuthService` / Firebase API).
-- **Firestore** (wysokopoziomowo):
-  - `users/{uid}/entries/{entryId}` — wpisy z **timera / historii mobile** oraz z **panelu pracodawcy** (CRUD); dokument może mieć dodatkowe pola (`editedAt`, `createdVia`, …), które mobile ignoruje przy parsowaniu; **soft delete** = `isDeleted: true`; szczegóły kompatybilności: **[DATA_CONTRACT.md](DATA_CONTRACT.md)** (sekcja o `entries`).
-  - `users/{uid}/workspaces/{workspaceId}` — projekty; udostępnianie per workspace: **nazwa firmy + służbowy e-mail** (mobile nie zbiera e-maila pracodawcy). Zapis: `FirebaseWorkStore` + `workspaceFirestoreMergeWrite` (usuwa legacy `linkedEmployerEmails` przy zapisie shared). Indeks **`employeeWorkEmailIndex`** synchronizowany z `WorkRepository` / `EmployeeWorkEmailIndexService`. Szczegóły: **[DATA_CONTRACT.md](DATA_CONTRACT.md)**.
-  - `users/{uid}/live/status` — **stan na żywo** timera / online dla **panelu pracodawcy** (nie mylić z historią wpisów — patrz § 4b).
-  - `users/{uid}/profile/main` — globalny profil pracownika (imię, nazwisko, e-mail; Ustawienia w aplikacji).
-  - `users/{uid}/legal/consents` — **akceptacja regulaminu i polityki prywatności** (jeden dokument); wymagany przed wejściem do `HomeShell`; pola i reguły: **[DATA_CONTRACT.md](DATA_CONTRACT.md)** (sekcja „Zgody prawne”).
-  - `userEmailIndex/{emailLower}` — indeks pod panel pracodawcy (m.in. `uid`, `firstName`, `lastName`, `displayName`, `email`, `providerIds`); synchronizowany przy auth i przy zapisie profilu (`UserEmailIndexService`).
-- **Legacy (bez migracji):** w starszych dokumentach `workspaces` mogą występować pola `employeeFirstName` / `employeeLastName` — **aplikacja ich już nie czyta ani nie zapisuje**; imię i nazwisko są wyłącznie w profilu globalnym / `userEmailIndex`.
-- **Reguły:** plik **`firestore.rules`** w repozytorium — **wdroż całość** (konsola lub `firebase deploy --only firestore:rules`). Reguły muszą obejmować **obie** podkolekcje (`entries` **i** `workspaces`). Same reguły tylko dla `entries` skutkują **`permission-denied`** przy zapisie/odczycie workspace’ów i po reinstalacji „znikały” workspace’y w chmurze.  
-  **Produkcja (panel pracodawcy):** docelowo odczyt `live/status`, `entries`, `workspaces` itd. powinien być ograniczony do pracodawców powiązanych z pracownikiem (np. lista `trackedEmployees` / membership) — obecne reguły MVP mogą być szersze; doprecyzuj je przed produkcyjnym wdrożeniem panelu.
+1. **`main.dart`** — `Firebase.initializeApp`, `SharedPreferences` → **`SettingsCubit`**, singletony `AuthService`, `WorkRepository`; **`MaterialApp`** z motywem i delegatami l10n.
+2. **`AuthGate`** (StatefulWidget):
+   - `BlocListener` na `AuthCubit` — przy zmianie użytkownika **`_onAuthChanged`** (m.in. unmount `TimerCubit`).
+   - Dla **zalogowanego**: najpierw **`LegalConsentRepository.checkGate`** na `users/{uid}/legal/consents`. Jeśli brak lub nieważne zgody → **`LegalConsentScreen`**. Po sukcesie → **`TimerCubit`**, **`await init()`** (timeout 15 s), minimalny czas splash (~520 ms), potem **`HomeShell`**.
+   - Przy błędzie odczytu zgód offline — Retry / wyloguj (bez pętli nawigacji).
+3. **Auth:** e-mail/hasło, reset hasła (`AuthService`). **`userEmailIndex/{emailLower}`** aktualizowany przy logowaniu i zapisie profilu (`UserEmailIndexService`).
 
 ---
 
-## 4b. Live status — `users/{uid}/live/status`
+## 4. Legal consent flow
 
-**Cel:** jeden dokument w podkolekcji **`live`** (id dokumentu **`status`**) z **aktualnym** stanem: czy aplikacja uważa użytkownika za „online”, w jakim stanie jest timer, który projekt jest aktywny, oraz pola pomocnicze do wyświetlenia / szacunku kwoty na panelu.  
-**Wpisy `entries`** to **historia i raporty** (źródło prawdy dla czasu przepracowanego); **`live/status`** to wyłącznie **podgląd realtime** dla UI panelu (nie zastępuje historii ani eksportów).
+- **Ścieżka:** `users/{uid}/legal/consents` (dokument id `consents`).
+- **Gate:** bez poprawnego dokumentu użytkownik **nie** dostaje `TimerCubit` / `HomeShell`.
+- **Zapis:** `LegalConsentRepository.saveAcceptance` — wersje z `lib/config/legal_versions.dart`; opcjonalnie `acceptedPlatform` z `defaultTargetPlatform` / web.
+- **Walidacja klienta:** `LegalConsentRecord.tryParse` — brak wymaganych pól lub `false` na zgodach → ponowny ekran.
+- **Reguły:** `hasValidLegalConsentsShape` w `firestore.rules` — tylko owner `{uid}`; `delete` zabronione. Szczegół pól: **[DATA_CONTRACT.md](DATA_CONTRACT.md)**.
 
-### Pola dokumentu
+---
+
+## 5. Firestore — kolekcje i dokumenty (mobile + współdzielenie z panelem)
+
+| Ścieżka | Rola |
+|---------|------|
+| `users/{uid}/entries/{entryId}` | Historia sesji i wpisów ręcznych — **źródło prawdy** czasu; mobile + (reguły) panel. |
+| `users/{uid}/workspaces/{workspaceId}` | Projekty: nazwa, kolor, archiwum, stawka, udostępnienie, pola firmy / work email. |
+| `users/{uid}/live/status` | **Podgląd realtime** timera / online dla panelu — **nie** zastępuje `entries`. |
+| `users/{uid}/profile/main` | Profil globalny (imię, nazwisko, e-mail w UI). |
+| `users/{uid}/legal/consents` | Zgody ToS / Privacy — gate po logowaniu. |
+| `userEmailIndex/{emailLower}` | Lookup UID + metadane po e-mailu **konta** Firebase (panel). |
+| `employeeWorkEmailIndex/{workEmailLower}` | Lookup UID + `workspaceIds` po **służbowym** e-mailu z udostępnionych workspace’ów — utrzymywany przez **mobile**. |
+| `employers/{employerUid}/…` | Metadane panelu: śledzeni pracownicy, **trackedWorkspaces**, grupy — zapisuje **panel**, nie mobile. |
+
+**Legacy:** w starych dokumentach `workspaces` mogą być `employeeFirstName` / `employeeLastName` — aplikacja **nie** zapisuje ich w nowym flow; imię/nazwisko w profilu globalnym / `userEmailIndex`.
+
+---
+
+## 6. Udostępnianie workspace dla panelu
+
+- Mobile **nie** zbiera listy e-maili pracodawców. Pole **`linkedEmployerEmails`** może istnieć w starych danych — przy zapisie udostępnionego projektu merge (**`workspaceFirestoreMergeWrite`**) **usuwa** je z Firestore (`FieldValue.delete()`).
+- **Udostępniony** workspace (`isSharedWithEmployer == true`): wymagane w UI m.in. **`companyName`**, **`employeeWorkEmail`** (trim, lower), opcjonalnie **`companySlug`**; **`employeeWorkEmailDomain`** wyliczane z części po `@`.
+- **Prywatny** workspace: `isSharedWithEmployer: false` oraz merge usuwa pola sharingu i legacy.
+- **`companySlug`:** stabilny (ręczny > z dokumentu > wyliczenie z nazwy) — `normalizeCompanySlug` / `resolveCompanySlugForSave`.
+- Po zapisie listy workspace’ów wywoływane jest **`EmployeeWorkEmailIndexService.reconcile`** (z `WorkRepository`), żeby indeks **`employeeWorkEmailIndex`** odzwierciedlał wszystkie aktywne pary work email ↔ workspace.
+
+Dostęp **pracodawcy** do danych pracownika w Firestore jest realizowany przez reguły z **`trackedWorkspaces`** (patrz § 12), a nie wyłącznie przez „śledzenie UID”.
+
+---
+
+## 7. Model wpisów `entries`
+
+Wymagane pola i walidacja w regułach: **`workspaceId`**, **`start`**, **`end`**, **`mode`**, **`updatedAt`**, **`isDeleted`**; opcjonalnie m.in. **`taskTitle`**, **`note`**, **`isBillable`**, **`entryType`**, **`billingRatePercent`**, pola audytu (**`editedAt`**, **`editedBy`**, **`createdBy`**, **`createdVia`**).
+
+- **Mobile:** timer i historia; soft delete = `isDeleted: true` (brak fizycznego `delete` dokumentu w regułach).
+- **Panel:** przy spełnieniu `employerEntryCreateValid` / `employerEntryUpdateValid` może tworzyć/aktualizować wpisy z **`createdVia: 'employer_panel'`** i **`createdBy`** = UID pracodawcy — mobile **parsuje** wpisy do modelu `WorkEntry`; dodatkowe pola audytu są tolerowane; merge zapisu tam, gdzie używany jest `SetOptions(merge: true)`, nie muszą ginąć przy aktualizacji z mobile.
+- **`billingRatePercent`:** dozwolone wartości w regułach (int/float dla wpisów); w logice statystyk nieznana wartość może być traktowana jak 100% — patrz **[DATA_CONTRACT.md](DATA_CONTRACT.md)**.
+- **`entryType`:** brak lub nieznany string → fallback **`work`** (`entryTypeFromStorage`).
+- **Nieważny przedział** (`start >= end`): czas trwania jak zero; wpis pomijany w agregatach (`countsInTimeAggregates`).
+
+---
+
+## 8. Offline: cache, kolejka, ochrona przed nadpisaniem edycji z webu
+
+- **Pełna historia** docelowo w Firestore; **lokalnie** (`LocalCacheStore`): cache bieżącego miesiąca per workspace, kolejka **pending** wpisów (`work_entries_pending_v2`), kolejka **`upsertWorkspace`** przy offline (`workspaces_remote_pending_v1`), lista workspace’ów, aktywny workspace, migracja legacy `work_entries_v1` → workspace `default`.
+- **Merge przy online:** dla „bieżący miesiąc” wynik Firestore jest scalany z cache (uniknięcie znikania świeżych wpisów przed sync).
+- **`syncPending` (`WorkRepository`):** przed `upsert` wpisu z kolejki pobierany jest **`fetchEntry`**; jeśli **`remote.updatedAt` jest nowszy** niż `entry.updatedAt` w kolejce, mobile **pomija** ten upsert (wygrywa edycja z panelu / innej sesji). To jest główna ochrona przed **konfliktem offline vs web**.
+- **Workspace:** `FirebaseWorkStore.fetchWorkspaces` pobiera całą kolekcję (w tym zarchiwizowane); filtrowanie aktywnych w UI. Uszkodzony pojedynczy dokument nie przerywa importu.
+- **Aktywny projekt:** po zapisie / wczytaniu repozytorium stara się wskazać pierwszy **niezarchiwizowany** workspace (best effort).
+- **Timer session:** JSON w prefs zgodny z Kotlinem (`flutter.timer_session_v1`), spójny z `LocalTimerSession`.
+
+---
+
+## 9. Live status — `users/{uid}/live/status`
+
+**Cel:** jeden dokument (`live` / id `status`) z **bieżącym** stanem: online z perspektywy panelu, stan timera, aktywny projekt, pola do szacunku kwoty „w locie”. **`entries`** = historia i rozliczenia końcowe; **`live/status`** tylko podgląd dla UI panelu.
+
+### Pola (skrót)
 
 | Pole | Znaczenie |
 |------|-----------|
-| `uid` | Identyfikator użytkownika Firebase (spójność z ścieżką). |
-| `isOnline` | `true` gdy timer w stanie **running** lub **paused** (użytkownik „w pracy” z perspektywy panelu), albo gdy timer **idle** ale aplikacja w **foreground** (`resumed`). Przy **idle** w tle — `false` (chyba że timer nie jest idle — wtedy zostaje `true`). |
-| `timerState` | String: `idle` \| `running` \| `paused` — zsynchronizowany z `TimerCubit` / lifecycle (patrz `LiveTimerState`). |
-| `activeWorkspaceId` | Id aktywnego projektu (`Workspace.id`). |
-| `activeCompanySlug` | Slug firmy z projektu (pusty string jeśli brak). |
-| `activeWorkspaceName` | Nazwa projektu do wyświetlenia. |
-| `sessionStartedAt` | `Timestamp` — początek **bieżącego segmentu** `running` (kotwica `resumeAt`); przy `paused` / `idle` usuwane (`FieldValue.delete()`). Panel liczy czas: `accumulatedSecondsBeforePause + (now - sessionStartedAt)` gdy `running`. |
-| `sessionPausedAt` | `Timestamp` — moment ostatniej pauzy (MVP zapis przy przejściu w `paused`); przy `running` / `idle` usuwane. |
-| `accumulatedSecondsBeforePause` | Sekundy **zakończonych** segmentów przed bieżącym `running`; przy `paused` to pełna suma do momentu pauzy; przy `idle` = `0`. |
-| `billingRatePercent` | MVP: stałe `100` (późniejszy wybór procentu rozliczenia). |
-| `hourlyRate` | Stawka z aktywnego projektu; **brak stawki** → pole **usunięte** (nie `0`, żeby nie mylić z prawdziwą zerową stawką). |
-| `currency` | Kod waluty (np. PLN) lub **usunięte** gdy brak poprawnej waluty. |
-| `lastSeenAt` | `serverTimestamp` — ostatni kontakt (sync lub heartbeat). |
-| `updatedAt` | `serverTimestamp` — jak wyżej. |
+| `uid` | Zgodne z ścieżką i `request.auth.uid` przy zapisie (reguły). |
+| `isOnline` | m.in. `true` przy `running`/`paused`, lub `idle` w foreground; przy `idle` w tle zwykle `false`. |
+| `timerState` | `idle` \| `running` \| `paused`. |
+| `activeWorkspaceId` / `activeCompanySlug` / `activeWorkspaceName` | Kontekst wyświetlania. |
+| `sessionStartedAt` | Kotwica bieżącego segmentu `running`; przy `paused`/`idle` usuwane. |
+| `sessionPausedAt` | Ostatnia pauza; przy `running`/`idle` usuwane. |
+| `accumulatedSecondsBeforePause` | Zakończone segmenty przed bieżącym `running`. |
+| `billingRatePercent` | MVP często stałe `100`; reguły dopuszczają zestaw procentów. |
+| `hourlyRate` / `currency` | Ze stawki aktywnego projektu lub usunięte, jeśli brak sensownej wartości (nie `0` jako fałszywa stawka). |
+| `lastSeenAt`, `updatedAt` | `serverTimestamp` / heartbeat. |
 
-### Kiedy mobile aktualizuje dokument
+### Kiedy mobile aktualizuje
 
-- **Logowanie:** `markSignedIn` — szkic dokumentu (`idle`, puste workspace, usunięte stawki/sesja).  
-- **Wylogowanie:** `markSignedOut` — `idle`, `isOnline: false`, czyszczenie pól sesji ( **`await` przed `signOut()`** ).  
-- **Start timera (play):** natychmiast `syncFromTimerState` z `TimerCubit` (`timerState: running`, …).  
-- **Pauza / wznowienie / stop:** `syncFromTimerState` po zmianie stanu.  
-- **Init timera / zmiana projektu / zapis projektu:** `syncFromTimerState` po odświeżeniu stanu.  
-- **`AppLifecycleState.resumed`:** `syncFromNativeStoresOnResume` (Android: hydracja z natywy), potem `syncFromTimerState`.  
-- **`paused` / `detached`:** `syncFromTimerState` (żeby `isOnline` odzwierciedlało idle vs timer w tle).  
-- **Heartbeat (~45 s):** tylko `lastSeenAt` + `updatedAt` (merge), gdy użytkownik zalogowany i (foreground **lub** timer ≠ idle).
+Logowanie (`markSignedIn`), wylogowanie (`markSignedOut` **await** przed `signOut`), play/pause/stop (`syncFromTimerState`), init / zmiana projektu, `AppLifecycleState.resumed` (`syncFromNativeStoresOnResume` → `syncFromTimerState`), `paused`/`detached`, **heartbeat ~45 s** (merge `lastSeenAt` + `updatedAt`).
 
-Implementacja: `LiveStatusService`, binding lifecycle: `LiveStatusAppBinding` + `AuthGate` / `_TimerResumeSyncScope`.
+Implementacja: **`LiveStatusService`**, **`LiveStatusAppBinding`**, integracja w **`AuthGate`**.
+
+**Konsumpcja w panelu:** odczyt dokumentu + liczenie czasu dla `running` z `sessionStartedAt` + `accumulatedSecondsBeforePause` (szczegół semantyki w kodzie panelu; kontrakt pól: ten dokument + **[DATA_CONTRACT.md](DATA_CONTRACT.md)**).
 
 ---
 
-## 5. Strategia danych lokalnych vs chmura
+## 10. Android: widget, serwis, synchronizacja
 
-- **Pełna historia** w Firestore (powyższe ścieżki).
-- **Lokalnie** (`LocalCacheStore`):
-  - cache bieżącego miesiąca per workspace,
-  - kolejka **pending** wpisów (`work_entries_pending_v2`) oraz przy offline/błędzie sieci kolejka **`upsertWorkspace`** (`workspaces_remote_pending_v1`),
-  - list workspace’ów i aktywny workspace,
-  - migracja legacy `work_entries_v1` → workspace `default` (jednorazowo).
-- **Merge przy online:** dla zakresu „bieżący miesiąc” wynik Firestore jest scalany z lokalnym cache miesiąca (uniknięcie „znikania” świeżych wpisów przed sync).
-- **Workspace w Firestore:** `FirebaseWorkStore.fetchWorkspaces` pobiera **całą** kolekcję (również zarchiwizowane dokumenty) i zwraca listę dla merge w repozytorium; **filtrowanie** „aktywnych” vs archiwum odbywa się w UI (`TimerTab`, `WorkspacesTab`). Dokumenty bez pola `isArchived` nadal działają; pojedynczy uszkodzony dokument nie przerywa importu.
-- **Aktywny projekt przy archiwum:** po wczytaniu stanu lub zapisie projektu `WorkRepository` stara się ustawić aktywny kontekst na pierwszy **niezarchiwizowany** (best effort).
-- **Timer session** — JSON w `SharedPreferences` pod kluczem zgodnym z zapisem Kotlin (`flutter.timer_session_v1`), spójny format z `LocalTimerSession`.
+**Przepływ:** `Flutter` → **`TimerServiceBridge`** (MethodChannel `work_timer/service_control`) → **`WorkTimerForegroundService`** → **SharedPreferences** (Flutter prefs + `home_widget`) → odświeżenie widgetu.
 
----
+### Foreground service
 
-## 6. Android: widget, serwis, synchronizacja
+- Akcje: `PLAY`, `PAUSE`, `STOP`, `SYNC`, `PREVIOUS_WORKSPACE`, `NEXT_WORKSPACE`.
+- Ticker ~1 s: stan, notyfikacja, widoki widgetu.
+- **`persistAndRender`:** prefs + JSON sesji do Flutter SharedPreferences + **lustro JVM** (`publishMirrorForFlutter`).
 
-**Przepływ danych (widget, jedna linia):**  
-`Flutter` → `TimerServiceBridge` (**MethodChannel** `work_timer/service_control`) → **Kotlin** `WorkTimerForegroundService` → **SharedPreferences** (Flutter prefs + `home_widget`) → aktualizacja **AppWidgetProvider** / widoku na launcherze.
+### MethodChannel (`MainActivity`)
 
-### 6.1 Foreground service
+- Metody: `play`, `pause`, `stop`, `sync`, **`getNativeTimerSnapshot`**, **`syncWidgetWorkspaces`**, **`getWidgetWorkspaceSelection`**.
 
-- `WorkTimerForegroundService` — akcje: `PLAY`, `PAUSE`, `STOP`, `SYNC`, `PREVIOUS_WORKSPACE`, `NEXT_WORKSPACE`.
-- **Ticker** co ~1 s aktualizuje stan, notyfikację i widoki widgetu.
-- **`persistAndRender`** — zapis do `HomeWidgetPreferences` + JSON sesji do `FlutterSharedPreferences` + **lustro stanu JVM** (`publishMirrorForFlutter`) dla szybkiego odczytu z Fluttera.
+### Spójność Flutter ↔ native
 
-### 6.2 MethodChannel
+- Po **`handleSync`** w Kotlinie przy `running` reset kotwicy czasu (`resumeAtMs`) po uwzględnieniu `elapsedSeconds`, żeby uniknąć rozjazdu z tickiem po sterowaniu z widgetu.
+- **`syncFromNativeStoresOnResume`:** `reload()` prefs, hydratacja z lustra JVM, wyrównanie **`activeWorkspaceId`**, `loadEntries` przy zmianie z widgetu, odświeżenie statów — **`TimerCubit.syncFromNativeStoresOnResume`**.
+- **Auth:** `auth_native_sync.dart` → `flutter.auth_signed_in_for_native_v1`; Kotlin `AuthPrefs` steruje intencjami widgetu.
 
-- Kanał: `work_timer/service_control` w **`MainActivity`**.
-- Metody: `play`, `pause`, `stop`, `sync`, **`getNativeTimerSnapshot`**, **`syncWidgetWorkspaces`**, **`getWidgetWorkspaceSelection`** (mapa: activeWorkspaceId, workspaceName).
-- Flutter: `TimerServiceBridge`.
+### Widget UI i przełączanie workspace (idle)
 
-### 6.3 Spójność Flutter ↔ native
-
-- Przy **`handleSync`** w Kotlinie, po zastosowaniu `elapsedSeconds` w stanie **running**, resetowana jest kotwica czasu (`resumeAtMs`), aby uniknąć rozjazdu z tickiem po wcześniejszym sterowaniu z widgetu.
-- Przy wznowieniu aktywności Flutter wywołuje **`syncFromNativeStoresOnResume`**: `reload()` SharedPreferences, hydratacja z **lustra JVM** (priorytet), wyrównanie **`WorkRepository.activeWorkspaceId`** przy ID z lustra (żeby cache miesiąca/kolejki czytać ten sam **`workspaceId`**, który przy **STOP** zapisuje Kotlin), **`loadEntries` dla bieżącego zakresu** gdy przełączenie z widgetu już zsynchronizowane, potem refresh statów — patrz **`TimerCubit.syncFromNativeStoresOnResume`**; fallback prefs / home_widget w ścieżce bez lustra.
-- **Auth widget:** `auth_native_sync.dart` zapisuje `flutter.auth_signed_in_for_native_v1` (`1`/`0`); `AuthPrefs` w Kotlinie steruje intencjami widgetu (otwarcie aplikacji vs start serwisu).
-
-### 6.4 Widget UI
-
-- `WorkTimerWidgetProvider` — odczyt prefs; przy braku sesji pokazuje stan „zablokowany” i otwiera `MainActivity`.
-- **`WorkTimerWidgetUi`** — wspólne budowanie `RemoteViews` dla providera i serwisu (nagłówek z ‹/›, status, timer, kontrolki).
-
-### 6.5 Widget — przełączanie workspace (tylko przy idle)
-
-- **Źródło listy:** Flutter zapisuje JSON workspace’ów (`id` + `name`) w **`HomeWidgetPreferences`** pod kluczem `widget_workspaces_json` oraz aktualny wybór (`activeWorkspaceId`, `workspaceName`) metodą MethodChannel **`syncWidgetWorkspaces`** (`TimerServiceBridge`), wywoływaną przed każdym `sync` timera w **`TimerCubit._writeWidgetSnapshot`**.
-- **Przełączanie ‹/›:** intencje **`ACTION_PREVIOUS_WORKSPACE`** / **`ACTION_NEXT_WORKSPACE`** → `WorkTimerForegroundService`. Jeśli w prefs `runState` to `running` lub `paused`, indeks się nie zmienia — tylko odświeżenie widoku. Przy `idle` następuje cykliczna zmiana indeksu po lokalnej liście i zapis `activeWorkspaceId` / `workspaceName`.
-- **Flutter:** przy starcie i przy **`syncFromNativeStoresOnResume`** metoda **`getWidgetWorkspaceSelection`** — jeśli timer jest **idle** i ID z Androida występuje w załadowanej liście repo, wywoływane jest **`setActiveWorkspace`** (bez zmiany kolejki Firebase z poziomu widgetu).
-
-### 6.6 iOS (WidgetKit, App Groups, różnice względem Androida)
-
-- **Brak ForegroundService** — timer żyje w **Flutter + `LocalCacheStore`**; stan oparty o **`sessionStart` / `resumeAt` / `accumulated`** (timestampy), a nie o tick w tle na iOS.
-- **MethodChannel** `work_timer/service_control` w **`AppDelegate.swift`**: `sync`, `syncWidgetWorkspaces`, `play`/`pause`/`stop` (no-op + odświeżenie timeline), `getNativeTimerSnapshot` (lustro z App Group), `getWidgetWorkspaceSelection`, `reloadWidgets`.
-- **App Group** (to samo ID w Runner i w rozszerzeniu): `group.com.worktimer.workTimer`; zapis przez **`UserDefaults(suiteName:)`** — klucze `wt_*` (m.in. `wt_runState`, `wt_selectedWorkspaceId`, `wt_startTimestampMs`, `wt_elapsedSeconds`, `wt_pausedAccumulatedSeconds`, `wt_resumeAtMs`, `wt_workspacesJson`, `wt_lastUpdatedAtMs`).
-- **WidgetKit:** kod źródłowy w **`ios/WorkTimerWidgetExtension/`** (`WorkTimerWidget.swift`, `Info.plist`, `WorkTimerWidgetExtension.entitlements`). W Xcode trzeba **dodać target Widget Extension**, wskazać te pliki, ustawić **App Groups** jak w Runner, osadzić appex (Embed Foundation Extensions). Repozytorium dostarcza kod — pełna konfiguracja targetu jest po stronie Xcode (Team / podpisy).
-- **Deep link** `worktimer://` — w **`Info.plist`** Runnera; **`IosDeepLinkNav`** + kanał `work_timer/deeplink` (`onOpenUrl`). Indeks zakładki z deep linku jest **obcinany do zakresu 0…5** (kolejność w `HomeShell`: Timer, Historia, Statystyki, Kalendarz, Projekty, Ustawienia); historyczny adres `…/workspaces` mapuje się na zakładkę **Projekty** (indeks **4**).
-- **Throttle:** `TimerCubit` wysyła pełny `sync` do iOS co **~15 s** podczas `running`, żeby nie obciążać bridge co sekundę; przy zdarzeniach dyskretnych (`play`/`pause`/`stop`/zmiana workspace) synchronizacja jest natychmiastowa.
-- **Widget iOS:** podgląd — workspace, status (Idle / Running / Paused), czas (dla `running` liczony z `resumeAt` + `pausedAccumulatedSeconds` w Swift). Tap na nazwie workspace → `worktimer://workspaces`. Sterowanie timera z widgetu **App Intents** nie jest wymagane na tym etapie (można dodać później z zapisem do App Group + `WidgetCenter.reloadAllTimelines()`).
+- Lista workspace’ów: JSON w prefs (`widget_workspaces_json`), synchronizacja **`syncWidgetWorkspaces`** z **`TimerCubit._writeWidgetSnapshot`**.
+- Przy `running`/`paused` przyciski ‹/› nie zmieniają indeksu.
+- Flutter przy starcie / resume: **`getWidgetWorkspaceSelection`** + **`setActiveWorkspace`** gdy timer `idle` i ID jest na liście repo.
 
 ---
 
-## 7. Splash / bootstrap
+## 11. iOS: WidgetKit, App Groups, deep link
 
-- **`SplashLoadingView`** — pełnoekranowy gradient + animacja; wyświetlany przy `AuthCubit.loading` oraz przy zalogowanym użytkowniku do momentu zakończenia `TimerCubit.init`. Teksty tytułu i „ładowanie…” z **l10n**; gradient i warstwy nadal z **`AppColors`** (stały „ekran marki”, nie przełącza się z motywem systemowym — celowo).
-- **Android `launch_background`** — kolor spójny z gradientem, ograniczenie białego flasha przed pierwszym frame’m Fluttera (`values/colors.xml`, `drawable/launch_background.xml`).
-
----
-
-## 7a. Motyw (jasny / ciemny)
-
-- **`AppColors`** — paleta marki + powierzchnie jasne; osobne stałe **`surface*Dark`**, **`borderInputIdleDark`**, **`brandNavIndicatorDark`**; metoda **`colorSchemeFor(Brightness)`** łączy `ColorScheme.fromSeed(brandPrimary)` z tymi warstwami w trybie ciemnym.
-- **`buildWorkTimerTheme(brightness)`** (`app_theme.dart`) — `colorScheme`, `textTheme` z **`AppTypography.textTheme`**, `CardTheme`, `InputDecorationTheme`, `FilledButton`, `NavigationBarTheme`, `dividerTheme`, `appBarTheme`.
-- **Ustawienia użytkownika** — `SettingsTab` + `SettingsCubit`: `AppLocalePreference` (system / pl / en), `ThemeMode` (light / dark / system), **`showDebriefAfterStop`** (dialog podsumowania po zatrzymaniu timera); persystencja w `SharedPreferences`.
+- **Brak ForegroundService** — timer w Flutter + `LocalCacheStore`; timestampy `sessionStart` / `resumeAt` / `accumulated`.
+- **MethodChannel** w `AppDelegate.swift`: jak Android + `reloadWidgets`; throttle pełnego `sync` ~**15 s** w `running`, natychmiast przy zdarzeniach dyskretnych.
+- **App Group:** `group.com.worktimer.workTimer`; klucze `wt_*` w `UserDefaults(suiteName:)`.
+- **Rozszerzenie:** kod w **`ios/WorkTimerWidgetExtension/`** — w Xcode trzeba dodać target, capabilites, embed appex (Team).
+- **Deep link** `worktimer://` — `Info.plist`, **`IosDeepLinkNav`**, kanał `work_timer/deeplink`. Indeks zakładki **0…5** (Timer … Ustawienia); legacy `…/workspaces` → zakładka Projekty (**4**).
+- **Widget:** podgląd workspace, status, czas z App Group; tap na nazwie → `worktimer://workspaces`.
 
 ---
 
-## 7b. Wielojęzyczność (ARB)
+## 12. Reguły Firestore — założenia dla tej aplikacji
 
-- Pliki **`lib/l10n/app_en.arb`** (szablon) i **`app_pl.arb`**; konfiguracja **`l10n.yaml`**; w **`pubspec.yaml`**: `flutter: generate: true`.
-- W kodzie: `AppLocalizations.of(context)!` (import `lib/l10n/app_localizations.dart`). Po zmianie ARB: `flutter pub get` lub `flutter gen-l10n` — wygenerowane pliki `app_localizations*.dart` w `lib/l10n/`.
-- Tryby pracy (`WorkMode`) — etykiety przez rozszerzenie **`work_mode_strings.dart`**; etykiety **Play / Pause / Stop** tłumaczone jako stałe angielskie w obu locale.
+Plik **`firestore.rules`** w repozytorium musi być wdrożony **w całości** (`firebase deploy --only firestore:rules` lub konsola). Poniżej skrót semantyki istotnej dla mobile i panelu:
 
----
+- **Funkcje pomocnicze:** m.in. `employerTracksUser(employeeUid)` (dokument pod `employers/{employerUid}/trackedEmployeeUids/{employeeUid}`), **`employerHasTrackedWorkspace(employeeUid, workspaceId)`** (dokument pod **`employers/{employerUid}/trackedWorkspaces/{employeeUid_workspaceId}`**), `trackedWorkspaceId` = konkatenacja `employeeUid + '_' + workspaceId`.
+- **`users/{uid}/entries`:** odczyt dla pracodawcy tylko gdy **`employerHasTrackedWorkspace(uid, resource.data.workspaceId)`**; create/update z panelu wymaga tego samego + pól audytu (`createdVia: employer_panel'` itd. wg funkcji w rules).
+- **`users/{uid}/workspaces`:** odczyt — owner **lub** `employerHasTrackedWorkspace` **lub** (`employerTracksUser` **i** `isSharedWithEmployer == true`); aktualizacja billingu (**hourlyRate**, **currency**, **currencyCode**, **updatedAt** tylko) dla pracodawcy z **`hasValidWorkspaceBillingPatch`** przy `employerHasTrackedWorkspace`.
+- **`users/{uid}/live/status`:** zapis wyłącznie **owner**; odczyt owner lub `employerTracksUser` (podgląd statusu dla śledzonego pracownika).
+- **Indeksy** `userEmailIndex`, `employeeWorkEmailIndex` — kształty walidowane funkcjami `hasValid*Shape`; zapis `employeeWorkEmailIndex` tylko gdy `data.uid == request.auth.uid`.
+- **Employer:** `trackedEmployees`, `trackedEmployeeUids`, **`trackedWorkspaces`**, `groups` — read/write dla `isOwner(employerUid)`; shape `trackedWorkspaces` wymaga m.in. zgodnego `accessId`, `employerTracksUser(employeeUid)` oraz **`workspaceIsSharedForEmployer`** (dokument workspace ma `isSharedWithEmployer == true`).
+- **Catch-all:** `match /{document=**}` → deny — brak przypadkowych leaków.
 
-## 7c. Statystyki (`StatsTab`)
+**Wdrożenie deweloperskie (Firebase):**
 
-- **`refreshStatsEntries`** (domyślnie) ładuje wpisy od **wcześniejszej** z dat: pierwszy dzień bieżącego miesiąca **albo** poniedziałek tygodnia ISO (`weekStartMonday`). Dzięki temu przy początku miesiąca wykres „Podsumowanie tygodnia” ma dane także z dni leżących w poprzednim miesiąku, ale w tym samym tygodniu kalendarzowym.
-- Kafelki **„Ten miesiąc”**, liczba sesji i średnia liczą tylko wpisy z **bieżącego miesiąca kalendarzowego** (niezależnie od rozszerzonego zakresu pobrania).
-- **Wykres słupkowy:** kubełki z `weekDayDurations` / suma z `entriesInCurrentWeek`; rysowanie przez **`LayoutBuilder` + `SizedBox`** (jawna wysokość słupka) — unika niewidocznych słupków przy starszym wzorcu `FractionallySizedBox` + `DecoratedBox` bez dziecka.
-- **Rozliczenia (szacunek):** `StatsService.buildBillingEstimate` — sumy czasu z `WorkEntry.isBillable` vs brak flagi; kwoty tylko dla wpisów typu **praca** + billable + dodatnia stawka w `Workspace`, **grupowanie po kodzie waluty** (brak przeliczania między walutami). UI: kafelki + lista linii per waluta.
-
----
-
-## 7d. Kalendarz (`CalendarTab`)
-
-- Źródło danych: **`TimerCubit.statsEntries`** po **`refreshStatsEntries`** z zakresem **od pierwszego do ostatniego dnia wyświetlanego miesiąca** (przy zmianie strony kalendarza).
-- Markery dni: kropki w kolorze projektu (`Workspace.colorHex` → `workspaceAccentColor`).
-- Szczegóły wpisów pod wybranym dniem: czas trwania, przedział godzin, etykieta projektu (l10n).
-
----
-
-## 7e. Eksport CSV / PDF (`HistoryTab`, `ProjectReportScreen`)
-
-- **Sortowanie w UI eksportu / listy Historii:** po filtrach zakres i trybu — kolejność **malejąca po polu `start`** (najpierw najnowsza sesja), spójna dla widoku listy oraz CSV/PDF.
-- **CSV:** **`workEntriesToCsv`** (`lib/export/work_entries_csv.dart`) — BOM UTF-8, separator `;` dla locale `pl`, `,` w pozostałych; kolumny m.in. `entryType`, `isBillable`, `taskTitle`, `note`.
-- **PDF:** **`buildWorkEntriesPdfDocument`** (`lib/export/work_entries_pdf.dart`) — pakiet **`pdf`**, format A4 poziom, tabela z nagłówkami; **osadzona czcionka** **`assets/fonts/NotoSans-Regular.ttf`** (Google Noto Sans OFL) dla poprawnego **UTF-8 / polskich znaków**.
-- **Udostępnianie (`share`):** zapis tymczasowy w **`getTemporaryDirectory`**, **`SharePlus`** (CSV: `text/csv`, PDF: `application/pdf`).
-- **Zapis lokalny:** **`saveExportWithPicker`** w **`lib/utils/export_save.dart`** — na **Androidzie / iOS** przekazywane są **bajty** do **`FilePicker.platform.saveFile`** (wymóg `file_picker`; zapis przez SAF / document picker na URI), na **desktop** dialog ścieżki potem **`dart:io` `File.writeAs…`**; na **web** komunikat zachęcający do udostępniania.
-- **UI:** menu (**`PopupMenuButton`**) w Historii; raport projektu — analogicznie.
+1. Projekt Firebase: **Authentication** (e-mail/hasło), **Firestore**.
+2. **FlutterFire CLI:**  
+   `dart pub global activate flutterfire_cli`  
+   `dart pub global run flutterfire_cli:flutterfire configure --yes --project=YOUR_PROJECT_ID -o lib/firebase_options.dart --overwrite-firebase-options`  
+   Na Windows przy problemach z PATH użyj pełnej formy `dart pub global run flutterfire_cli:flutterfire …`.
+3. Commituj `firebase_options.dart` i pliki platform (np. `google-services.json`, `GoogleService-Info.plist`) zgodnie z polityką repo — **nie** commituj fikcyjnego plist na iOS.
+4. **iOS:** bez `GoogleService-Info.plist` w Runnerze `Firebase.initializeApp` na urządzeniu może się nie powieść.
 
 ---
 
-## 8. Konfiguracja Firebase (setup deweloperski)
+## 13. Testy (manualne, automatyczne, CI)
 
-1. Utwórz projekt Firebase i włącz:
-   - **Authentication →** E-mail/hasło  
-   - **Firestore**
-   - Opcjonalnie: szablony e-maili (reset hasła)
-
-2. **FlutterFire CLI:**
-   ```bash
-   dart pub global activate flutterfire_cli
-   dart pub global run flutterfire_cli:flutterfire configure --yes --project=YOUR_PROJECT_ID -o lib/firebase_options.dart --overwrite-firebase-options
-   ```
-   Na Windows, jeśli `flutterfire` nie jest w PATH, użyj pełnej formy `dart pub global run flutterfire_cli:flutterfire ...`.
-
-3. W repozytorium zwykle commituje się `lib/firebase_options.dart` oraz pliki wygenerowane dla platform (`google-services.json`, `GoogleService-Info.plist`, itd.) i ewentualnie `firebase.json`.
-
-4. **iOS — `GoogleService-Info.plist`:** jeśli w **`ios/Runner/`** nie ma tego pliku, dodaj aplikację iOS w **Firebase Console**, pobierz plist i umieść go w Runnerze, potem `flutterfire configure` (lub ręcznie). Bez tego `Firebase.initializeApp` na urządzeniu iOS może się nie powieść — **nie commituj** fikcyjnego pliku.
-
-5. **Reguły Firestore:** wgraj **pełny** plik `firestore.rules` z repozytorium — musi zawierać reguły dla **`users/{uid}/workspaces/{...}`** oraz **`users/{uid}/entries/{...}`** (patrz § 4). Sam „allow” tylko na `entries` w konsoli blokuje workspace’y w produkcji.
+- **Manualne:** **[QA_CHECKLIST.md](QA_CHECKLIST.md)** — m.in. auth, zgody, projekty + sharing + indeks work email, timer, offline, widget Android, integracja z panelem (`entries`, `live`).
+- **Automatyczne:** `flutter test` — m.in. migracja wpisów, **`StatsService`**, **`WorkRepository`** / `syncPending` z fałszywym remote, **`TimerCubit`**, kompatybilność wpisów z panelem (`test/work_entry_employer_panel_compat_test.dart`), **`live_status_sync_plan`**, CSV, Auth, **`SettingsCubit`**.
+- **PDF:** brak dedykowanego testu jednostkowego — weryfikacja ręczna z UI eksportu.
+- **GitHub Actions:** `.github/workflows/flutter_ci.yml` — przy push/PR do `main`: `dart format --set-exit-if-changed`, `flutter analyze --no-fatal-infos`, `flutter test`, `flutter build apk --debug`. Build iOS na Ubuntu **nie** jest w workflow (wymaga macOS + certyfikatów).
 
 ---
 
-## 9. Testy manualne
+## 14. Znane ograniczenia
 
-Rozszerzona checklista: **[QA_CHECKLIST.md](QA_CHECKLIST.md)**. Skrót:
-
-- Rejestracja, logowanie, reset hasła.
-- Projekty: tworzenie / edycja / archiwum; przełączanie; rozdzielenie wpisów; timer nie startuje na zarchiwizowanym projekcie.
-- Timer online → wpisy w Firestore z poprawnym `workspaceId`.
-- Historia: dodaj / edytuj / usuń; typ wpisu, eksport CSV i PDF (udostępnianie + zapis lokalny tam, gdzie wspiera platforma).
-- Statystyki: tydzień/miesiąc, filtry projektów, blok rozliczeń.
-- Kalendarz: zmiana miesiąca, wybór dnia.
-- Offline: operacje lokalne → powrót sieci → **syncPending**.
-- Reinstalacja → logowanie → dane z chmury.
-- **Widget Android:** aktualizacja po zmianach; bez logowania — otwarcie aplikacji zamiast startu timera; po zalogowaniu — pełna obsługa.
+- **Android vs iOS:** pełny foreground service tylko na Androidzie; iOS opiera się o Flutter + timestampy + App Group.
+- **macOS / desktop:** brak natywnego widgetu mobilnego; zachowanie `TimerServiceBridge` / `home_widget` zgodnie z warunkami platformy w `TimerCubit`.
+- **Sekundy:** możliwy rozjazd ±1 s między tickiem Kotlina a Flutterem (zaokrąglenia).
+- **Po `stop`:** `refreshStatsEntries` często **`unawaited`**, żeby nie blokować UI — wpis lokalnie od razu, statystyki doganiają async.
+- **Firestore:** dokumenty mogą mieć dodatkowe opcjonalne pola — reguły definiują dozwolony zestaw kluczy przy pełnym replace; merge w kliencie tam, gdzie jest użyty.
 
 ---
 
-## 10. Testy automatyczne
+## 15. Możliwe dalsze prace (techniczne)
 
-W repozytorium znajdują się testy jednostkowe (m.in. migracja wpisów, **StatsService** w tym **`buildBillingEstimate`**, **WorkRepository** / kolejka `syncPending` z fałszywym `WorkRemoteStore` + `OnlineChecker`, **TimerCubit** play/pause/stop na mockowanym repozytorium, **kompatybilność wpisów z panelem** — `test/work_entry_employer_panel_compat_test.dart`, **mapowanie live status** — `test/live_status_sync_plan_test.dart`, eksport **CSV** `workEntriesToCsv` (nagłówek z nowymi kolumnami), mapowanie błędów Auth, **`SettingsCubit`** w tym **debrief**) — uruchomienie: `flutter test`. **PDF** (`buildWorkEntriesPdfDocument`, pakiet **`pdf`**) nie ma osobnego testu jednostkowego; weryfikacja ręczna z menu eksportu w **Historii**.
-
----
-
-## 10a. GitHub Actions (CI)
-
-**Po co:** przy każdym **push** lub **pull requeście** do gałęzi `main` GitHub uruchamia workflow (plik **`.github/workflows/flutter_ci.yml`**) na maszynie w chmurze: `flutter pub get` → **`dart format --set-exit-if-changed .`** → **`flutter analyze --no-fatal-infos`** → **`flutter test`** → **`flutter build apk --debug`** (z przygotowaniem JDK 17 i Android SDK na runnerze). Dzięki temu widać, czy format, analiza, testy i build przechodzą bez uruchamiania lokalnie przed mergem.
-
-**Build iOS** na **Ubuntu** w CI nie jest uruchamiany (wymaga **macOS** i Xcode). Opcjonalny job `macos-latest` + `flutter build ios` można dodać dopiero przy kompletnej konfiguracji certyfikatów i `GoogleService-Info.plist`.
-
-Włącz **Actions** w ustawieniach repozytorium (domyślnie w publicznych repach jest OK). Pierwsze uruchomienie po dodaniu workflowa: zakładka **Actions** w GitHubie.
+- Job CI na **macOS** + `flutter build ios` po przygotowaniu sekretów i plist.
+- Testy jednostkowe / golden dla **PDF**.
+- Rozszerzenie **App Intents** na iOS dla sterowania timerem z widgetu (z zapisem do App Group + reload timeline).
+- Twardsze **metryki** konfliktów `syncPending` (logowanie telemetryczne zamiast `debugPrint`).
+- **Re-consent** przy zmianie `termsVersion` / `privacyVersion` z osobnym UX.
+- Rozdzielenie przestrzeni nazw **`employeeWorkEmailIndex`** przy kolizji dwóch UID na tym samym work email (wymagałoby zmiany kontraktu id dokumentu lub prefiksu).
 
 ---
 
-## 11. Znane założenia / ograniczenia
-
-- **Android:** widget + ForegroundService jak w § 6. **iOS:** timestampy + **WidgetKit** + App Group (§ 6.6) — zachowanie w tle **nie** jest jak pełny serwis pierwszoplanowy na Androidzie.
-- **macOS / desktop:** `TimerServiceBridge` nie wywołuje natywnego widgetu iOS/Android; opcjonalnie **`home_widget`** w ścieżce „innej niż Android/iOS” w **`TimerCubit`** (zgodnie z kodem).
-- Czasy wyświetlane w sekundach mogą różnić się o pojedyncze sekundy w logach Kotlina vs intenty Fluttera (zaokrąglenie sekund w sync).
-- **Timer:** po **`stop`** w **`TimerCubit`** odświeżenie **`statsEntries`** jest **wysyłane w tle** (`unawaited(refreshStatsEntries …))`, żeby UI nie blokowało na syncu Firestore; wpis nadal dopisywany lokalnie od razu.
-- **Modele Firestore:** wpisy i projekty mogą zawierać **dodatkowe opcjonalne pola** (task, notatka, typ wpisu, billable, stawka, waluta itd.) — reguły w **`firestore.rules`** weryfikują minimalny zestaw wymaganych kluczy; merge zapisu używa **`SetOptions(merge: true)`** tam, gdzie implementacja na to pozwala.
-
----
-
-*Ostatnia aktualizacja: § 4b live/status, DATA_CONTRACT / QA_CHECKLIST, testy `live_status_sync_plan`, drobne UX (profil / projekt / offline).*
+*Ostatnia aktualizacja: przebudowa dokumentu (15 sekcji), reguły `trackedWorkspaces`, README jako opis produktu; szczegóły kontraktu danych w DATA_CONTRACT.*

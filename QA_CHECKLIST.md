@@ -36,7 +36,7 @@ Zaznaczaj punkty przy wydaniu / przed demo. Wymaga działającego Firebase, wdro
 - [ ] **Zmiana służbowego e-maila** przy projekcie: stary klucz indeksu traci `workspaceId`, nowy klucz go zyskuje (lub dokument pusty jest usuwany).
 - [ ] **Wyłączenie udostępnienia** (`isSharedWithEmployer` off): w workspace znikają pola sharingu; indeks dla poprzedniego maila nie zawiera już tego `workspaceId` (dokument usunięty, jeśli lista pusta).
 - [ ] **Slug firmy:** pusty slug przy edycji **nie zmienia** losowo istniejącego slug’a (stabilność); ręczna zmiana slug’a zapisuje się poprawnie.
-- [ ] **Interpretacja panelu (poza mobile):** wpis `entries` widoczny dla pracodawcy tylko wtedy, gdy reguły biznesowe wiążą `entry.workspaceId` z workspace’em udostępnionym oraz dopasowanie **służbowego e-maila / domeny** do konta pracodawcy — **trackedEmployeeUids ≠ dostęp do wszystkich wpisów** (patrz **[DATA_CONTRACT.md](DATA_CONTRACT.md)**).
+- [ ] **Interpretacja panelu (poza mobile):** wpis `entries` widoczny w Firestore dla pracodawcy tylko przy **`employerHasTrackedWorkspace`** (dokument **`employers/{employerUid}/trackedWorkspaces/{employeeUid_workspaceId}`**) oraz zgodnym workspace — **`trackedEmployeeUids` samo z siebie nie otwiera wszystkich wpisów** (patrz **[DATA_CONTRACT.md](DATA_CONTRACT.md)** i **[TECHNICAL.md](TECHNICAL.md)** § 12).
 - [ ] Archiwum / przywrócenie projektu; timer **nie** startuje na zarchiwizowanym projekcie (komunikat).
 
 ---
@@ -60,7 +60,7 @@ Zaznaczaj punkty przy wydaniu / przed demo. Wymaga działającego Firebase, wdro
 
 ## Panel pracodawcy (web)
 
-- [ ] Dla śledzonego pracownika: widok **Online / Offline** zgadza się z aplikacją (foreground + idle vs timer w tle — patrz TECHNICAL § 4b).
+- [ ] Dla śledzonego pracownika: widok **Online / Offline** zgadza się z aplikacją (foreground + idle vs timer w tle — patrz TECHNICAL § 9).
 - [ ] Przy **running**: panel pokazuje stan pracy / szacunek zgodny z kontraktem czasu (`sessionStartedAt` + `accumulated…`).
 - [ ] Przy **paused**: brak naliczania bieżącego segmentu; `accumulated…` = pełna suma do pauzy.
 - [ ] Po **stop**: w raporcie panelu / liście wpisów pojawia się nowa sesja z `entries`.
