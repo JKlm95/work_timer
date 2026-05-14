@@ -1,9 +1,5 @@
 rules_version = '2';
 
-// Zunifikowane reguły: mobile (właściciel) + panel pracodawcy (trackedEmployeeUids).
-// Wpisy: pracodawca — create/update wg employerEntry* (brak hard delete); pracownik — pełny kształt + pola audytu z panelu.
-// Deploy: wklej ten plik do Firebase Console → Firestore → Rules.
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -15,14 +11,40 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    function employerTracksUser(userId) {
-      return isSignedIn() &&
-          exists(
-            /databases/$(database)/documents/employers/$(request.auth.uid)/trackedEmployeeUids/$(userId)
-          );
+    function trackedWorkspaceId(employeeUid, workspaceId) {
+      return employeeUid + '_' + workspaceId;
     }
 
-    // Live status + miejsca wymagające wyłącznie int (bez float).
+    function employerTracksUser(userId) {
+      return isSignedIn() &&
+          exists(/databases/$(database)/documents/employers/$(request.auth.uid)/trackedEmployeeUids/$(userId));
+    }
+
+    function employerHasTrackedWorkspace(employeeUid, workspaceId) {
+      return isSignedIn() &&
+          exists(/databases/$(database)/documents/employers/$(request.auth.uid)/trackedWorkspaces/$(trackedWorkspaceId(employeeUid, workspaceId)));
+    }
+
+    function optionalString(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is string;
+    }
+
+    function optionalBool(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is bool;
+    }
+
+    function optionalList(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is list;
+    }
+
+    function optionalNumber(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is number;
+    }
+
+    function optionalTimestamp(data, key) {
+      return !data.keys().hasAny([key]) || data[key] == null || data[key] is timestamp;
+    }
+
     function billingRatePercentOk(data) {
       return !data.keys().hasAny(['billingRatePercent']) ||
           (
@@ -37,7 +59,6 @@ service cloud.firestore {
           );
     }
 
-    // Wpisy czasu: panel może zapisywać też float (50.0 …) — zgodnie z work_timer_employer_panel.
     function billingRatePercentOkEntry(data) {
       return !data.keys().hasAny(['billingRatePercent']) ||
           (
@@ -62,26 +83,12 @@ service cloud.firestore {
           );
     }
 
-    function optionalString(data, key) {
-      return !data.keys().hasAny([key]) || data[key] is string;
-    }
-
-    function optionalBool(data, key) {
-      return !data.keys().hasAny([key]) || data[key] is bool;
-    }
-
-    function optionalList(data, key) {
-      return !data.keys().hasAny([key]) || data[key] is list;
-    }
-
-    function optionalNumber(data, key) {
-      return !data.keys().hasAny([key]) || data[key] is number;
-    }
-
-    function optionalTimestamp(data, key) {
-      return !data.keys().hasAny([key]) ||
-          data[key] == null ||
-          data[key] is timestamp;
+    function optionalEmployerEmailRefsListOk(data) {
+      return !data.keys().hasAny(['linkedEmployerEmails']) ||
+          (
+            data.linkedEmployerEmails is list &&
+            data.linkedEmployerEmails.size() <= 32
+          );
     }
 
     function entryOptionalAuditFieldsOk(data) {
@@ -163,57 +170,19 @@ service cloud.firestore {
           entryOptionalAuditFieldsOk(e);
     }
 
-    function employerEntryCreateValid() {
+    function employerEntryCreateValid(uid) {
       let e = request.resource.data;
       return employerEntryCoreFieldsValid() &&
+          employerHasTrackedWorkspace(uid, e.workspaceId) &&
           e.createdBy == request.auth.uid &&
           e.createdVia == 'employer_panel';
     }
 
-    function employerEntryUpdateValid() {
+    function employerEntryUpdateValid(uid) {
+      let e = request.resource.data;
       return employerEntryCoreFieldsValid() &&
-          (!('editedBy' in request.resource.data) ||
-              request.resource.data.editedBy == request.auth.uid);
-    }
-
-    function optionalEmployerEmailRefsListOk(data) {
-      return !data.keys().hasAny(['linkedEmployerEmails']) ||
-          (
-            data.linkedEmployerEmails is list &&
-            data.linkedEmployerEmails.size() <= 32
-          );
-    }
-
-    function hasValidEmployeeWorkEmailIndexShape(data, docId) {
-      return data.keys().hasOnly([
-            'uid',
-            'workEmailLower',
-            'domain',
-            'workspaceIds',
-            'updatedAt'
-          ]) &&
-          data.keys().hasAll([
-            'uid',
-            'workEmailLower',
-            'domain',
-            'workspaceIds',
-            'updatedAt'
-          ]) &&
-          data.uid is string &&
-          data.uid == request.auth.uid &&
-          data.uid.size() > 0 &&
-          data.uid.size() <= 128 &&
-          data.workEmailLower is string &&
-          data.workEmailLower == docId &&
-          data.workEmailLower.size() > 0 &&
-          data.workEmailLower.size() <= 254 &&
-          data.domain is string &&
-          data.domain.size() > 0 &&
-          data.domain.size() <= 253 &&
-          data.workspaceIds is list &&
-          data.workspaceIds.size() > 0 &&
-          data.workspaceIds.size() <= 64 &&
-          data.updatedAt is timestamp;
+          employerHasTrackedWorkspace(uid, e.workspaceId) &&
+          (!('editedBy' in e) || e.editedBy == request.auth.uid);
     }
 
     function hasValidWorkspaceShape(data) {
@@ -238,8 +207,6 @@ service cloud.firestore {
             'currencyCode',
             'isSharedWithEmployer',
             'linkedEmployerEmails',
-
-            // legacy fields — tolerated for old documents / old clients
             'employeeFirstName',
             'employeeLastName'
           ]) &&
@@ -281,6 +248,45 @@ service cloud.firestore {
             !request.resource.data.keys().hasAny(['currencyCode']) ||
             request.resource.data.currencyCode in ['PLN', 'EUR', 'USD', 'GBP']
           );
+    }
+
+    function workspaceIsSharedForEmployer(uid, workspaceId) {
+      return exists(/databases/$(database)/documents/users/$(uid)/workspaces/$(workspaceId)) &&
+          get(/databases/$(database)/documents/users/$(uid)/workspaces/$(workspaceId)).data.isSharedWithEmployer == true;
+    }
+
+    function hasValidTrackedWorkspaceShape(data, accessId) {
+      return data.keys().hasAll([
+            'employeeUid',
+            'workspaceId',
+            'createdAt',
+            'updatedAt'
+          ]) &&
+          data.keys().hasOnly([
+            'employeeUid',
+            'workspaceId',
+            'employeeEmailLower',
+            'employeeWorkEmailLower',
+            'employeeWorkEmailDomain',
+            'companyName',
+            'companySlug',
+            'workspaceName',
+            'createdAt',
+            'updatedAt'
+          ]) &&
+          data.employeeUid is string &&
+          data.workspaceId is string &&
+          accessId == trackedWorkspaceId(data.employeeUid, data.workspaceId) &&
+          data.createdAt is timestamp &&
+          data.updatedAt is timestamp &&
+          optionalString(data, 'employeeEmailLower') &&
+          optionalString(data, 'employeeWorkEmailLower') &&
+          optionalString(data, 'employeeWorkEmailDomain') &&
+          optionalString(data, 'companyName') &&
+          optionalString(data, 'companySlug') &&
+          optionalString(data, 'workspaceName') &&
+          employerTracksUser(data.employeeUid) &&
+          workspaceIsSharedForEmployer(data.employeeUid, data.workspaceId);
     }
 
     function hasValidLiveStatusShape(data, uid) {
@@ -356,6 +362,38 @@ service cloud.firestore {
           optionalList(data, 'providerIds');
     }
 
+    function hasValidEmployeeWorkEmailIndexShape(data, docId) {
+      return data.keys().hasOnly([
+            'uid',
+            'workEmailLower',
+            'domain',
+            'workspaceIds',
+            'updatedAt'
+          ]) &&
+          data.keys().hasAll([
+            'uid',
+            'workEmailLower',
+            'domain',
+            'workspaceIds',
+            'updatedAt'
+          ]) &&
+          data.uid is string &&
+          data.uid == request.auth.uid &&
+          data.uid.size() > 0 &&
+          data.uid.size() <= 128 &&
+          data.workEmailLower is string &&
+          data.workEmailLower == docId &&
+          data.workEmailLower.size() > 0 &&
+          data.workEmailLower.size() <= 254 &&
+          data.domain is string &&
+          data.domain.size() > 0 &&
+          data.domain.size() <= 253 &&
+          data.workspaceIds is list &&
+          data.workspaceIds.size() > 0 &&
+          data.workspaceIds.size() <= 64 &&
+          data.updatedAt is timestamp;
+    }
+
     function hasValidUserProfileMainShape(data) {
       return data.keys().hasAll([
             'firstName',
@@ -426,12 +464,17 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /users/{uid}/legal/{docId} {
+      allow read: if isOwner(uid) && docId == 'consents';
+
+      allow create, update: if isOwner(uid) &&
+          docId == 'consents' &&
+          hasValidLegalConsentsShape(request.resource.data);
+
+      allow delete: if false;
+    }
+
     match /userEmailIndex/{emailLower} {
-      /*
-        Client-only MVP compromise:
-        Employer panel needs to search employee by email before trackedEmployeeUids exists.
-        True production hardening would move lookup to Cloud Functions or split public/private index.
-      */
       allow read: if isSignedIn();
 
       allow create, update: if isSignedIn() &&
@@ -460,35 +503,35 @@ service cloud.firestore {
     }
 
     match /users/{uid}/entries/{entryId} {
-      allow read: if isOwner(uid) || employerTracksUser(uid);
+      allow read: if isOwner(uid) ||
+          (
+            isSignedIn() &&
+            resource.data.workspaceId is string &&
+            employerHasTrackedWorkspace(uid, resource.data.workspaceId)
+          );
 
       allow create: if (isOwner(uid) && hasValidEntryShape(request.resource.data)) ||
-          (employerTracksUser(uid) && employerEntryCreateValid());
+          (employerEntryCreateValid(uid));
 
       allow update: if (isOwner(uid) && hasValidEntryShape(request.resource.data)) ||
-          (employerTracksUser(uid) && employerEntryUpdateValid());
+          (employerEntryUpdateValid(uid));
 
       allow delete: if false;
     }
 
     match /users/{uid}/workspaces/{workspaceId} {
-      allow read: if isOwner(uid) || employerTracksUser(uid);
+      allow read: if isOwner(uid) ||
+          employerHasTrackedWorkspace(uid, workspaceId) ||
+          (
+            employerTracksUser(uid) &&
+            resource.data.isSharedWithEmployer == true
+          );
 
       allow create, update: if isOwner(uid) &&
           hasValidWorkspaceShape(request.resource.data);
 
-      allow update: if employerTracksUser(uid) &&
+      allow update: if employerHasTrackedWorkspace(uid, workspaceId) &&
           hasValidWorkspaceBillingPatch();
-
-      allow delete: if false;
-    }
-
-    match /users/{uid}/legal/{docId} {
-      allow read: if isOwner(uid) && docId == 'consents';
-
-      allow create, update: if isOwner(uid) &&
-          docId == 'consents' &&
-          hasValidLegalConsentsShape(request.resource.data);
 
       allow delete: if false;
     }
@@ -499,6 +542,15 @@ service cloud.firestore {
 
     match /employers/{employerUid}/trackedEmployeeUids/{employeeUid} {
       allow read, write: if isOwner(employerUid);
+    }
+
+    match /employers/{employerUid}/trackedWorkspaces/{accessId} {
+      allow read: if isOwner(employerUid);
+
+      allow create, update: if isOwner(employerUid) &&
+          hasValidTrackedWorkspaceShape(request.resource.data, accessId);
+
+      allow delete: if isOwner(employerUid);
     }
 
     match /employers/{employerUid}/groups/{groupId} {
